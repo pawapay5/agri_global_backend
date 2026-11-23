@@ -23,6 +23,20 @@ import { InsightsModule } from "./modules/insights/insights.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PricesModule } from "./modules/prices/prices.module";
 import { UsersModule } from "./modules/users/users.module";
+import { AdminModule } from "./modules/admin/admin.module";
+import { BillingModule, EntitlementGuard } from "./modules/billing/billing.module";
+import { CommunityModule } from "./modules/community/community.module";
+import { ContentModule } from "./modules/content/content.module";
+import { MarketplaceModule } from "./modules/marketplace/marketplace.module";
+import { MessagingModule } from "./modules/messaging/messaging.module";
+import { LedgerModule } from "./modules/payments/ledger.service";
+import { PaymentsModule } from "./modules/payments/payments.module";
+import { PublicDataModule } from "./modules/public-data/public-data.module";
+import { ReportsModule } from "./modules/reports/reports.module";
+import { SmsModule } from "./modules/sms/sms.module";
+import { MediaModule } from "./modules/uploads/media.service";
+import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
+import { SellerAnalyticsModule } from "./modules/seller-analytics/seller-analytics.module";
 
 @Global()
 @Module({ providers: [{ provide: APP_CONFIG, useFactory: () => loadConfig() }], exports: [APP_CONFIG] })
@@ -38,13 +52,17 @@ class ConfigModule {}
         storage: new ThrottlerStorageRedisService(redis),
       }),
     }),
+    MediaModule, LedgerModule, BillingModule,
     HealthModule, AuthModule, UsersModule, GeoModule, CatalogueModule, PricesModule, ForecastsModule, InsightsModule, AlertsModule, NotificationsModule,
+    ReportsModule, ContentModule, AdminModule, PublicDataModule, SmsModule, MessagingModule, MarketplaceModule, PaymentsModule, CommunityModule,
+    KnowledgeModule, SellerAnalyticsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: EntitlementGuard },
   ],
 })
 export class AppModule implements NestModule {

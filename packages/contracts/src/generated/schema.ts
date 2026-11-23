@@ -1159,6 +1159,1768 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["reports_list"];
+        put?: never;
+        /** Queue a report (crop_price, market_analysis, forecast, regional, custom) as PDF, XLSX or CSV. */
+        post: operations["reports_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Job status. When it has succeeded, includes a 24-hour signed download URL and a short link. */
+        get: operations["reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/s/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shareable short link. Redirects to a fresh signed URL or the target resource. */
+        get: operations["short_link_resolve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["billing_plans_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["billing_subscription_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a web or mobile-money subscription checkout (Paystack, Flutterwave or Stripe). App-store purchases go through RevenueCat. */
+        post: operations["billing_checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel at period end (web subscriptions; app-store subscriptions are managed in the store). */
+        post: operations["billing_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/billing/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscription webhooks. The signature is verified per provider and processing is idempotent on the event id. */
+        post: operations["billing_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content/stories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_stories_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content/faqs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_faqs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_articles_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content/articles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["content_articles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** About/impact statistics, computed from live data (cached). */
+        get: operations["content_impact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/app-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minimum app versions and feature flags (country overrides global). */
+        get: operations["content_app_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["support_tickets_list"];
+        put?: never;
+        post: operations["support_tickets_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["support_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["support_tickets_reply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/chat-handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand the user over to a human agent. Creates a ticket and notifies the helpdesk by webhook. */
+        post: operations["support_chat_handoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["support_feedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/support/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["support_issue_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tables/{table}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Generic RBAC-protected CRUD over allow-listed catalogue/content tables. */
+        get: operations["admin_table_list"];
+        put?: never;
+        post: operations["admin_table_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tables/{table}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["admin_table_delete"];
+        options?: never;
+        head?: never;
+        patch: operations["admin_table_update"];
+        trace?: never;
+    };
+    "/v1/admin/country-packs/{iso2}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a country's pack configuration (currency, locales, units, brand, config flags, active). */
+        patch: operations["admin_country_pack_update"];
+        trace?: never;
+    };
+    "/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_users_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["admin_users_update"];
+        trace?: never;
+    };
+    "/v1/admin/broadcasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Broadcast a notification to an audience (country, role, region, commodity interest). */
+        post: operations["admin_broadcast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model dashboard (versions, global backtest metrics, worst series). */
+        get: operations["admin_models"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_audit_log"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_moderation_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/moderation/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["admin_moderation_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_disputes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/disputes/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["admin_dispute_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_payouts_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payouts/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["admin_payout_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_reconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_keys_list"];
+        put?: never;
+        /** Create a key. The secret is returned once. */
+        post: operations["api_keys_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["api_keys_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["public_markets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/commodities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["public_commodities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily aggregated prices (per kg, local currency and USD) for research and partner use. */
+        get: operations["public_prices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/forecasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["public_forecasts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/sms/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inbound SMS commands: PRICE <crop> [market], ALERT <crop> BELOW|ABOVE <amount> [market], STOP, HELP. Replies in the user's language. */
+        post: operations["sms_inbound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/ussd/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** USSD menu session (CON = continue, END = final), backed by the same command engine. */
+        post: operations["ussd_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["messaging_conversations_list"];
+        put?: never;
+        /** Start (or reuse) a 1:1 conversation, optionally tied to a listing or order. */
+        post: operations["messaging_conversations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["messaging_messages_list"];
+        put?: never;
+        /** REST fallback for sending. Realtime clients emit `message:send` on /v1/realtime. */
+        post: operations["messaging_messages_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["messaging_mark_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/conversations/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["messaging_image_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["messaging_block"];
+        delete: operations["messaging_unblock"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/moderation/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report a listing, message, post, comment, user or price for review. */
+        post: operations["moderation_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/seller-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_seller_me_get"];
+        put: operations["market_seller_me_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/seller-profile/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit KYC (Ghana Card / national ID number and selfie). Verification is delegated to the KYC provider and the result arrives by webhook. */
+        post: operations["market_seller_kyc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** KYC provider result callback (secret URL token). */
+        post: operations["kyc_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/sellers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_seller_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/sellers/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_seller_reviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_listings_search"];
+        put?: never;
+        post: operations["market_listings_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_listings_mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit, publish (status=active) or remove (status=removed). */
+        patch: operations["market_listings_update"];
+        trace?: never;
+    };
+    "/v1/marketplace/listings/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Up to 5 photos. Each is virus-scanned, EXIF-stripped and resized into variants. */
+        post: operations["market_listing_photo_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings/{id}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["market_listing_photo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings/{id}/favourite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["market_favourite_add"];
+        delete: operations["market_favourite_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/favourites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_favourites_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/listings/{id}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["market_offer_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_offers_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/offers/{id}/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["market_offer_respond"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/cart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_cart_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/cart/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["market_cart_upsert"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/cart/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["market_cart_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split the cart into one order per seller, with delivery fees and commission. Orders start as pending_payment. */
+        post: operations["market_checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_orders_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/orders/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the order through its state machine: accept, ship, deliver, confirm, collect_cash, cancel or dispute. */
+        post: operations["market_orders_transition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/marketplace/orders/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave a review. Only the buyer can, and only on a completed order. */
+        post: operations["market_orders_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/disputes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["disputes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/disputes/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disputes_evidence_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/orders/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Collect payment for an order through the PSP (MoMo prompt, card checkout or saved token). */
+        post: operations["payments_pay_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments_methods_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/methods/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["payments_methods_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/payments/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** PSP webhooks (Paystack, Flutterwave, Hubtel). The signature is verified, processing is idempotent, and the result is posted to the ledger. */
+        post: operations["payments_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["wallet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/wallet/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["wallet_ledger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/wallet/payout-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["wallet_payout_accounts_list"];
+        put?: never;
+        /** Register a MoMo or bank payout account. Validated with the PSP and stored as a recipient token. */
+        post: operations["wallet_payout_accounts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/wallet/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["wallet_payouts_list"];
+        put?: never;
+        post: operations["wallet_payouts_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["community_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a post. A price_update post also creates a crowd price observation that goes to review. */
+        post: operations["community_posts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["community_posts_get"];
+        put?: never;
+        post?: never;
+        delete: operations["community_posts_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["community_post_photo_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["community_comments_list"];
+        put?: never;
+        post: operations["community_comments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}/reaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["community_react"];
+        post?: never;
+        delete: operations["community_unreact"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["community_share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/posts/{id}/accept-answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["community_accept_answer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["community_profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/community/users/{id}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["community_follow"];
+        delete: operations["community_unfollow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/crop-guides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_crop_guides_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/crop-guides/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_crop_guides_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/pests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_pests_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/pests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_pests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/fertiliser/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fertiliser plan from an agronomist-reviewed rule for the crop, country and area, always shown with a safety note. */
+        post: operations["knowledge_fertiliser_calculate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/programmes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_programmes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_training_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_suppliers_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/knowledge/{table}/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agronomist sign-off. Editing a reviewed item clears the sign-off, and fertiliser rules go back to draft. */
+        post: operations["admin_knowledge_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/knowledge/{table}/{id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admin_knowledge_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seller/analytics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seller_analytics_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seller/analytics/timeseries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seller_analytics_timeseries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/seller/analytics/top-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["seller_analytics_top_products"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-intel/demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_intel_demand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/market-intel/supply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["market_intel_supply"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/forecasts/refreshed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Called by the nightly ML flow after writing forecasts. Warms caches and triggers the alert evaluator. */
+        post: operations["internal_forecasts_refreshed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1203,7 +2965,7 @@ export interface components {
          */
         PriceType: "retail" | "wholesale" | "farm_gate";
         /** @enum {string} */
-        Role: "farmer" | "trader" | "consumer" | "researcher" | "student" | "policymaker" | "enumerator" | "admin" | "org_admin";
+        Role: "farmer" | "trader" | "consumer" | "researcher" | "student" | "policymaker" | "enumerator" | "agronomist" | "admin" | "org_admin";
         /** @enum {string} */
         Channel: "push" | "email" | "sms" | "whatsapp" | "in_app";
         /** @enum {string} */
@@ -1786,21 +3548,37 @@ export interface components {
         ForecastHorizon: {
             /** @enum {integer} */
             horizonMonths: 1 | 3 | 6;
+            /** @enum {string} */
+            status: "available" | "insufficient_data";
+            /**
+             * @description Why this horizon is withheld
+             * @enum {string|null}
+             */
+            reason?: "backtest_mape_above_25" | null;
             /** Format: date */
             targetDate: string;
-            p10: components["schemas"]["Decimal"];
-            p50: components["schemas"]["Decimal"];
-            p90: components["schemas"]["Decimal"];
+            p10: null | string;
+            p50: null | string;
+            p90: null | string;
             changePctVsLatest?: null | number;
             /** @description Mean absolute % error of this series at this horizon in walk-forward backtest */
             backtestMape?: null | number;
             /** @description (p90 - p10) / p50 × 100 */
-            intervalWidthPct?: number;
-            confidence: components["schemas"]["ConfidenceLabel"];
+            intervalWidthPct?: null | number;
+            confidence: components["schemas"]["ConfidenceLabel"] | null;
         };
         Forecast: {
+            /**
+             * @description insufficient_data is returned instead of a forecast when guardrails fail
+             * @enum {string}
+             */
+            status: "available" | "insufficient_data";
+            reasons?: ("no_forecast" | "insufficient_history" | "stale_data" | "backtest_mape_above_25")[];
+            historyWeeks?: null | number;
+            /** Format: date */
+            lastObservedAt?: null | string;
             /** Format: uuid */
-            id: string;
+            id?: string | null;
             /** Format: uuid */
             commodityId: string;
             /** Format: uuid */
@@ -1808,13 +3586,13 @@ export interface components {
             /** Format: uuid */
             regionId?: string | null;
             priceType: components["schemas"]["PriceType"];
-            modelVersion: string;
+            modelVersion?: string;
             /** Format: date-time */
-            generatedAt: string;
+            generatedAt?: string;
             /** Format: date */
             asOfDate?: string;
-            currency: string;
-            unit: string;
+            currency?: string;
+            unit?: string;
             latestActual?: null | string;
             horizons: components["schemas"]["ForecastHorizon"][];
         };
@@ -2105,6 +3883,1028 @@ export interface components {
             } | null;
             whatsappNumber?: string | null;
         };
+        IdOnly: {
+            /** Format: uuid */
+            id: string;
+        };
+        TextBody: {
+            body: string;
+        };
+        RowPage: {
+            data: {
+                [key: string]: unknown;
+            }[];
+            nextCursor?: string | null;
+        };
+        Photo: {
+            /** Format: uuid */
+            id: string;
+            position?: number;
+            width?: number;
+            height?: number;
+            urls: {
+                thumb?: string;
+                medium?: string;
+                large?: string;
+            };
+        };
+        ReportCreate: {
+            /** @enum {string} */
+            type: "crop_price" | "market_analysis" | "forecast" | "regional" | "custom" | "seller_performance";
+            /** @enum {string} */
+            format: "pdf" | "xlsx" | "csv";
+            country: string;
+            commodityIds?: string[];
+            marketIds?: string[];
+            regionIds?: string[];
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            priceType?: components["schemas"]["PriceType"];
+            currency?: string;
+            unit?: string;
+            /** @description For custom reports */
+            sections?: ("summary" | "history" | "comparison" | "regional" | "seasonal" | "forecast" | "explanations")[];
+        };
+        ReportJob: {
+            /** Format: uuid */
+            id: string;
+            type: string;
+            format: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "succeeded" | "failed";
+            params?: {
+                [key: string]: unknown;
+            };
+            /** @description Signed URL valid for 24 hours */
+            downloadUrl?: string | null;
+            /** Format: date-time */
+            downloadUrlExpiresAt?: string | null;
+            shortUrl?: string | null;
+            bytes?: number | null;
+            error?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt?: string | null;
+        };
+        ReportJobPage: {
+            data: components["schemas"]["ReportJob"][];
+            nextCursor?: string | null;
+        };
+        Plan: {
+            /** @enum {string} */
+            code: "free" | "premium" | "organisation";
+            name: components["schemas"]["LocalizedText"];
+            prices?: {
+                [key: string]: {
+                    monthly?: string;
+                    yearly?: string;
+                };
+            };
+            entitlements: components["schemas"]["Entitlements"];
+        };
+        Entitlements: {
+            forecast_horizons?: number[];
+            alerts_max?: number;
+            alert_channels?: string[];
+            reports_per_month?: number;
+            report_formats?: string[];
+            history_range?: string[];
+            export_insights?: boolean;
+            recommendations?: boolean;
+            api_daily_quota?: number;
+            api_keys_max?: number;
+            seats?: number;
+        };
+        BillingStatus: {
+            /** @enum {string} */
+            plan: "free" | "premium" | "organisation";
+            /** @enum {string} */
+            source?: "personal" | "organisation" | "none";
+            subscription?: {
+                /** Format: uuid */
+                id?: string;
+                provider?: string;
+                status?: string;
+                /** Format: date-time */
+                currentPeriodEnd?: string | null;
+                cancelAtPeriodEnd?: boolean;
+            } | null;
+            entitlements: components["schemas"]["Entitlements"];
+        };
+        BillingCheckout: {
+            /** @enum {string} */
+            plan: "premium" | "organisation";
+            /** @enum {string} */
+            interval: "monthly" | "yearly";
+            /** @enum {string} */
+            provider: "paystack" | "flutterwave" | "stripe";
+            currency?: string;
+            /** Format: uuid */
+            organisationId?: string;
+            /** Format: uri */
+            returnUrl?: string;
+        };
+        CheckoutSession: {
+            provider: string;
+            reference: string;
+            authorizationUrl: string;
+        };
+        Story: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            body?: string;
+            personName?: string | null;
+            personRole?: string | null;
+            imageUrl?: string | null;
+            /** Format: date-time */
+            publishedAt?: string;
+        };
+        Faq: {
+            /** Format: uuid */
+            id?: string;
+            category?: string;
+            question?: string;
+            answer?: string;
+        };
+        Article: {
+            slug?: string;
+            title?: string;
+            /** @description Markdown (detail endpoint only) */
+            body?: string;
+            tags?: string[];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ImpactStats: {
+            countries?: number;
+            markets?: number;
+            commodities?: number;
+            priceRecords?: number;
+            users?: number;
+            farmers?: number;
+            crowdContributors30d?: number;
+            alertsDelivered30d?: number;
+            forecastSeries?: number;
+            medianForecastMape1m?: null | number;
+            /** Format: date-time */
+            computedAt?: string;
+        };
+        AppConfig: {
+            minVersion: {
+                [key: string]: string;
+            };
+            latestVersion?: {
+                [key: string]: string;
+            };
+            flags: {
+                [key: string]: unknown;
+            };
+        };
+        TicketCreate: {
+            /** @enum {string} */
+            category: "account" | "prices" | "payments" | "marketplace" | "technical" | "other";
+            subject: string;
+            body: string;
+            /** Format: uuid */
+            orderId?: string;
+        };
+        Ticket: {
+            /** Format: uuid */
+            id?: string;
+            category?: string;
+            subject?: string;
+            /** @enum {string} */
+            status?: "open" | "pending" | "resolved" | "closed";
+            priority?: string;
+            messages?: {
+                id?: string;
+                body?: string;
+                fromStaff?: boolean;
+                /** Format: date-time */
+                createdAt?: string;
+            }[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ChatHandoff: {
+            summary: string;
+            transcript?: {
+                role?: string;
+                text?: string;
+            }[];
+            category?: string;
+        };
+        FeedbackCreate: {
+            rating?: number;
+            comment?: string;
+            context?: {
+                [key: string]: unknown;
+            };
+        };
+        IssueCreate: {
+            /** @enum {string} */
+            kind: "bug" | "wrong_price" | "wrong_market" | "crash" | "other";
+            description: string;
+            screen?: string;
+            appVersion?: string;
+            device?: {
+                [key: string]: unknown;
+            };
+        };
+        AdminUserUpdate: {
+            role?: components["schemas"]["Role"];
+            /** Format: uuid */
+            organisationId?: string | null;
+            suspended?: boolean;
+            reason?: string;
+        };
+        Broadcast: {
+            country: string;
+            roles?: components["schemas"]["Role"][];
+            regionIds?: string[];
+            commodityIds?: string[];
+            category: components["schemas"]["NotificationCategory"];
+            title: string;
+            body: string;
+            channels?: components["schemas"]["Channel"][];
+        };
+        /** @enum {string} */
+        ModerationTarget: "listing" | "message" | "post" | "comment" | "user" | "price";
+        ModerationDecision: {
+            /** @enum {string} */
+            action: "none" | "hide" | "remove" | "warn_user" | "suspend_user";
+            note?: string;
+        };
+        DisputeDecision: {
+            /** @enum {string} */
+            outcome: "release_seller" | "refund_buyer" | "split";
+            refundAmount?: components["schemas"]["Decimal"];
+            note?: string;
+        };
+        ApiKey: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            prefix?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            lastUsedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            dailyQuota?: number;
+            usedToday?: number;
+        };
+        ApiKeyCreated: components["schemas"]["ApiKey"] & {
+            /** @description Shown once. Send as the X-API-Key header. */
+            secret: string;
+        };
+        PublicPricePage: {
+            data: {
+                /** Format: date */
+                date?: string;
+                /** Format: uuid */
+                marketId?: string;
+                /** Format: uuid */
+                commodityId?: string;
+                priceType?: string;
+                currency?: string;
+                avgPerKgLocal?: components["schemas"]["Decimal"];
+                minPerKgLocal?: components["schemas"]["Decimal"];
+                maxPerKgLocal?: components["schemas"]["Decimal"];
+                avgPerKgUsd?: components["schemas"]["Decimal"];
+                observations?: number;
+            }[];
+            nextCursor?: string | null;
+            licence?: string;
+        };
+        ConversationCreate: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            listingId?: string;
+            /** Format: uuid */
+            orderId?: string;
+        };
+        Conversation: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            listingId?: string | null;
+            /** Format: uuid */
+            orderId?: string | null;
+            members?: {
+                userId?: string;
+                name?: string | null;
+                online?: boolean;
+                lastReadAt?: string | null;
+            }[];
+            lastMessage?: components["schemas"]["Message"] | null;
+            unread?: number;
+            /** Format: date-time */
+            lastMessageAt?: string | null;
+        };
+        ConversationPage: {
+            data: components["schemas"]["Conversation"][];
+            nextCursor?: string | null;
+        };
+        MessageSend: {
+            /** @enum {string} */
+            kind: "text" | "offer";
+            body?: string;
+            offer?: components["schemas"]["OfferCreate"];
+            /** @description Client-generated id; resending the same id is idempotent */
+            clientId?: string;
+        };
+        Message: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            conversationId?: string;
+            /** Format: uuid */
+            senderId?: string | null;
+            /** @enum {string} */
+            kind?: "text" | "image" | "offer" | "system";
+            body?: string | null;
+            payload?: {
+                [key: string]: unknown;
+            };
+            flags?: string[];
+            /** @description Safety banner shown with flagged messages */
+            warning?: string | null;
+            clientId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        MessagePage: {
+            data: components["schemas"]["Message"][];
+            nextCursor?: string | null;
+        };
+        AbuseReport: {
+            targetType: components["schemas"]["ModerationTarget"];
+            /** Format: uuid */
+            targetId: string;
+            /** @enum {string} */
+            reason: "scam" | "spam" | "harassment" | "inappropriate" | "wrong_price" | "counterfeit" | "other";
+            details?: string;
+        };
+        SellerProfileUpdate: {
+            displayName: string;
+            bio?: string;
+            /** Format: uuid */
+            regionId?: string;
+            location?: components["schemas"]["GeoPoint"];
+            deliverySettings?: {
+                [key: string]: unknown;
+            };
+        };
+        SellerProfile: {
+            /** Format: uuid */
+            userId?: string;
+            displayName?: string;
+            bio?: string | null;
+            country?: string;
+            /** Format: uuid */
+            regionId?: string | null;
+            verified?: boolean;
+            /**
+             * @description Only visible to the owner
+             * @enum {string}
+             */
+            kycStatus?: "none" | "pending" | "verified" | "rejected";
+            rating?: null | number;
+            ratingCount?: number;
+            responseTimeMins?: null | number;
+            deliverySettings?: {
+                [key: string]: unknown;
+            };
+            activeListings?: number;
+        };
+        /** @enum {string} */
+        ListingStatus: "draft" | "active" | "low_stock" | "sold_out" | "removed";
+        ListingCreate: {
+            /** @enum {string} */
+            type: "product" | "service";
+            /** @enum {string} */
+            serviceKind?: "transport" | "storage" | "input_supply";
+            /** Format: uuid */
+            categoryId?: string;
+            /** Format: uuid */
+            commodityId?: string;
+            title: string;
+            description?: string;
+            pricePerUnit: components["schemas"]["Decimal"];
+            currency: string;
+            unit: string;
+            quantity: components["schemas"]["Decimal"];
+            minOrderQty?: components["schemas"]["Decimal"];
+            lowStockThreshold?: components["schemas"]["Decimal"];
+            /** @enum {string} */
+            qualityGrade?: "A" | "B" | "C" | "ungraded";
+            /** Format: date */
+            harvestDate?: string;
+            /** Format: uuid */
+            regionId?: string;
+            location?: components["schemas"]["GeoPoint"];
+        };
+        ListingUpdate: {
+            title?: string;
+            description?: string;
+            pricePerUnit?: components["schemas"]["Decimal"];
+            quantity?: components["schemas"]["Decimal"];
+            minOrderQty?: components["schemas"]["Decimal"];
+            lowStockThreshold?: components["schemas"]["Decimal"];
+            /** @enum {string} */
+            qualityGrade?: "A" | "B" | "C" | "ungraded";
+            /** Format: date */
+            harvestDate?: string;
+            /** @enum {string} */
+            status?: "draft" | "active" | "removed";
+        };
+        Listing: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            sellerId?: string;
+            seller?: {
+                displayName?: string;
+                verified?: boolean;
+                rating?: null | number;
+                responseTimeMins?: null | number;
+            };
+            type?: string;
+            serviceKind?: string | null;
+            /** Format: uuid */
+            categoryId?: string | null;
+            /** Format: uuid */
+            commodityId?: string | null;
+            title?: string;
+            description?: string | null;
+            pricePerUnit?: components["schemas"]["Decimal"];
+            currency?: string;
+            unit?: string;
+            quantity?: components["schemas"]["Decimal"];
+            minOrderQty?: components["schemas"]["Decimal"];
+            qualityGrade?: string | null;
+            /** Format: date */
+            harvestDate?: string | null;
+            /** Format: uuid */
+            regionId?: string | null;
+            location?: components["schemas"]["GeoPoint"] | null;
+            distanceKm?: null | number;
+            status?: components["schemas"]["ListingStatus"];
+            /** @enum {string|null} */
+            priceFlag?: "far_above_market" | "far_below_market" | null;
+            /** @description vs. 30-day regional (else national) market average */
+            priceDeviationPct?: null | number;
+            photos?: components["schemas"]["Photo"][];
+            favourite?: boolean;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ListingPage: {
+            data: components["schemas"]["Listing"][];
+            nextCursor?: string | null;
+        };
+        OfferCreate: {
+            quantity: components["schemas"]["Decimal"];
+            pricePerUnit: components["schemas"]["Decimal"];
+            /**
+             * Format: uuid
+             * @description Required when sent as a chat message
+             */
+            listingId?: string;
+        };
+        OfferResponse: {
+            /** @enum {string} */
+            action: "accept" | "reject" | "counter" | "withdraw";
+            pricePerUnit?: components["schemas"]["Decimal"];
+            quantity?: components["schemas"]["Decimal"];
+        };
+        Offer: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            listingId?: string;
+            /** Format: uuid */
+            buyerId?: string;
+            /** Format: uuid */
+            sellerId?: string;
+            /** Format: uuid */
+            fromUserId?: string;
+            /** Format: uuid */
+            parentId?: string | null;
+            quantity?: components["schemas"]["Decimal"];
+            pricePerUnit?: components["schemas"]["Decimal"];
+            status?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CartItemUpsert: {
+            /** Format: uuid */
+            listingId: string;
+            quantity: components["schemas"]["Decimal"];
+            /** Format: uuid */
+            offerId?: string;
+        };
+        Cart: {
+            groups?: {
+                /** Format: uuid */
+                sellerId?: string;
+                sellerName?: string;
+                currency?: string;
+                subtotal?: components["schemas"]["Decimal"];
+                deliveryOptions?: {
+                    option?: string;
+                    fee?: string;
+                    days?: number;
+                }[];
+                items?: {
+                    [key: string]: unknown;
+                }[];
+            }[];
+            problems?: {
+                listingId?: string;
+                code?: string;
+            }[];
+        };
+        CheckoutRequest: {
+            /** @enum {string} */
+            paymentMethod: "momo" | "card" | "pay_on_delivery";
+            /** @description Delivery option per seller */
+            delivery: {
+                /** Format: uuid */
+                sellerId: string;
+                /** @enum {string} */
+                option: "pickup" | "standard" | "express";
+            }[];
+            address?: {
+                line1?: string;
+                town?: string;
+                /** Format: uuid */
+                regionId?: string;
+                phone?: string;
+                point?: components["schemas"]["GeoPoint"];
+            };
+        };
+        CheckoutResult: {
+            /** Format: uuid */
+            checkoutId?: string;
+            total?: components["schemas"]["Decimal"];
+            currency?: string;
+            orders?: components["schemas"]["Order"][];
+        };
+        /** @enum {string} */
+        OrderStatus: "pending_payment" | "paid_in_escrow" | "accepted" | "in_transit" | "delivered" | "completed" | "cancelled" | "disputed" | "refunded";
+        Order: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            checkoutId?: string;
+            /** Format: uuid */
+            buyerId?: string;
+            /** Format: uuid */
+            sellerId?: string;
+            status?: components["schemas"]["OrderStatus"];
+            currency?: string;
+            subtotal?: components["schemas"]["Decimal"];
+            deliveryFee?: components["schemas"]["Decimal"];
+            /** @description Visible to the seller and admins */
+            commission?: components["schemas"]["Decimal"];
+            total?: components["schemas"]["Decimal"];
+            paymentMethod?: string;
+            deliveryOption?: string;
+            /** Format: date-time */
+            stateDeadlineAt?: string | null;
+            /** @description Actions the caller may take now */
+            allowedActions?: string[];
+            items?: {
+                [key: string]: unknown;
+            }[];
+            events?: {
+                [key: string]: unknown;
+            }[];
+            /** Format: uuid */
+            disputeId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        OrderPage: {
+            data: components["schemas"]["Order"][];
+            nextCursor?: string | null;
+        };
+        OrderTransition: {
+            /** @enum {string} */
+            action: "accept" | "ship" | "deliver" | "confirm" | "collect_cash" | "cancel" | "dispute";
+            reason?: string;
+            /** @enum {string} */
+            disputeReason?: "not_received" | "not_as_described" | "damaged" | "wrong_quantity" | "other";
+            /** @description Optimistic-concurrency guard */
+            expectedVersion?: number;
+        };
+        ReviewCreate: {
+            rating: number;
+            comment?: string;
+        };
+        Dispute: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orderId?: string;
+            reason?: string;
+            description?: string;
+            status?: string;
+            resolution?: {
+                [key: string]: unknown;
+            } | null;
+            evidence?: {
+                id?: string;
+                uploadedBy?: string;
+                note?: string | null;
+                url?: string | null;
+                createdAt?: string;
+            }[];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PayRequest: {
+            /** @enum {string} */
+            provider: "paystack" | "flutterwave" | "hubtel";
+            /** @enum {string} */
+            method?: "momo" | "card";
+            /** @enum {string} */
+            network?: "mtn" | "telecel" | "airteltigo";
+            msisdn?: string;
+            /** Format: uuid */
+            paymentMethodId?: string;
+            saveMethod?: boolean;
+        };
+        PaymentIntent: {
+            /** Format: uuid */
+            paymentId: string;
+            reference: string;
+            /** @enum {string} */
+            status: "initiated" | "pending" | "succeeded" | "failed";
+            /** @description Card checkout / 3-D Secure */
+            authorizationUrl?: string | null;
+            /** @description e.g. 'Approve the prompt on your phone' */
+            displayText?: string | null;
+        };
+        PaymentMethod: {
+            /** Format: uuid */
+            id?: string;
+            provider?: string;
+            type?: string;
+            label?: string;
+            isDefault?: boolean;
+        };
+        Wallet: {
+            currency?: string;
+            available?: components["schemas"]["Decimal"];
+            /** @description Funds for this seller's orders not yet released */
+            inEscrow?: components["schemas"]["Decimal"];
+            pendingPayouts?: components["schemas"]["Decimal"];
+            lifetimeEarnings?: components["schemas"]["Decimal"];
+            limits?: {
+                min?: string;
+                max?: string;
+                reviewAbove?: string;
+            };
+        };
+        PayoutAccountCreate: {
+            /** @enum {string} */
+            type: "momo" | "bank";
+            /** @enum {string} */
+            provider: "paystack" | "flutterwave" | "hubtel";
+            /** @enum {string} */
+            network?: "mtn" | "telecel" | "airteltigo";
+            bankCode?: string;
+            accountNumber: string;
+            accountName: string;
+            isDefault?: boolean;
+        };
+        PayoutAccount: {
+            /** Format: uuid */
+            id?: string;
+            type?: string;
+            provider?: string;
+            label?: string;
+            network?: string | null;
+            isDefault?: boolean;
+        };
+        PayoutRequest: {
+            amount: components["schemas"]["Decimal"];
+            /** Format: uuid */
+            accountId?: string;
+        };
+        Payout: {
+            /** Format: uuid */
+            id?: string;
+            amount?: string;
+            currency?: string;
+            status?: string;
+            /** Format: uuid */
+            accountId?: string;
+            failureReason?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /** @enum {string} */
+        PostType: "price_update" | "market_news" | "tip" | "question";
+        PostCreate: {
+            type: components["schemas"]["PostType"];
+            body: string;
+            /** Format: uuid */
+            commodityId?: string;
+            /** Format: uuid */
+            marketId?: string;
+            price?: {
+                amount: components["schemas"]["Decimal"];
+                currency: string;
+                unit: string;
+                priceType?: components["schemas"]["PriceType"];
+            };
+            location?: components["schemas"]["GeoPoint"];
+        };
+        Post: {
+            /** Format: uuid */
+            id?: string;
+            author?: {
+                id?: string;
+                name?: string | null;
+                reputation?: number;
+                badges?: string[];
+            };
+            type?: components["schemas"]["PostType"];
+            body?: string;
+            /** Format: uuid */
+            commodityId?: string | null;
+            /** Format: uuid */
+            marketId?: string | null;
+            price?: {
+                [key: string]: unknown;
+            } | null;
+            /** @enum {string|null} */
+            priceObservationStatus?: "pending" | "approved" | "flagged" | "rejected" | null;
+            photos?: components["schemas"]["Photo"][];
+            status?: string;
+            /** Format: uuid */
+            acceptedCommentId?: string | null;
+            counts?: {
+                comments?: number;
+                reactions?: number;
+                shares?: number;
+            };
+            myReaction?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PostPage: {
+            data: components["schemas"]["Post"][];
+            nextCursor?: string | null;
+        };
+        CommentCreate: {
+            body: string;
+            /** Format: uuid */
+            parentId?: string;
+        };
+        Comment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            postId?: string;
+            /** Format: uuid */
+            parentId?: string | null;
+            author?: {
+                id?: string;
+                name?: string | null;
+            };
+            body?: string;
+            accepted?: boolean;
+            replies?: components["schemas"]["Comment"][];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CommunityProfile: {
+            /** Format: uuid */
+            id?: string;
+            name?: string | null;
+            role?: string;
+            reputation?: number;
+            badges?: {
+                code?: string;
+                name?: string;
+                period?: string;
+            }[];
+            followers?: number;
+            following?: number;
+            isFollowing?: boolean;
+            posts?: number;
+            approvedPriceReports?: number;
+        };
+        CropGuide: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            commodityId?: string;
+            title?: string;
+            summary?: string;
+            sections?: {
+                key?: string;
+                title?: string;
+                body?: string;
+            }[];
+            version?: number;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PestDisease: {
+            /** Format: uuid */
+            id?: string;
+            kind?: string;
+            name?: string;
+            scientificName?: string | null;
+            commodityIds?: string[];
+            symptoms?: string;
+            photos?: {
+                urls?: {
+                    [key: string]: unknown;
+                };
+                caption?: string;
+                credit?: string;
+            }[];
+            organicControl?: string;
+            chemicalControl?: string;
+            prevention?: string;
+            safetyNote?: string;
+            version?: number;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+        };
+        FertiliserRequest: {
+            country: string;
+            /** Format: uuid */
+            commodityId: string;
+            area: number;
+            /** @description ha, acre, m2, or a country-pack local unit */
+            areaUnit: string;
+            /** Format: uuid */
+            regionId?: string;
+            /** @enum {string} */
+            farmingType?: "subsistence" | "commercial" | "mixed" | "organic" | "irrigated" | "rainfed";
+        };
+        FertiliserPlan: {
+            /** Format: uuid */
+            ruleId: string;
+            ruleVersion: number;
+            hectares: string;
+            source?: string;
+            /** Format: date-time */
+            reviewedAt: string;
+            applications: {
+                stage?: string;
+                product?: string;
+                productCode?: string;
+                kg?: string;
+                /** @description Rounded up to the nearest half bag */
+                bags?: number;
+                bagsExact?: string;
+                bagKg?: string;
+                timing?: string;
+                method?: string | null;
+                nutrientsKg?: {
+                    n?: string;
+                    p2o5?: string;
+                    k2o?: string;
+                };
+            }[];
+            totals?: {
+                kg?: string;
+                nKg?: string;
+                p2o5Kg?: string;
+                k2oKg?: string;
+            };
+            notes?: string;
+            safetyNote: string;
+        };
+        Programme: {
+            /** Format: uuid */
+            id?: string;
+            kind?: string;
+            title?: string;
+            body?: string;
+            agency?: string | null;
+            eligibility?: string;
+            /** Format: date */
+            opensAt?: string | null;
+            /** Format: date */
+            closesAt?: string | null;
+            open?: boolean;
+            url?: string | null;
+        };
+        TrainingItem: {
+            /** Format: uuid */
+            id?: string;
+            kind?: string;
+            title?: string;
+            body?: string;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            endsAt?: string | null;
+            venue?: string | null;
+            regionId?: string | null;
+            url?: string | null;
+        };
+        InputSupplier: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            categories?: string[];
+            description?: string;
+            regionId?: string | null;
+            location?: components["schemas"]["GeoPoint"] | null;
+            distanceKm?: null | number;
+            phone?: string | null;
+            whatsapp?: string | null;
+            website?: string | null;
+            verified?: boolean;
+            sellerId?: string | null;
+        };
+        Kpi: {
+            value?: number;
+            previous?: number;
+            changePct?: null | number;
+        };
+        SellerSummary: {
+            period?: string;
+            currency?: string;
+            revenue?: components["schemas"]["Kpi"];
+            ordersPlaced?: components["schemas"]["Kpi"];
+            ordersCompleted?: components["schemas"]["Kpi"];
+            activeBuyers?: components["schemas"]["Kpi"];
+            views?: components["schemas"]["Kpi"];
+            conversionPct?: components["schemas"]["Kpi"];
+            activeListings?: number;
+            cancellationRatePct?: null | number;
+        };
+        TopProduct: {
+            /** Format: uuid */
+            listingId?: string;
+            title?: string;
+            commodityId?: string | null;
+            revenue?: number;
+            kgSold?: number;
+            orders?: number;
+            views?: number;
+            conversionPct?: null | number;
+        };
+        DemandIndex: {
+            /** Format: uuid */
+            commodityId?: string;
+            regionId?: string | null;
+            method?: string;
+            points?: {
+                /** Format: date */
+                week?: string;
+                index?: null | number;
+                activity?: number;
+                kgOrdered?: number;
+                avgPricePerKg?: null | number;
+            }[];
+            byRegion?: {
+                regionId?: string;
+                name?: string;
+                index?: null | number;
+            }[];
+        };
+        SupplyByRegion: {
+            /** Format: uuid */
+            commodityId?: string;
+            /** Format: date-time */
+            snapshotAt?: string | null;
+            totalKg?: number;
+            regions?: {
+                regionId?: string | null;
+                name?: string;
+                quantityKg?: number;
+                sharePct?: number;
+                listings?: number;
+                sellers?: number;
+                change4wPct?: null | number;
+            }[];
+        };
     };
     responses: {
         /** @description Error */
@@ -2142,6 +4942,8 @@ export interface components {
         Cursor: string;
         Limit: number;
         IdempotencyKey: string;
+        AnalyticsPeriod: "7d" | "30d" | "90d" | "365d";
+        AdminTable: "crop_guides" | "pest_diseases" | "fertiliser_products" | "fertiliser_rules" | "programmes" | "training_items" | "input_suppliers" | "holidays" | "commodity_categories" | "commodities" | "varieties" | "units" | "commodity_unit_conversions" | "crop_calendars" | "markets" | "regions" | "data_sources" | "agro_advice_rules" | "export_requirements" | "notification_templates" | "plans" | "commission_rules" | "faqs" | "success_stories" | "help_articles" | "app_config";
     };
     requestBodies: never;
     headers: never;
@@ -3616,7 +6418,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Forecast */
+            /** @description Forecast, or status=insufficient_data when guardrails withhold it */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3625,7 +6427,6 @@ export interface operations {
                     "application/json": components["schemas"]["Forecast"];
                 };
             };
-            404: components["responses"]["Problem"];
         };
     };
     forecasts_explanation: {
@@ -4133,6 +6934,3100 @@ export interface operations {
         responses: {
             /** @description Recorded */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    reports_list: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Report jobs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportJobPage"];
+                };
+            };
+        };
+    };
+    reports_create: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportJob"];
+                };
+            };
+            402: components["responses"]["Problem"];
+        };
+    };
+    reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportJob"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    short_link_resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
+        };
+    };
+    billing_plans_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plans */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"][];
+                };
+            };
+        };
+    };
+    billing_subscription_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Effective plan, subscription and entitlements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingStatus"];
+                };
+            };
+        };
+    };
+    billing_checkout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingCheckout"];
+            };
+        };
+        responses: {
+            /** @description Hosted checkout */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSession"];
+                };
+            };
+        };
+    };
+    billing_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingStatus"];
+                };
+            };
+        };
+    };
+    billing_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "revenuecat" | "paystack" | "flutterwave" | "stripe";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    content_stories_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success stories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Story"][];
+                };
+            };
+        };
+    };
+    content_faqs_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FAQs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Faq"][];
+                };
+            };
+        };
+    };
+    content_articles_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                q?: string;
+                tag?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Help articles (without body) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Article"][];
+                };
+            };
+        };
+    };
+    content_articles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Article */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Article"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    content_impact: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Impact stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpactStats"];
+                };
+            };
+        };
+    };
+    content_app_config: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                platform?: "android" | "ios" | "web";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppConfig"];
+                };
+            };
+        };
+    };
+    support_tickets_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My tickets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"][];
+                };
+            };
+        };
+    };
+    support_tickets_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+        };
+    };
+    support_tickets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ticket with messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    support_tickets_reply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextBody"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+        };
+    };
+    support_chat_handoff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatHandoff"];
+            };
+        };
+        responses: {
+            /** @description Handed off */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+        };
+    };
+    support_feedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Thanks */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    support_issue_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueCreate"];
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdOnly"];
+                };
+            };
+        };
+    };
+    admin_table_list: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                q?: string;
+            };
+            header?: never;
+            path: {
+                table: components["parameters"]["AdminTable"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    admin_table_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: components["parameters"]["AdminTable"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationProblem"];
+        };
+    };
+    admin_table_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: components["parameters"]["AdminTable"];
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    admin_table_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: components["parameters"]["AdminTable"];
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    admin_country_pack_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                iso2: components["parameters"]["Iso2Path"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated country */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Country"];
+                };
+            };
+        };
+    };
+    admin_users_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                role?: components["schemas"]["Role"];
+                q?: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    admin_users_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    admin_broadcast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Broadcast"];
+            };
+        };
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        recipients?: number;
+                    };
+                };
+            };
+        };
+    };
+    admin_models: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Models */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    admin_audit_log: {
+        parameters: {
+            query?: {
+                actor_id?: string;
+                action?: string;
+                entity?: string;
+                from?: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    admin_moderation_queue: {
+        parameters: {
+            query?: {
+                target_type?: components["schemas"]["ModerationTarget"];
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Open items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    admin_moderation_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerationDecision"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    admin_disputes_list: {
+        parameters: {
+            query?: {
+                status?: "open" | "under_review" | "resolved";
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disputes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    admin_dispute_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeDecision"];
+            };
+        };
+        responses: {
+            /** @description Resolved order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+        };
+    };
+    admin_payouts_list: {
+        parameters: {
+            query?: {
+                status?: "pending_review" | "processing" | "failed";
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payouts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    admin_payout_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecision"];
+            };
+        };
+        responses: {
+            /** @description Payout */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payout"];
+                };
+            };
+        };
+    };
+    admin_reconciliation: {
+        parameters: {
+            query?: {
+                provider?: string;
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daily reconciliation runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    api_keys_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My API keys (no secrets) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKey"][];
+                };
+            };
+        };
+    };
+    api_keys_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            402: components["responses"]["Problem"];
+        };
+    };
+    api_keys_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    public_markets: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Markets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketPage"];
+                };
+            };
+            429: components["responses"]["Problem"];
+        };
+    };
+    public_commodities: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Commodities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommodityPage"];
+                };
+            };
+        };
+    };
+    public_prices: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                commodity_id?: string;
+                market_id?: string;
+                price_type?: components["parameters"]["PriceTypeQuery"];
+                from: string;
+                to: string;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daily aggregates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPricePage"];
+                };
+            };
+            429: components["responses"]["Problem"];
+        };
+    };
+    public_forecasts: {
+        parameters: {
+            query: {
+                commodity_id: components["parameters"]["CommodityQueryRequired"];
+                market_id?: string;
+                region_id?: string;
+                price_type?: components["parameters"]["PriceTypeQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest forecast (local currency per kg) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forecast"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    sms_inbound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "africastalking" | "twilio";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Reply (provider-specific body, e.g. TwiML) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                    "application/xml": string;
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    ussd_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "africastalking";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description USSD response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    messaging_conversations_list: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conversations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationPage"];
+                };
+            };
+        };
+    };
+    messaging_conversations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationCreate"];
+            };
+        };
+        responses: {
+            /** @description Conversation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    messaging_messages_list: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Messages (newest first) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagePage"];
+                };
+            };
+        };
+    };
+    messaging_messages_send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageSend"];
+            };
+        };
+        responses: {
+            /** @description Sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            429: components["responses"]["Problem"];
+        };
+    };
+    messaging_mark_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read receipt recorded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    messaging_image_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file: string;
+                    clientId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Image message */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+        };
+    };
+    messaging_block: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Blocked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    messaging_unblock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unblocked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    moderation_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbuseReport"];
+            };
+        };
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_seller_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My seller profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerProfile"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    market_seller_me_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SellerProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerProfile"];
+                };
+            };
+        };
+    };
+    market_seller_kyc: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** @enum {string} */
+                    idType: "national_id" | "passport" | "voter_id" | "drivers_licence";
+                    idNumber: string;
+                    selfie: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Pending */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerProfile"];
+                };
+            };
+        };
+    };
+    kyc_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reference: string;
+                    /** @enum {string} */
+                    status: "verified" | "rejected";
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    market_seller_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public seller profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerProfile"];
+                };
+            };
+        };
+    };
+    market_seller_reviews: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reviews */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    market_listings_search: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                q?: string;
+                type?: "product" | "service";
+                service_kind?: "transport" | "storage" | "input_supply";
+                category_id?: string;
+                commodity_id?: string;
+                region_id?: string;
+                min_price?: number;
+                max_price?: number;
+                sort?: "recent" | "lowest" | "highest" | "nearest";
+                lat?: number;
+                lng?: number;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingPage"];
+                };
+            };
+        };
+    };
+    market_listings_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingCreate"];
+            };
+        };
+        responses: {
+            /** @description Created (draft) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+        };
+    };
+    market_listings_mine: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ListingStatus"];
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description My listings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingPage"];
+                };
+            };
+        };
+    };
+    market_listings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    market_listings_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+        };
+    };
+    market_listing_photo_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Photo */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
+            };
+            422: components["responses"]["ValidationProblem"];
+        };
+    };
+    market_listing_photo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_favourite_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_favourite_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    market_favourites_list: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Favourite listings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingPage"];
+                };
+            };
+        };
+    };
+    market_offer_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferCreate"];
+            };
+        };
+        responses: {
+            /** @description Offer */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+        };
+    };
+    market_offers_list: {
+        parameters: {
+            query?: {
+                role?: "buyer" | "seller";
+                status?: "open" | "accepted" | "rejected" | "countered" | "expired" | "withdrawn" | "used";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Offers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"][];
+                };
+            };
+        };
+    };
+    market_offer_respond: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferResponse"];
+            };
+        };
+        responses: {
+            /** @description Updated offer (or the counter-offer) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+        };
+    };
+    market_cart_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cart grouped by seller */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+        };
+    };
+    market_cart_upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartItemUpsert"];
+            };
+        };
+        responses: {
+            /** @description Cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+        };
+    };
+    market_cart_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cart */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+        };
+    };
+    market_checkout: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Orders created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResult"];
+                };
+            };
+            409: components["responses"]["Problem"];
+        };
+    };
+    market_orders_list: {
+        parameters: {
+            query?: {
+                role?: "buyer" | "seller";
+                status?: components["schemas"]["OrderStatus"];
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderPage"];
+                };
+            };
+        };
+    };
+    market_orders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Order with items and events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    market_orders_transition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderTransition"];
+            };
+        };
+        responses: {
+            /** @description Order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            409: components["responses"]["Problem"];
+        };
+    };
+    market_orders_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCreate"];
+            };
+        };
+        responses: {
+            /** @description Review */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    disputes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dispute with evidence */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dispute"];
+                };
+            };
+        };
+    };
+    disputes_evidence_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file?: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Evidence added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dispute"];
+                };
+            };
+        };
+    };
+    payments_pay_order: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayRequest"];
+            };
+        };
+        responses: {
+            /** @description Payment initiated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentIntent"];
+                };
+            };
+        };
+    };
+    payments_methods_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved methods (PSP tokens, masked) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethod"][];
+                };
+            };
+        };
+    };
+    payments_methods_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    payments_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "paystack" | "flutterwave" | "hubtel";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    wallet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Seller balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wallet"];
+                };
+            };
+        };
+    };
+    wallet_ledger: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ledger entries on my seller account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RowPage"];
+                };
+            };
+        };
+    };
+    wallet_payout_accounts_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payout accounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutAccount"][];
+                };
+            };
+        };
+    };
+    wallet_payout_accounts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutAccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutAccount"];
+                };
+            };
+        };
+    };
+    wallet_payouts_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payouts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payout"][];
+                };
+            };
+        };
+    };
+    wallet_payouts_request: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Payout */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payout"];
+                };
+            };
+            422: components["responses"]["ValidationProblem"];
+        };
+    };
+    community_feed: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                type?: components["schemas"]["PostType"];
+                commodity_id?: string;
+                lat?: number;
+                lng?: number;
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ranked feed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostPage"];
+                };
+            };
+        };
+    };
+    community_posts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostCreate"];
+            };
+        };
+        responses: {
+            /** @description Post */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"];
+                };
+            };
+        };
+    };
+    community_posts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Post */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"];
+                };
+            };
+        };
+    };
+    community_posts_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    community_post_photo_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Photo */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
+            };
+        };
+    };
+    community_comments_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Threaded comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"][];
+                };
+            };
+        };
+    };
+    community_comments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreate"];
+            };
+        };
+        responses: {
+            /** @description Comment */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+        };
+    };
+    community_react: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "like" | "helpful" | "insightful";
+                };
+            };
+        };
+        responses: {
+            /** @description Reacted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    community_unreact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    community_share: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Share link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url?: string;
+                    };
+                };
+            };
+        };
+    };
+    community_accept_answer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    commentId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    community_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public profile with reputation and badges */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityProfile"];
+                };
+            };
+        };
+    };
+    community_follow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Following */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    community_unfollow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unfollowed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    knowledge_crop_guides_list: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                commodity_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published guides (summaries) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropGuide"][];
+                };
+            };
+        };
+    };
+    knowledge_crop_guides_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guide with sections */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropGuide"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    knowledge_pests_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                commodity_id?: string;
+                kind?: "pest" | "disease" | "weed" | "deficiency";
+                /** @description Free text over names and symptoms */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pests and diseases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PestDisease"][];
+                };
+            };
+        };
+    };
+    knowledge_pests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detail with organic and chemical control */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PestDisease"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    knowledge_fertiliser_calculate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FertiliserRequest"];
+            };
+        };
+        responses: {
+            /** @description Plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FertiliserPlan"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            422: components["responses"]["ValidationProblem"];
+        };
+    };
+    knowledge_programmes_list: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                open?: boolean;
+                commodity_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Government programmes and grants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programme"][];
+                };
+            };
+        };
+    };
+    knowledge_training_list: {
+        parameters: {
+            query?: {
+                /** @description ISO 3166-1 alpha-2 */
+                country?: components["parameters"]["CountryQuery"];
+                kind?: "article" | "event" | "video" | "course";
+                upcoming?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Training articles and events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingItem"][];
+                };
+            };
+        };
+    };
+    knowledge_suppliers_list: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                region_id?: string;
+                category?: "seed" | "fertiliser" | "agrochemical" | "equipment" | "feed" | "veterinary" | "irrigation" | "packaging";
+                lat?: number;
+                lng?: number;
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Input suppliers (nearest first when lat/lng given) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InputSupplier"][];
+                };
+            };
+        };
+    };
+    admin_knowledge_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: "crop_guides" | "pest_diseases" | "fertiliser_rules";
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default true */
+                    publish?: boolean;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reviewed row */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    admin_knowledge_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: "crop_guides" | "pest_diseases" | "fertiliser_rules" | "programmes" | "training_items" | "input_suppliers";
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version history (newest first) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        version?: number;
+                        data?: {
+                            [key: string]: unknown;
+                        };
+                        /** Format: date-time */
+                        editedAt?: string;
+                    }[];
+                };
+            };
+        };
+    };
+    seller_analytics_summary: {
+        parameters: {
+            query?: {
+                period?: components["parameters"]["AnalyticsPeriod"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description KPIs with period-over-period change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SellerSummary"];
+                };
+            };
+        };
+    };
+    seller_analytics_timeseries: {
+        parameters: {
+            query: {
+                metric: "revenue" | "orders" | "views" | "offers" | "kg_sold";
+                interval?: "day" | "week";
+                period?: components["parameters"]["AnalyticsPeriod"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Series */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        metric?: string;
+                        currency?: string;
+                        points?: {
+                            /** Format: date-time */
+                            t?: string;
+                            value?: number;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    seller_analytics_top_products: {
+        parameters: {
+            query?: {
+                period?: components["parameters"]["AnalyticsPeriod"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listings ranked by revenue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopProduct"][];
+                };
+            };
+        };
+    };
+    market_intel_demand: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                commodity_id: components["parameters"]["CommodityQueryRequired"];
+                region_id?: string;
+                weeks?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Weekly demand index (100 = normal) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandIndex"];
+                };
+            };
+        };
+    };
+    market_intel_supply: {
+        parameters: {
+            query: {
+                /** @description ISO 3166-1 alpha-2 */
+                country: components["parameters"]["CountryQueryRequired"];
+                commodity_id: components["parameters"]["CommodityQueryRequired"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Listed supply by region (latest snapshot) with 4-week change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyByRegion"];
+                };
+            };
+        };
+    };
+    internal_forecasts_refreshed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    country: string;
+                    modelVersion?: string;
+                    series?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -93,7 +93,7 @@ export class InsightsService {
       this.forecasts.latestRun(q.commodity_id, q.market_id, undefined, q.price_type),
     ]);
     if (!commodity) throw AppError.notFound("commodity");
-    const points = run ? await this.forecasts.points(run.id) : [];
+    const points = run && run.status === "available" && !(run.last_observed_at && Date.now() - run.last_observed_at.getTime() > 21 * 86_400_000) ? await this.forecasts.points(run.id) : [];
     const horizons = points.map((p) => ({ months: p.horizon_months, changePct: pctChange(p.p50, run?.latest_actual_kg_local), confidence: p.confidence as "high" | "medium" | "low" }));
     const seasonal = await this.seasonal({ commodity_id: q.commodity_id, market_id: q.market_id, price_type: q.price_type }, hints, user);
     const alts = await this.alternativeMarkets({ commodity_id: q.commodity_id, market_id: q.market_id, radius_km: 200, price_type: q.price_type }, hints, user);

@@ -2,13 +2,14 @@ import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { Pool } from "pg";
 import pino from "pino";
-import { purgeDeletedAccounts } from "./jobs/accounts";
+import { purgeDeletedAccounts, snapshotSupply } from "./jobs/accounts";
 import { AlertEvaluator, EvaluateSeriesJob, refreshAggregates, sweepNewAggregates } from "./jobs/alerts";
 import { DeliverJob, Dispatcher, DispatchJob, SendOtpJob } from "./jobs/dispatch";
+import { ReportGenerator } from "./jobs/reports";
 import { buildProviders, PermanentError } from "./providers/providers";
 
 // Queue names are shared with apps/api/src/common/queue/queues.ts.
-const Q = { notifications: "notifications", deliveries: "deliveries", alerts: "alerts", prices: "prices", accounts: "accounts" } as const;
+const Q = { notifications: "notifications", deliveries: "deliveries", alerts: "alerts", prices: "prices", accounts: "accounts", reports: "reports" } as const;
 
 const log = pino({ name: "agriprice-workers", level: process.env.LOG_LEVEL ?? "info", redact: ["*.code", "*.destination", "*.to"] });
 const connection = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", { maxRetriesPerRequest: null });
@@ -19,12 +20,18 @@ const queues = Object.fromEntries(Object.values(Q).map((n) => [n, new Queue(n, {
 
 const dispatcher = new Dispatcher(db, buildProviders(log), queues.deliveries, log);
 const evaluator = new AlertEvaluator(db, queues.notifications, log);
+const reports = new ReportGenerator(db, queues.notifications, log);
 
 const workers = [
   new Worker(Q.notifications, async (job) => {
     if (job.name === "send-otp") return dispatcher.sendOtp(job.data as SendOtpJob);
     if (job.name === "dispatch") return dispatcher.dispatch(job.data as DispatchJob);
+    if (job.name === "send-sms") return dispatcher.sendSms(job.data as { to: string; body: string });
   }, { connection, concurrency: 20 }),
+
+  new Worker(Q.reports, async (job) => {
+    if (job.name === "generate") return reports.generate((job.data as { reportId: string }).reportId);
+  }, { connection, concurrency: 2 }),
 
   new Worker(Q.deliveries, async (job) => {
     try { await dispatcher.deliver(job.data as DeliverJob, job.attemptsMade); }
@@ -47,6 +54,7 @@ const workers = [
 
   new Worker(Q.accounts, async (job) => {
     if (job.name === "purge-deleted") return purgeDeletedAccounts(db, log);
+    if (job.name === "supply-snapshot") return snapshotSupply(db, log);
   }, { connection, concurrency: 1 }),
 ];
 
@@ -58,6 +66,7 @@ async function schedule() {
   // Repeatable jobs (upserted, so restarts don't duplicate them).
   await queues.alerts.upsertJobScheduler("alerts-sweep", { every: 5 * 60_000 }, { name: "sweep" });
   await queues.accounts.upsertJobScheduler("accounts-purge", { pattern: "15 3 * * *" }, { name: "purge-deleted" });
+  await queues.accounts.upsertJobScheduler("supply-snapshot", { pattern: "45 23 * * *" }, { name: "supply-snapshot" });
 }
 
 void schedule().then(() => log.info("workers started"));

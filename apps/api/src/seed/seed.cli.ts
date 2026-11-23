@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Client } from "pg";
 import { parse } from "yaml";
+import { expandHolidays, HolidayRule } from "./holidays";
 
 const ROOT = join(__dirname, "..", "..", "..", "..", "country-packs");
 const load = <T>(...p: string[]): T => parse(readFileSync(join(ROOT, ...p), "utf8")) as T;
@@ -19,6 +20,7 @@ interface Reference {
   units: { code: string; kind: string; kg_factor?: number; name: L }[];
   categories: { code: string; sort_order: number; icon?: string; name: L }[];
   commodities: { code: string; category: string; hs_code?: string; perishability: string; shelf_life_days?: number; default_unit: string; name: L }[];
+  plans?: { code: string; sort_order: number; name: L; entitlements?: Record<string, unknown> }[];
   export_requirements: { destination: string; code: string; mandatory: boolean; authority?: string; url?: string; title: L; description?: L; commodity?: string; category?: string }[];
 }
 
@@ -37,6 +39,11 @@ async function seedReference(db: Client) {
        ON CONFLICT (code) DO UPDATE SET category_id = EXCLUDED.category_id, name = EXCLUDED.name, hs_code = EXCLUDED.hs_code,
          perishability = EXCLUDED.perishability, shelf_life_days = EXCLUDED.shelf_life_days, default_unit = EXCLUDED.default_unit`,
       [c.code, c.category, c.name, c.hs_code ?? null, c.perishability, c.shelf_life_days ?? null, c.default_unit]);
+  for (const p of ref.plans ?? [])
+    await db.query(
+      `INSERT INTO plans (code, name, entitlements, sort_order) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order`,
+      [p.code, p.name, p.entitlements ?? {}, p.sort_order]);
   // Export requirements have no natural unique key: replace the set wholesale.
   await db.query(`DELETE FROM export_requirements`);
   for (const [i, r] of ref.export_requirements.entries())
@@ -146,6 +153,20 @@ async function seedCountry(db: Client, iso: string) {
       `INSERT INTO notification_templates (key, channel, locale, subject, body, provider_template) VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (key, channel, locale) DO UPDATE SET subject = EXCLUDED.subject, body = EXCLUDED.body, provider_template = EXCLUDED.provider_template`,
       [t.key, t.channel, t.locale, t.subject ?? null, t.body, t.provider_template ?? null]);
+
+  const hol = opt<HolidayRule[]>(dir, "holidays.yaml") ?? [];
+  const y = new Date().getUTCFullYear();
+  for (const h of expandHolidays(hol, [y - 2, y - 1, y, y + 1, y + 2]))
+    await db.query(`INSERT INTO holidays (country_iso2, day, name) VALUES ($1,$2,$3) ON CONFLICT (country_iso2, day) DO UPDATE SET name = EXCLUDED.name`, [c.iso2, h.day, h.name]);
+
+  const fert = opt<{ products: { code: string; name: L; n: number; p2o5: number; k2o: number; s: number; bag_kg: number }[]; area_units?: Record<string, string> }>(dir, "fertiliser.yaml");
+  for (const f of fert?.products ?? [])
+    await db.query(
+      `INSERT INTO fertiliser_products (country_iso2, code, name, n_pct, p2o5_pct, k2o_pct, s_pct, bag_kg) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (country_iso2, code) DO UPDATE SET name = EXCLUDED.name, n_pct = EXCLUDED.n_pct, p2o5_pct = EXCLUDED.p2o5_pct, k2o_pct = EXCLUDED.k2o_pct, s_pct = EXCLUDED.s_pct, bag_kg = EXCLUDED.bag_kg`,
+      [c.iso2, f.code, f.name, f.n, f.p2o5, f.k2o, f.s, f.bag_kg]);
+  if (fert?.area_units && Object.keys(fert.area_units).length)
+    await db.query(`UPDATE countries SET config = config || jsonb_build_object('area_units', $2::jsonb) WHERE iso2 = $1`, [c.iso2, JSON.stringify(fert.area_units)]);
 
   console.log(`  ${c.iso2}: ${regions.length} regions, ${markets.length} markets, ${tracked.length} commodities, ${sources.length} sources, ${advice.length} advice rules, ${templates.length} templates`);
 }

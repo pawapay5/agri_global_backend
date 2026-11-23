@@ -20,3 +20,10 @@ config:
   weekly_insight_day: 1            # ISO weekday for the weekly insight digest
   sms_provider: africastalking
   support_whatsapp: true
+  # Marketplace & messaging (business settings; adjust via PATCH /v1/admin/country-packs/GH)
+  pod_enabled: true
+  pod_max_total: "2000.00"          # GHS cap per pay-on-delivery order
+  messaging_retention_days: 365
+  order_timeouts: { paymentTimeoutMin: 30, acceptTimeoutHours: 48, shipTimeoutDays: 5, transitTimeoutDays: 14, releaseAfterDays: 3 }
+  payout_limits: { min: "10.00", max: "20000.00", reviewAbove: "5000.00" }
+  # Commission rules live in commission_rules (admin table); none are seeded, so commission is 0 until configured.

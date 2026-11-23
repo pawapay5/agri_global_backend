@@ -19,8 +19,8 @@ deployments:
     schedules: [{ cron: "0 2 1 * *", timezone: UTC }]
     work_pool: { name: agriprice }
 
-  - name: forecast-monthly
-    entrypoint: flows/forecast.py:forecast_monthly
-    parameters: { promote: auto }
-    schedules: [{ cron: "0 5 2 * *", timezone: UTC }]
+  - name: nightly-gh
+    entrypoint: flows/nightly.py:nightly
+    parameters: { country: GH, promote: auto }
+    schedules: [{ cron: "30 1 * * *", timezone: Africa/Accra }]
     work_pool: { name: agriprice }

@@ -136,3 +136,55 @@ metadata: { name: agriprice-ml-ingress }
 spec:
   podSelector: { matchLabels: { app: agriprice-ml } }
   ingress: [{ from: [{ podSelector: { matchLabels: { app: agriprice-api } } }, { podSelector: { matchLabels: { app: agriprice-pipelines } } }] }]
+---
+# Single-replica scheduler: order timeouts, refunds, payouts, reconciliation, retention, weekly badges.
+# Same image as the API with RUN_SCHEDULERS=true. BullMQ job ids make jobs idempotent even if two run briefly during a rollout.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-scheduler, labels: { app: agriprice-scheduler } }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: agriprice-scheduler } }
+  template:
+    metadata: { labels: { app: agriprice-scheduler } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: scheduler
+          image: "{{ $img.registry }}/api:{{ $img.tag }}"
+          env: [{ name: RUN_SCHEDULERS, value: "true" }, { name: API_PORT, value: "3001" }]
+          envFrom: [{ configMapRef: { name: agriprice-env } }, { secretRef: { name: agriprice-app } }]
+          resources: {{ toJson .Values.api.resources }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-gotenberg }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: agriprice-gotenberg } }
+  template:
+    metadata: { labels: { app: agriprice-gotenberg } }
+    spec:
+      containers: [{ name: gotenberg, image: "gotenberg/gotenberg:8.20", ports: [{ containerPort: 3000 }], resources: { requests: { cpu: 250m, memory: 512Mi } } }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: agriprice-gotenberg }
+spec: { selector: { app: agriprice-gotenberg }, ports: [{ port: 3000, targetPort: 3000 }] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-clamav }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: agriprice-clamav } }
+  template:
+    metadata: { labels: { app: agriprice-clamav } }
+    spec:
+      containers: [{ name: clamav, image: "clamav/clamav:1.4", ports: [{ containerPort: 3310 }], resources: { requests: { cpu: 250m, memory: 1536Mi } } }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: agriprice-clamav }
+spec: { selector: { app: agriprice-clamav }, ports: [{ port: 3310, targetPort: 3310 }] }

@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS sms_inbound;
+DROP TABLE IF EXISTS api_usage_daily;
+DROP TABLE IF EXISTS api_keys;
+DROP TABLE IF EXISTS issue_reports;
+DROP TABLE IF EXISTS feedback;
+DROP TABLE IF EXISTS support_messages;
+DROP TABLE IF EXISTS support_tickets;
+DROP TABLE IF EXISTS app_config;
+DROP TABLE IF EXISTS help_articles;
+DROP TABLE IF EXISTS faqs;
+DROP TABLE IF EXISTS success_stories;
+DROP TABLE IF EXISTS webhook_events;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS plans;
+DROP TABLE IF EXISTS report_jobs;
+DROP TABLE IF EXISTS short_links;

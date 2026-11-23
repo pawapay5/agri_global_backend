@@ -1,0 +1,16 @@
+# Ghana public holiday rules (expanded into dates by the seeder for the current year ±2).
+# Verify against the current Public Holidays and Commemorative Days Act before launch: the list was
+# amended in 2019 and again in 2025. Eid al-Fitr and Eid al-Adha are announced each year and are added
+# through the admin (PATCH /v1/admin/tables/holidays).
+- { name: { en: "New Year's Day" }, date: "01-01" }
+- { name: { en: Constitution Day }, date: "01-07" }
+- { name: { en: Independence Day }, date: "03-06" }
+- { name: { en: Good Friday }, easter_offset: -2 }
+- { name: { en: Easter Monday }, easter_offset: 1 }
+- { name: { en: May Day }, date: "05-01" }
+- { name: { en: Republic Day }, date: "07-01" }
+- { name: { en: "Founders' Day" }, date: "08-04" }
+- { name: { en: Kwame Nkrumah Memorial Day }, date: "09-21" }
+- { name: { en: "Farmers' Day" }, month: 12, weekday: 5, nth: 1 }
+- { name: { en: Christmas Day }, date: "12-25" }
+- { name: { en: Boxing Day }, date: "12-26" }
