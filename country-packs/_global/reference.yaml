@@ -1,0 +1,109 @@
+currencies:
+  - { code: USD, name: US Dollar, minor_units: 2 }
+  - { code: EUR, name: Euro, minor_units: 2 }
+  - { code: GBP, name: Pound Sterling, minor_units: 2 }
+  - { code: GHS, name: Ghana Cedi, minor_units: 2 }
+  - { code: NGN, name: Nigerian Naira, minor_units: 2 }
+  - { code: XOF, name: West African CFA Franc, minor_units: 0 }
+  - { code: KES, name: Kenyan Shilling, minor_units: 2 }
+  - { code: UGX, name: Ugandan Shilling, minor_units: 0 }
+  - { code: TZS, name: Tanzanian Shilling, minor_units: 2 }
+  - { code: ZAR, name: South African Rand, minor_units: 2 }
+  - { code: AED, name: UAE Dirham, minor_units: 2 }
+
+# kg_factor = kilograms per unit for mass units. Package/count units get per-commodity factors in country packs.
+units:
+  - { code: kg, kind: mass, kg_factor: 1, name: { en: kilogram, fr: kilogramme } }
+  - { code: g, kind: mass, kg_factor: 0.001, name: { en: gram, fr: gramme } }
+  - { code: tonne, kind: mass, kg_factor: 1000, name: { en: tonne, fr: tonne } }
+  - { code: lb, kind: mass, kg_factor: 0.45359237, name: { en: pound, fr: livre } }
+  - { code: bag_50kg, kind: package, kg_factor: 50, name: { en: 50 kg bag, fr: sac de 50 kg } }
+  - { code: bag_100kg, kind: package, kg_factor: 100, name: { en: 100 kg bag, fr: sac de 100 kg } }
+  - { code: bag, kind: package, name: { en: bag, fr: sac } }
+  - { code: olonka, kind: package, name: { en: olonka (bowl), tw: olonka } }
+  - { code: crate, kind: package, name: { en: crate, fr: cageot } }
+  - { code: bunch, kind: count, name: { en: bunch, fr: régime } }
+  - { code: tuber, kind: count, name: { en: tuber, fr: tubercule } }
+  - { code: piece, kind: count, name: { en: piece, fr: pièce } }
+
+categories:
+  - { code: cereals, sort_order: 1, icon: grain, name: { en: Cereals, fr: Céréales } }
+  - { code: roots_tubers, sort_order: 2, icon: root, name: { en: Roots & tubers, fr: Racines et tubercules } }
+  - { code: legumes, sort_order: 3, icon: bean, name: { en: Legumes & oilseeds, fr: Légumineuses et oléagineux } }
+  - { code: vegetables, sort_order: 4, icon: leaf, name: { en: Vegetables, fr: Légumes } }
+  - { code: fruits, sort_order: 5, icon: fruit, name: { en: Fruits, fr: Fruits } }
+  - { code: cash_crops, sort_order: 6, icon: pod, name: { en: Cash crops, fr: Cultures de rente } }
+
+# Global catalogue. hs_code = HS 6-digit subheading. Country packs choose which to track.
+commodities:
+  - { code: maize_white, category: cereals, hs_code: "100590", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: White maize, fr: Maïs blanc } }
+  - { code: rice_local, category: cereals, hs_code: "100630", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Rice (local), fr: Riz (local) } }
+  - { code: rice_imported, category: cereals, hs_code: "100630", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Rice (imported), fr: Riz (importé) } }
+  - { code: sorghum, category: cereals, hs_code: "100790", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Sorghum, fr: Sorgho } }
+  - { code: millet, category: cereals, hs_code: "100829", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Millet, fr: Mil } }
+  - { code: cassava_fresh, category: roots_tubers, hs_code: "071410", perishability: high, shelf_life_days: 3, default_unit: kg, name: { en: Cassava (fresh), fr: Manioc (frais) } }
+  - { code: gari, category: roots_tubers, hs_code: "110620", perishability: low, shelf_life_days: 180, default_unit: kg, name: { en: Gari, fr: Gari } }
+  - { code: yam, category: roots_tubers, hs_code: "071430", perishability: medium, shelf_life_days: 90, default_unit: kg, name: { en: Yam, fr: Igname } }
+  - { code: plantain, category: fruits, hs_code: "080310", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Plantain, fr: Banane plantain } }
+  - { code: tomato, category: vegetables, hs_code: "070200", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Tomato, fr: Tomate } }
+  - { code: onion, category: vegetables, hs_code: "070310", perishability: medium, shelf_life_days: 60, default_unit: kg, name: { en: Onion, fr: Oignon } }
+  - { code: pepper_fresh, category: vegetables, hs_code: "070960", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Chilli pepper (fresh), fr: Piment (frais) } }
+  - { code: groundnut, category: legumes, hs_code: "120242", perishability: low, shelf_life_days: 240, default_unit: kg, name: { en: Groundnut (shelled), fr: Arachide (décortiquée) } }
+  - { code: cowpea, category: legumes, hs_code: "071335", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Cowpea, fr: Niébé } }
+  - { code: soybean, category: legumes, hs_code: "120190", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Soybean, fr: Soja } }
+  - { code: cocoa_beans, category: cash_crops, hs_code: "180100", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Cocoa beans, fr: Fèves de cacao } }
+  - { code: cashew_raw, category: cash_crops, hs_code: "080131", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Raw cashew nuts, fr: Noix de cajou brutes } }
+  - { code: shea_nuts, category: cash_crops, hs_code: "120799", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Shea nuts, fr: Noix de karité } }
+  - { code: pineapple, category: fruits, hs_code: "080430", perishability: high, shelf_life_days: 10, default_unit: kg, name: { en: Pineapple, fr: Ananas } }
+  - { code: mango, category: fruits, hs_code: "080450", perishability: high, shelf_life_days: 10, default_unit: kg, name: { en: Mango, fr: Mangue } }
+
+# Generic checklists per destination. `commodity`/`category` narrow a requirement; omit both for all produce.
+export_requirements:
+  - destination: EU
+    code: eu_phytosanitary_certificate
+    mandatory: true
+    authority: National Plant Protection Organisation (exporting country)
+    url: https://food.ec.europa.eu/plants/plant-health-and-biosecurity_en
+    title: { en: EU phytosanitary certificate, fr: Certificat phytosanitaire UE }
+    description: { en: "Required for regulated fresh fruit and vegetables under Regulation (EU) 2016/2031. Issued after inspection by the exporting country's plant protection organisation." }
+  - destination: EU
+    code: mrl_compliance
+    mandatory: true
+    authority: European Commission, Regulation (EC) No 396/2005
+    url: https://food.ec.europa.eu/plants/pesticides/maximum-residue-levels_en
+    title: { en: Pesticide residue (MRL) compliance, fr: Conformité aux LMR }
+    description: { en: "Residues must not exceed EU maximum residue levels. Keep spray records and lab results for each lot." }
+  - destination: EU
+    code: traceability
+    mandatory: true
+    authority: Regulation (EC) No 178/2002
+    title: { en: Lot traceability records, fr: Traçabilité des lots }
+    description: { en: "Record one step back and one step forward for every lot: farm, harvest date and buyer." }
+  - destination: EU
+    code: globalgap
+    mandatory: false
+    authority: GLOBALG.A.P.
+    url: https://www.globalgap.org/
+    title: { en: GlobalG.A.P. certification, fr: Certification GlobalG.A.P. }
+    description: { en: "Not legally required, but most EU retailers expect it for fresh produce." }
+  - destination: EU
+    code: eudr_due_diligence
+    category: cash_crops
+    mandatory: true
+    authority: Regulation (EU) 2023/1115 (EUDR)
+    url: https://environment.ec.europa.eu/topics/forests/deforestation/regulation-deforestation-free-products_en
+    title: { en: Deforestation-free due diligence (EUDR), fr: Diligence raisonnée RDUE }
+    description: { en: "Cocoa and other covered commodities need plot geolocation and proof of deforestation-free production." }
+  - destination: GB
+    code: uk_phytosanitary_certificate
+    mandatory: true
+    authority: DEFRA / APHA
+    url: https://www.gov.uk/guidance/import-plants-and-plant-products-from-non-eu-countries-to-great-britain
+    title: { en: UK phytosanitary certificate }
+    description: { en: "Required for regulated fresh produce entering Great Britain. Pre-notify through IPAFFS." }
+  - destination: GB
+    code: mrl_compliance
+    mandatory: true
+    authority: HSE (GB MRL Statutory Register)
+    title: { en: Pesticide residue (MRL) compliance }
+    description: { en: "Residues must meet GB maximum residue levels." }

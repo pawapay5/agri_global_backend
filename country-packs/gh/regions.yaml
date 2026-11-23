@@ -1,0 +1,18 @@
+# Ghana's 16 regions (since 2019). `iso` matches ISO 3166-2 and geoBoundaries shapeISO.
+# centroid = regional capital (approximate). Polygons come from regions.geojson when present.
+- { code: AA, iso: GH-AA, level: 1, name: { en: Greater Accra }, centroid: [5.6037, -0.1870] }
+- { code: AH, iso: GH-AH, level: 1, name: { en: Ashanti }, centroid: [6.6885, -1.6244] }
+- { code: AF, iso: GH-AF, level: 1, name: { en: Ahafo }, centroid: [6.8036, -2.5172] }
+- { code: BO, iso: GH-BO, level: 1, name: { en: Bono }, centroid: [7.3399, -2.3268] }
+- { code: BE, iso: GH-BE, level: 1, name: { en: Bono East }, centroid: [7.5909, -1.9395] }
+- { code: CP, iso: GH-CP, level: 1, name: { en: Central }, centroid: [5.1053, -1.2466] }
+- { code: EP, iso: GH-EP, level: 1, name: { en: Eastern }, centroid: [6.0941, -0.2591] }
+- { code: NP, iso: GH-NP, level: 1, name: { en: Northern }, centroid: [9.4008, -0.8393] }
+- { code: NE, iso: GH-NE, level: 1, name: { en: North East }, centroid: [10.5273, -0.3698] }
+- { code: SV, iso: GH-SV, level: 1, name: { en: Savannah }, centroid: [9.0833, -1.8167] }
+- { code: UE, iso: GH-UE, level: 1, name: { en: Upper East }, centroid: [10.7856, -0.8514] }
+- { code: UW, iso: GH-UW, level: 1, name: { en: Upper West }, centroid: [10.0601, -2.5099] }
+- { code: TV, iso: GH-TV, level: 1, name: { en: Volta }, centroid: [6.6008, 0.4713] }
+- { code: OT, iso: GH-OT, level: 1, name: { en: Oti }, centroid: [8.0662, 0.1795] }
+- { code: WP, iso: GH-WP, level: 1, name: { en: Western }, centroid: [4.9340, -1.7137] }
+- { code: WN, iso: GH-WN, level: 1, name: { en: Western North }, centroid: [6.2058, -2.4894] }

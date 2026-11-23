@@ -1,0 +1,62 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+
+concurrency: { group: "ci-${{ github.ref }}", cancel-in-progress: true }
+
+jobs:
+  contract:
+    name: OpenAPI contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Lint spec
+        run: pnpm contract:lint
+      - name: Generated TS types are up to date
+        run: pnpm contract:gen && git diff --exit-code packages/contracts/src/generated
+      - name: Implementation matches contract (decorators vs openapi.yaml)
+        run: pnpm contract:check
+
+  node:
+    name: API + workers
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env: { POSTGRES_USER: agriprice, POSTGRES_PASSWORD: agriprice, POSTGRES_DB: agriprice }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U agriprice" --health-interval 5s --health-retries 20
+    env:
+      DATABASE_URL: postgres://agriprice:agriprice@localhost:5432/agriprice
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @agriprice/contracts build
+      - run: pnpm --filter @agriprice/api typecheck && pnpm --filter @agriprice/workers typecheck
+      - run: pnpm --filter @agriprice/api test && pnpm --filter @agriprice/workers test
+      - name: Migrations are reversible (up → down → up)
+        run: |
+          pnpm db:migrate
+          pnpm --filter @agriprice/api exec node scripts/migrate.mjs down --steps 99
+          pnpm db:migrate
+      - name: Seed Ghana pack
+        run: pnpm db:seed gh
+
+  python:
+    name: ML + pipelines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e "apps/ml[dev]" && pip install -e "pipelines[dev]"
+      - run: pytest apps/ml/tests
+      - run: cd pipelines && pytest

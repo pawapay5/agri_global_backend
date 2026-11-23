@@ -1,0 +1,31 @@
+# Upstream sources. trust_weight below 0.5 sends observations to the review queue.
+- code: wfp_hdx_gh
+  name: WFP VAM food prices for Ghana (HDX)
+  kind: csv_url
+  url: https://data.humdata.org/dataset/wfp-food-prices-for-ghana
+  licence: CC BY-IGO
+  trust_weight: 0.9
+  config:
+    hdx_package_id: wfp-food-prices-for-ghana
+    # WFP pricetype → our price_type
+    price_type_map: { Wholesale: wholesale, Retail: retail, Farmgate: farm_gate }
+    # WFP unit strings → our unit codes (anything else is skipped and reported)
+    unit_map: { KG: kg, "50 KG": bag_50kg, "100 KG": bag_100kg, "91 KG": bag, "109 KG": bag, "82 KG": bag, "Bunch": bunch, "Crate": crate, "Unit": piece }
+
+- code: open_er_api
+  name: ExchangeRate-API open access (daily)
+  kind: api
+  url: https://open.er-api.com/v6/latest/USD
+  licence: Attribution required. See https://www.exchangerate-api.com/docs/free
+  trust_weight: 0.8
+  config: { purpose: fx }
+
+- code: crowd_gh
+  name: AgriPrice GH community submissions
+  kind: crowd
+  trust_weight: 0.6
+
+- code: enumerators_gh
+  name: AgriPrice GH enumerator network
+  kind: enumerator
+  trust_weight: 1.0

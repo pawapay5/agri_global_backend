@@ -1,0 +1,27 @@
+# Weather → advice rules. Metrics are computed from the 7-day Open-Meteo forecast:
+#   precip_sum_7d, precip_max_3d (mm), dry_days_ahead (consecutive days < 1 mm),
+#   temp_max, temp_mean (°C), humidity_mean (%), warm_humid_days, wind_max (km/h)
+# months: restrict to these calendar months (empty = all year). commodity: only when the user grows it.
+- { code: heavy_rain, severity: warning, i18n_key: advice.heavy_rain, condition: { metric: precip_max_3d, op: ">=", value: 60 } }
+- { code: dry_spell, severity: warning, i18n_key: advice.dry_spell, months: [4, 5, 6, 7, 8, 9, 10], condition: { metric: dry_days_ahead, op: ">=", value: 6 } }
+- { code: heat_stress, severity: warning, i18n_key: advice.heat_stress, condition: { metric: temp_max, op: ">=", value: 38 } }
+- code: fall_armyworm_risk
+  severity: warning
+  commodity: maize_white
+  i18n_key: advice.fall_armyworm_risk
+  months: [3, 4, 5, 6, 7, 8, 9, 10]
+  condition: { all: [ { metric: warm_humid_days, op: ">=", value: 4 }, { metric: precip_sum_7d, op: "<=", value: 80 } ] }
+- code: fungal_risk
+  severity: info
+  i18n_key: advice.fungal_risk
+  condition: { all: [ { metric: humidity_mean, op: ">=", value: 85 }, { metric: precip_sum_7d, op: ">=", value: 30 } ] }
+- code: good_planting_window
+  severity: info
+  i18n_key: advice.good_planting_window
+  months: [3, 4, 5, 6, 8, 9]
+  condition: { all: [ { metric: precip_sum_7d, op: ">=", value: 20 }, { metric: precip_max_3d, op: "<", value: 60 } ] }
+- code: harvest_dry_window
+  severity: info
+  i18n_key: advice.harvest_dry_window
+  months: [7, 8, 9, 10, 11, 12]
+  condition: { metric: dry_days_ahead, op: ">=", value: 4 }

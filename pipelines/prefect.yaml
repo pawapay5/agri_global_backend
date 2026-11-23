@@ -1,0 +1,26 @@
+name: agriprice-pipelines
+prefect-version: 3.0.0
+
+deployments:
+  - name: fx-daily
+    entrypoint: flows/fx.py:fx_daily
+    schedules: [{ cron: "0 6 * * *", timezone: UTC }]
+    work_pool: { name: agriprice }
+
+  - name: wfp-prices-gh
+    entrypoint: flows/wfp_prices.py:wfp_prices
+    parameters: { country: GH, source_code: wfp_hdx_gh }
+    schedules: [{ cron: "0 4 * * 1", timezone: UTC }]
+    work_pool: { name: agriprice }
+
+  - name: weather-monthly-gh
+    entrypoint: flows/weather.py:weather_monthly
+    parameters: { country: GH }
+    schedules: [{ cron: "0 2 1 * *", timezone: UTC }]
+    work_pool: { name: agriprice }
+
+  - name: forecast-monthly
+    entrypoint: flows/forecast.py:forecast_monthly
+    parameters: { promote: auto }
+    schedules: [{ cron: "0 5 2 * *", timezone: UTC }]
+    work_pool: { name: agriprice }

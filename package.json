@@ -1,27 +1,23 @@
 {
-  "name": "agri_global",
-  "version": "0.1.0",
+  "name": "agriprice",
   "private": true,
+  "packageManager": "pnpm@10.9.0",
+  "engines": { "node": ">=22" },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.4.6",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "contract:lint": "pnpm --filter @agriprice/contracts lint",
+    "contract:gen": "pnpm --filter @agriprice/contracts generate",
+    "contract:check": "pnpm --filter @agriprice/api contract:check",
+    "db:migrate": "pnpm --filter @agriprice/api db:migrate",
+    "db:rollback": "pnpm --filter @agriprice/api db:rollback",
+    "db:seed": "pnpm --filter @agriprice/api db:seed"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "4.3.3",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.6",
-    "tailwindcss": "4.3.3",
-    "typescript": "^5"
-  },
-  "packageManager": "pnpm@10.9.0"
+    "turbo": "2.11.13",
+    "typescript": "5.9.3"
+  }
 }

@@ -1,0 +1,29 @@
+{
+  "name": "@agriprice/workers",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json && node --watch dist/main.js",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1175.0",
+    "bullmq": "6.7.8",
+    "decimal.js": "^10.6.0",
+    "ioredis": "5.11.1",
+    "jose": "6.2.18",
+    "nodemailer": "^10.6.1",
+    "pg": "8.23.1",
+    "pino": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}

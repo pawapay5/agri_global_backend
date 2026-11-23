@@ -1,0 +1,110 @@
+# Commodities tracked in Ghana: local names, local units → kg, crop calendars.
+# kg factors are typical values. Refine them per market from enumerator data.
+# `major_regions` are the main producing regions. `aliases` maps upstream source names (e.g. WFP).
+tracked:
+  - code: maize_white
+    local_names: { tw: aburo, ee: bli, dag: kawana }
+    major_regions: [BE, BO, AH, NP, EP]
+    aliases: ["Maize", "Maize (white)"]
+    units: { olonka: 2.5, bag: 100 }
+    calendars:
+      - { planting: [3, 4, 8, 9], harvest: [7, 8, 11, 12], lean: [5, 6] }                 # south/middle belt: bimodal
+      - { regions: [NP, NE, SV, UE, UW], planting: [5, 6, 7], harvest: [9, 10, 11], lean: [5, 6, 7] }  # north: unimodal
+  - code: rice_local
+    local_names: { tw: ɛmo }
+    major_regions: [NP, UE, TV, OT]
+    aliases: ["Rice (local)", "Rice (paddy)"]
+    units: { olonka: 2.2, bag: 50 }
+    calendars:
+      - { planting: [4, 5, 6], harvest: [9, 10, 11] }
+      - { regions: [NP, NE, SV, UE, UW], planting: [6, 7], harvest: [10, 11, 12], lean: [6, 7, 8] }
+  - code: rice_imported
+    local_names: { tw: ɛmo }
+    aliases: ["Rice (imported)"]
+    units: { bag: 50 }
+  - code: sorghum
+    major_regions: [UE, UW, NP, NE]
+    aliases: ["Sorghum"]
+    units: { olonka: 2.4, bag: 100 }
+    calendars:
+      - { regions: [NP, NE, SV, UE, UW], planting: [5, 6], harvest: [10, 11], lean: [6, 7, 8] }
+  - code: millet
+    major_regions: [UE, UW, NE]
+    aliases: ["Millet"]
+    units: { olonka: 2.4, bag: 100 }
+    calendars:
+      - { regions: [NE, UE, UW], planting: [5, 6], harvest: [8, 9, 10], lean: [6, 7] }
+  - code: cassava_fresh
+    local_names: { tw: bankye, ee: agbeli }
+    major_regions: [EP, BO, AH, CP, TV]
+    aliases: ["Cassava", "Cassava (fresh)"]
+    units: { bag: 91 }
+    calendars:
+      - { planting: [3, 4, 5, 9, 10], harvest: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+  - code: gari
+    local_names: { tw: gari }
+    aliases: ["Gari", "Cassava meal (gari)"]
+    units: { olonka: 2.0, bag: 50 }
+  - code: yam
+    local_names: { tw: bayerɛ, ee: te, dag: nyuli }
+    major_regions: [BE, BO, NP, OT, SV]
+    aliases: ["Yam", "Yam (puna)"]
+    units: { tuber: 2.5, bag: 100 }
+    calendars:
+      - { planting: [11, 12, 1, 2, 3], harvest: [7, 8, 9, 10, 11, 12], lean: [4, 5, 6] }
+  - code: plantain
+    local_names: { tw: brɔdeɛ }
+    major_regions: [AH, EP, BO, AF, WN]
+    aliases: ["Plantains (apem)", "Plantains (apentu)", "Plantain"]
+    units: { bunch: 12 }
+    calendars:
+      - { planting: [3, 4, 5, 9, 10], harvest: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+  - code: tomato
+    local_names: { tw: ntoosi, ee: tomato }
+    major_regions: [UE, BE, AH, AA]
+    aliases: ["Tomatoes", "Tomatoes (navrongo)", "Tomatoes (local)"]
+    units: { crate: 52, olonka: 2.0 }
+    calendars:
+      - { planting: [3, 4, 8, 9], harvest: [6, 7, 11, 12] }
+      - { regions: [UE], planting: [10, 11], harvest: [1, 2, 3], lean: [6, 7, 8] }   # dry-season irrigated
+  - code: onion
+    local_names: { tw: gyeene }
+    major_regions: [UE, TV]
+    aliases: ["Onions", "Onions (red)"]
+    units: { bag: 50, olonka: 2.0 }
+    calendars:
+      - { regions: [UE], planting: [10, 11], harvest: [2, 3, 4] }
+  - code: pepper_fresh
+    local_names: { tw: mako, ee: atadi }
+    aliases: ["Peppers (fresh)", "Pepper (fresh)"]
+    units: { olonka: 1.5, bag: 40 }
+  - code: groundnut
+    local_names: { tw: nkateɛ, dag: sinkpaŋ }
+    major_regions: [NP, UE, UW, NE]
+    aliases: ["Groundnuts (shelled)", "Groundnuts"]
+    units: { olonka: 2.2, bag: 82 }
+    calendars:
+      - { regions: [NP, NE, SV, UE, UW], planting: [5, 6], harvest: [8, 9], lean: [5, 6, 7] }
+  - code: cowpea
+    local_names: { tw: adua }
+    major_regions: [NP, UE, UW]
+    aliases: ["Cowpeas", "Cowpeas (white)"]
+    units: { olonka: 2.6, bag: 109 }
+    calendars:
+      - { regions: [NP, NE, SV, UE, UW], planting: [7, 8], harvest: [10, 11] }
+  - code: soybean
+    major_regions: [NP, NE, UW]
+    aliases: ["Soybeans", "Soya beans"]
+    units: { olonka: 2.5, bag: 100 }
+    calendars:
+      - { regions: [NP, NE, SV, UE, UW], planting: [6, 7], harvest: [10, 11] }
+  - code: cocoa_beans
+    local_names: { tw: kookoo }
+    major_regions: [WN, AH, AF, WP, EP, CP]
+    units: { bag: 64 }
+  - code: cashew_raw
+    major_regions: [BO, BE, NP]
+    units: { bag: 80 }
+  - code: shea_nuts
+    major_regions: [NP, UE, UW, SV]
+    units: { bag: 85 }

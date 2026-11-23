@@ -1,0 +1,21 @@
+# Notification templates: key × channel × locale. {{placeholders}} are filled by the dispatcher.
+# provider_template = name of the approved WhatsApp Cloud API template (required for business-initiated messages).
+# NOTE: non-English strings (tw) need native-speaker review before launch.
+- { key: otp.login, channel: sms, locale: en, body: "Your AgriPrice code is {{code}}. It expires in 10 minutes. Never share it." }
+- { key: otp.login, channel: sms, locale: tw, body: "Wo AgriPrice code ne {{code}}. Ɛbɛtwam simma 10 mu. Mfa nkyerɛ obiara." }
+- { key: otp.login, channel: email, locale: en, subject: "Your AgriPrice sign-in code", body: "Your sign-in code is {{code}}. It expires in 10 minutes. If you didn't request it, you can ignore this email." }
+- { key: otp.verify_email, channel: email, locale: en, subject: "Verify your email", body: "Your verification code is {{code}}. It expires in 10 minutes." }
+- { key: otp.verify_phone, channel: sms, locale: en, body: "Your AgriPrice verification code is {{code}}. It expires in 10 minutes." }
+- { key: otp.reset_password, channel: email, locale: en, subject: "Reset your AgriPrice password", body: "Your password reset code is {{code}}. It expires in 10 minutes. If you didn't request it, your account is still safe and you can ignore this email." }
+
+- { key: price_alert, channel: in_app, locale: en, subject: "{{title}}", body: "{{body}}" }
+- { key: price_alert, channel: push, locale: en, subject: "{{title}}", body: "{{body}}" }
+- { key: price_alert, channel: sms, locale: en, body: "AgriPrice: {{body}}" }
+- { key: price_alert, channel: email, locale: en, subject: "{{title}}", body: "{{body}}\n\nManage your alerts in the AgriPrice app." }
+- { key: price_alert, channel: whatsapp, locale: en, provider_template: price_alert_v1, body: "{{body}}" }
+
+- { key: weekly_insight, channel: in_app, locale: en, subject: "Your weekly market summary", body: "{{summary}}" }
+- { key: weekly_insight, channel: email, locale: en, subject: "Your weekly AgriPrice market summary", body: "{{summary}}" }
+- { key: weather_advice, channel: push, locale: en, subject: "Weather advice", body: "{{text}}" }
+- { key: weather_advice, channel: in_app, locale: en, subject: "Weather advice", body: "{{text}}" }
+- { key: account.deletion_scheduled, channel: email, locale: en, subject: "Your account is scheduled for deletion", body: "Your AgriPrice account will be permanently deleted on {{date}}. Sign in before then to cancel." }

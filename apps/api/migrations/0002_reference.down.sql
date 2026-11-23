@@ -1,0 +1,14 @@
+DROP FUNCTION IF EXISTS region_ancestor_at_level(uuid, int);
+DROP TABLE IF EXISTS data_sources;
+DROP TABLE IF EXISTS fx_rates;
+DROP TABLE IF EXISTS commodity_unit_conversions;
+DROP TABLE IF EXISTS varieties;
+DROP TABLE IF EXISTS crop_calendars;
+DROP TABLE IF EXISTS commodity_country_profiles;
+DROP TABLE IF EXISTS commodities;
+DROP TABLE IF EXISTS units;
+DROP TABLE IF EXISTS commodity_categories;
+DROP TABLE IF EXISTS markets;
+DROP TABLE IF EXISTS regions;
+DROP TABLE IF EXISTS countries;
+DROP TABLE IF EXISTS currencies;

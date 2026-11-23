@@ -1,0 +1,22 @@
+iso2: GH
+iso3: GHA
+brand_name: AgriPrice GH
+name: { en: Ghana, fr: Ghana, tw: Ghana }
+currency: GHS
+default_locale: en-GH
+locales: [en-GH, tw, ee, dag, ha]
+default_unit: kg
+area_unit: acre
+timezone: Africa/Accra
+phone_prefix: "+233"
+bbox: [-3.26, 4.71, 1.20, 11.17]   # [minLng, minLat, maxLng, maxLat]
+region_levels:
+  - { level: 1, name: { en: Region } }
+  - { level: 2, name: { en: District } }
+active: true
+config:
+  default_price_type: wholesale
+  forecast_series_min_months: 24
+  weekly_insight_day: 1            # ISO weekday for the weekly insight digest
+  sms_provider: africastalking
+  support_whatsapp: true

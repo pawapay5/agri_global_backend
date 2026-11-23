@@ -1,0 +1,25 @@
+# location = [lat, lng], approximate market centre. operating_days = ISO weekdays (1 = Mon).
+# Periodic market days follow commonly reported schedules. Enumerators should confirm them.
+# `aliases` maps the names used by upstream sources (e.g. WFP) onto our codes.
+- { code: accra_makola, region: AA, type: urban_daily, location: [5.5486, -0.2083], operating_days: [1,2,3,4,5,6], name: { en: Makola Market (Accra) }, aliases: [Accra, Makola] }
+- { code: accra_agbogbloshie, region: AA, type: wholesale, location: [5.5502, -0.2240], operating_days: [1,2,3,4,5,6,7], name: { en: Agbogbloshie Market (Accra) }, aliases: [Agbogbloshie] }
+- { code: accra_kaneshie, region: AA, type: urban_daily, location: [5.5667, -0.2373], operating_days: [1,2,3,4,5,6], name: { en: Kaneshie Market (Accra) }, aliases: [Kaneshie] }
+- { code: tema_comm1, region: AA, type: urban_daily, location: [5.6700, -0.0167], operating_days: [1,2,3,4,5,6], name: { en: Tema Community 1 Market }, aliases: [Tema] }
+- { code: kumasi_central, region: AH, type: wholesale, location: [6.6960, -1.6210], operating_days: [1,2,3,4,5,6], name: { en: Kumasi Central Market (Kejetia) }, aliases: [Kumasi] }
+- { code: ejura, region: AH, type: rural_periodic, location: [7.3833, -1.3667], operating_days: [1], name: { en: Ejura Market }, aliases: [Ejura] }
+- { code: techiman, region: BE, type: wholesale, location: [7.5833, -1.9333], operating_days: [3,4,5], name: { en: Techiman Market }, aliases: [Techiman] }
+- { code: sunyani, region: BO, type: urban_daily, location: [7.3349, -2.3123], operating_days: [1,2,3,4,5,6], name: { en: Sunyani Central Market }, aliases: [Sunyani] }
+- { code: goaso, region: AF, type: rural_periodic, location: [6.8036, -2.5172], operating_days: [], name: { en: Goaso Market }, aliases: [Goaso] }
+- { code: tamale_aboabo, region: NP, type: wholesale, location: [9.4075, -0.8533], operating_days: [1,2,3,4,5,6], name: { en: Aboabo Market (Tamale) }, aliases: [Tamale, Aboabo] }
+- { code: nalerigu, region: NE, type: rural_periodic, location: [10.5273, -0.3698], operating_days: [], name: { en: Nalerigu Market }, aliases: [Nalerigu] }
+- { code: damongo, region: SV, type: rural_periodic, location: [9.0833, -1.8167], operating_days: [], name: { en: Damongo Market }, aliases: [Damongo] }
+- { code: bolgatanga, region: UE, type: wholesale, location: [10.7856, -0.8514], operating_days: [1,2,3,4,5,6], name: { en: Bolgatanga Market }, aliases: [Bolgatanga] }
+- { code: wa_central, region: UW, type: urban_daily, location: [10.0601, -2.5099], operating_days: [1,2,3,4,5,6], name: { en: Wa Central Market }, aliases: [Wa] }
+- { code: ho_central, region: TV, type: urban_daily, location: [6.6008, 0.4713], operating_days: [1,2,3,4,5,6], name: { en: Ho Central Market }, aliases: [Ho] }
+- { code: dambai, region: OT, type: rural_periodic, location: [8.0662, 0.1795], operating_days: [], name: { en: Dambai Market }, aliases: [Dambai] }
+- { code: koforidua, region: EP, type: urban_daily, location: [6.0941, -0.2591], operating_days: [1,2,3,4,5,6], name: { en: Koforidua Central Market }, aliases: [Koforidua] }
+- { code: cape_coast_kotokuraba, region: CP, type: urban_daily, location: [5.1053, -1.2466], operating_days: [1,2,3,4,5,6], name: { en: Kotokuraba Market (Cape Coast) }, aliases: [Cape Coast] }
+- { code: takoradi_market_circle, region: WP, type: urban_daily, location: [4.8975, -1.7600], operating_days: [1,2,3,4,5,6], name: { en: Market Circle (Takoradi) }, aliases: [Takoradi, Sekondi-Takoradi] }
+- { code: sefwi_wiawso, region: WN, type: rural_periodic, location: [6.2058, -2.4894], operating_days: [], name: { en: Sefwi Wiawso Market }, aliases: [Sefwi Wiawso] }
+- { code: tema_port, region: AA, type: export_hub, location: [5.6333, 0.0167], operating_days: [1,2,3,4,5], name: { en: Tema Port (export) }, aliases: [] }
+- { code: paga_border, region: UE, type: border, location: [10.9833, -1.1167], operating_days: [], name: { en: Paga (Burkina Faso border) }, aliases: [Paga] }

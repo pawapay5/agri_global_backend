@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS consents;
+DROP TABLE IF EXISTS saved_locations;
+DROP TABLE IF EXISTS user_interests;
+DROP TABLE IF EXISTS farming_profiles;
+DROP TABLE IF EXISTS user_preferences;
+DROP TABLE IF EXISTS recovery_codes;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS oauth_identities;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS organisations;

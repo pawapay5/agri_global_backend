@@ -1,0 +1,138 @@
+{{- $img := .Values.image -}}
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata: { name: agriprice-app }
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: {{ .Values.secretStore }}, kind: ClusterSecretStore }
+  target: { name: agriprice-app }
+  dataFrom: [{ extract: { key: {{ .Values.secretKey }} } }]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: agriprice-env }
+data:
+{{- range $k, $v := .Values.env }}
+  {{ $k }}: {{ $v | quote }}
+{{- end }}
+---
+# Migrations run before each install/upgrade; the release fails if they fail.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: agriprice-migrate-{{ .Release.Revision }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: "{{ $img.registry }}/api:{{ $img.tag }}"
+          command: ["node", "scripts/migrate.mjs", "up"]
+          envFrom: [{ secretRef: { name: agriprice-app } }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-api, labels: { app: agriprice-api } }
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector: { matchLabels: { app: agriprice-api } }
+  strategy: { rollingUpdate: { maxUnavailable: 0, maxSurge: 25% } }
+  template:
+    metadata: { labels: { app: agriprice-api } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: api
+          image: "{{ $img.registry }}/api:{{ $img.tag }}"
+          imagePullPolicy: {{ $img.pullPolicy }}
+          ports: [{ containerPort: 3001 }]
+          envFrom: [{ configMapRef: { name: agriprice-env } }, { secretRef: { name: agriprice-app } }]
+          readinessProbe: { httpGet: { path: /readyz, port: 3001 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /healthz, port: 3001 }, periodSeconds: 20 }
+          resources: {{ toJson .Values.api.resources }}
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: agriprice-api }
+spec:
+  selector: { app: agriprice-api }
+  ports: [{ port: 80, targetPort: 3001 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: agriprice-api }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: agriprice-api }
+  minReplicas: {{ .Values.api.hpa.min }}
+  maxReplicas: {{ .Values.api.hpa.max }}
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: {{ .Values.api.hpa.cpu }} } } }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agriprice-api
+  annotations: {{ toJson .Values.api.ingress.annotations }}
+spec:
+  ingressClassName: {{ .Values.api.ingress.className }}
+  rules:
+    - host: {{ .Values.api.ingress.host }}
+      http:
+        paths: [{ path: /, pathType: Prefix, backend: { service: { name: agriprice-api, port: { number: 80 } } } }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-workers, labels: { app: agriprice-workers } }
+spec:
+  replicas: {{ .Values.workers.replicas }}
+  selector: { matchLabels: { app: agriprice-workers } }
+  template:
+    metadata: { labels: { app: agriprice-workers } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: workers
+          image: "{{ $img.registry }}/workers:{{ $img.tag }}"
+          envFrom: [{ configMapRef: { name: agriprice-env } }, { secretRef: { name: agriprice-app } }]
+          resources: {{ toJson .Values.workers.resources }}
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: agriprice-ml, labels: { app: agriprice-ml } }
+spec:
+  replicas: {{ .Values.ml.replicas }}
+  selector: { matchLabels: { app: agriprice-ml } }
+  template:
+    metadata: { labels: { app: agriprice-ml } }
+    spec:
+      nodeSelector: {{ toJson .Values.ml.nodeSelector }}
+      tolerations: {{ toJson .Values.ml.tolerations }}
+      containers:
+        - name: ml
+          image: "{{ $img.registry }}/ml:{{ $img.tag }}"
+          ports: [{ containerPort: 8001 }]
+          envFrom: [{ secretRef: { name: agriprice-app } }]
+          readinessProbe: { httpGet: { path: /healthz, port: 8001 } }
+          resources: {{ toJson .Values.ml.resources }}
+---
+apiVersion: v1
+kind: Service
+metadata: { name: agriprice-ml }
+spec:
+  selector: { app: agriprice-ml }
+  ports: [{ port: 8001, targetPort: 8001 }]
+---
+# Only the API and pipelines may reach the ML service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: agriprice-ml-ingress }
+spec:
+  podSelector: { matchLabels: { app: agriprice-ml } }
+  ingress: [{ from: [{ podSelector: { matchLabels: { app: agriprice-api } } }, { podSelector: { matchLabels: { app: agriprice-pipelines } } }] }]
