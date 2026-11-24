@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { SocialSignIn } from "@/components/auth/social";
 import { Button, FieldError, Input, Label } from "@/components/ui/primitives";

@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { useFeedback } from "@/components/feedback/feedback";
 import { Badge, Button, Card, CardTitle, FieldError, Input, Label } from "@/components/ui/primitives";
 import { useAlertInsights, useAlerts, useCommodities, useCreateAlert, useDeleteAlert, useMarkets, useMe, useUpdateAlert } from "@/lib/api/queries";

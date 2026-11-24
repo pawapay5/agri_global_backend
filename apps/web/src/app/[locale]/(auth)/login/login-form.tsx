@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { SocialSignIn } from "@/components/auth/social";
 import { Button, FieldError, Input, Label } from "@/components/ui/primitives";
