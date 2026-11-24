@@ -11,7 +11,7 @@ COPY openapi openapi
 COPY apps/api apps/api
 COPY country-packs country-packs
 RUN pnpm --filter @agriprice/contracts build && pnpm --filter @agriprice/api build \
- && pnpm deploy --filter @agriprice/api --prod /out
+ && pnpm deploy --legacy --filter @agriprice/api --prod /out
 
 FROM node:22-alpine
 ENV NODE_ENV=production

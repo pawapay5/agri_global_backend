@@ -6,7 +6,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/workers/package.json apps/workers/
 RUN pnpm install --frozen-lockfile --filter @agriprice/workers...
 COPY apps/workers apps/workers
-RUN pnpm --filter @agriprice/workers build && pnpm deploy --filter @agriprice/workers --prod /out
+RUN pnpm --filter @agriprice/workers build && pnpm deploy --legacy --filter @agriprice/workers --prod /out
 
 FROM node:22-alpine
 ENV NODE_ENV=production
