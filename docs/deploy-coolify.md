@@ -29,14 +29,14 @@ Coolify runs the stack in [`docker-compose.coolify.yml`](../docker-compose.cooli
 
 ## 2. Environment
 
-Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` value: database, Redis, MinIO, JWT, OTP pepper, revalidation secret and ML token. You must set these in the **Environment Variables** tab yourself:
+Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` value: database, Redis, MinIO, JWT, OTP pepper, revalidation secret and ML token. You must set these in the **Environment Variables** tab yourself. Compose checks the required ones when it builds, so if Coolify offers a build-time toggle for a variable, leave it on:
 
 | Variable | Required | Notes |
 |---|---|---|
-| `FIELD_ENCRYPTION_KEY` | **yes** | Generate with `openssl rand -base64 32`. **Back it up:** losing it makes encrypted profile fields unreadable. Never rotate it casually. |
+| `FIELD_ENCRYPTION_KEY` | **yes** | Generate with `openssl rand -base64 32` (for example in the Coolify server's terminal). **Back it up:** losing it makes encrypted profile fields unreadable. Never rotate it casually. |
 | `SMTP_URL` | **yes** | Transactional email (verification codes, alerts), e.g. `smtps://user:pass@smtp.provider.com:465` |
 | `EMAIL_FROM` | **yes** | e.g. `AgriPrice <no-reply@agriprice.example>` |
-| `SMS_PROVIDER` | no | `log` by default: codes only appear in the API log. Use `africastalking` with `AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID` for real SMS. |
+| `SMS_PROVIDER` | no | Unset or `log`: **no SMS is sent in production** (the log provider only exists in development), so phone sign-in and SMS alerts won't work. Use `africastalking` with `AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`, or `twilio`. Email is the only channel that must work on day one, since sign-up verification codes go by email. |
 | `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS` | no | Backend audiences for social sign-in |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_APPLE_SERVICE_ID` | no | Show the sign-in buttons on the web; build-time values |
 | `ADMIN_IP_ALLOWLIST` | no | CIDRs, e.g. `203.0.113.0/24, 2001:db8::/32`. When set, `/admin` and `/api/v1/admin/*` return 404 to every other IP. |
