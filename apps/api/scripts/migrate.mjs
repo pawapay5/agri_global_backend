@@ -60,8 +60,38 @@ function splitSql(sql) {
   return out;
 }
 
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgres://agriprice:agriprice@localhost:5432/agriprice" });
-await client.connect();
+const url = process.env.DATABASE_URL ?? "postgres://agriprice:agriprice@localhost:5432/agriprice";
+
+/**
+ * Connect with retries. On a fresh volume the Postgres image runs initdb, then restarts; a container
+ * orchestrator can start us in that window. Retry connection-level failures for up to ~90 s (MIGRATE_CONNECT_TIMEOUT_S).
+ * Auth/database errors aren't retried: they won't fix themselves.
+ */
+async function connectWithRetry() {
+  const deadline = Date.now() + Number(process.env.MIGRATE_CONNECT_TIMEOUT_S ?? 90) * 1000;
+  const transient = new Set(["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EAI_AGAIN", "ETIMEDOUT", "57P03" /* cannot_connect_now: starting up */]);
+  for (let attempt = 1; ; attempt++) {
+    const c = new pg.Client({ connectionString: url, connectionTimeoutMillis: 5000 });
+    try {
+      await c.connect();
+      await c.query("SELECT 1");
+      return c;
+    } catch (e) {
+      await c.end().catch(() => {});
+      const code = e.code ?? "";
+      const retry = transient.has(code) || /terminat|shutting down|Connection terminated|timeout/i.test(e.message);
+      if (!retry || Date.now() > deadline) {
+        const host = (() => { try { const u = new URL(url); return `${u.hostname}:${u.port || 5432}/${u.pathname.slice(1)}`; } catch { return "?"; } })();
+        console.error(`migrate: cannot connect to ${host}: ${code} ${e.message}`);
+        throw e;
+      }
+      console.log(`migrate: database not ready (${code || e.message}); retry ${attempt}`);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
+}
+
+const client = await connectWithRetry();
 try {
   await client.query(`CREATE TABLE IF NOT EXISTS schema_migrations (id text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())`);
   await client.query("SELECT pg_advisory_lock(727274)");
