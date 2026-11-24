@@ -16,7 +16,12 @@ const SIGN_IN = {
   connect: ["https://accounts.google.com"],
 };
 
-export function buildCsp({ nonce, dev = process.env.NODE_ENV !== "production" }: { nonce?: string; dev?: boolean } = {}): string {
+/**
+ * `https`: whether this response is served over HTTPS. `upgrade-insecure-requests` is only added then:
+ * on a plain-HTTP deployment it would make the browser fetch every stylesheet and script over https://,
+ * which fails, leaving the page without CSS or JS.
+ */
+export function buildCsp({ nonce, dev = process.env.NODE_ENV !== "production", https = !dev }: { nonce?: string; dev?: boolean; https?: boolean } = {}): string {
   const extraConnect = (process.env.CSP_CONNECT_SRC ?? "").split(/[\s,]+/).filter(Boolean);
   const script = nonce
     ? [`'nonce-${nonce}'`, "'strict-dynamic'", "'self'", ...SIGN_IN.script]
@@ -40,7 +45,7 @@ export function buildCsp({ nonce, dev = process.env.NODE_ENV !== "production" }:
     "report-uri": ["/api/csp-report"],
   };
   const policy = Object.entries(directives).map(([k, v]) => `${k} ${v.join(" ")}`).join("; ");
-  return dev ? policy : `${policy}; upgrade-insecure-requests`;
+  return https ? `${policy}; upgrade-insecure-requests` : policy;
 }
 
 export function newNonce(): string {

@@ -70,6 +70,11 @@ describe("csp", () => {
     expect(p).toContain("object-src 'none'");
     expect(p).toContain("upgrade-insecure-requests");
   });
+  it("only upgrades requests when the site is on HTTPS (else CSS/JS break on http:// deploys)", () => {
+    expect(buildCsp({ dev: false, https: true })).toContain("upgrade-insecure-requests");
+    expect(buildCsp({ dev: false, https: false })).not.toContain("upgrade-insecure-requests");
+    expect(buildCsp({ nonce: "n", dev: false, https: false })).not.toContain("upgrade-insecure-requests");
+  });
   it("cacheable policy allows inline bootstrap scripts but nothing else third-party", () => {
     const script = buildCsp({ dev: false }).split("; ").find((d) => d.startsWith("script-src"))!;
     expect(script).toBe("script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client https://appleid.cdn-apple.com");

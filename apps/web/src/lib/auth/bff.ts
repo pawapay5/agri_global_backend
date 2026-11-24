@@ -5,6 +5,7 @@ import { env } from "../env";
 import { clientIp } from "../security/client-ip";
 import { CSRF_HEADER, csrfCookieName, tokensMatch } from "../security/csrf";
 import { AUTH_LIMITS, hit } from "../security/rate-limit";
+import { HTTPS_SITE } from "../security/transport";
 import { DEVICE_COOKIE } from "./tokens";
 
 /**
@@ -21,7 +22,7 @@ export async function assertSameOrigin(req: Request): Promise<NextResponse | nul
   } catch {
     return problem(403, "cross_site_request", "Forbidden");
   }
-  const cookie = (await cookies()).get(csrfCookieName(env.isProd))?.value;
+  const cookie = (await cookies()).get(csrfCookieName(HTTPS_SITE))?.value;
   if (!tokensMatch(cookie, req.headers.get(CSRF_HEADER))) return problem(403, "csrf_failed", "Forbidden");
   return null;
 }
@@ -55,7 +56,7 @@ export async function deviceInfo(userAgent: string | null) {
   let id = jar.get(DEVICE_COOKIE)?.value;
   if (!id) {
     id = `web-${crypto.randomUUID()}`;
-    jar.set(DEVICE_COOKIE, id, { httpOnly: true, secure: env.isProd, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 400 });
+    jar.set(DEVICE_COOKIE, id, { httpOnly: true, secure: HTTPS_SITE, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 400 });
   }
   const ua = userAgent ?? "";
   const name = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Browser";
