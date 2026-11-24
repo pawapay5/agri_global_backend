@@ -4,6 +4,7 @@
  * Claims are decoded (not verified) only for routing hints; the backend verifies every request.
  */
 import { decodeJwt } from "jose";
+import { HTTPS_SITE } from "../security/transport";
 
 export const ACCESS_COOKIE = "ap_at";
 export const REFRESH_COOKIE = "ap_rt";
@@ -15,7 +16,8 @@ export interface Claims { sub: string; role: string; cty: string; exp: number }
 
 type CookieSetter = { set: (name: string, value: string, opts: Record<string, unknown>) => unknown; delete: (name: string) => unknown };
 
-const base = () => ({ httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/" });
+// Secure only when the site is on HTTPS: browsers drop Secure cookies on http:// sites (see security/transport).
+const base = () => ({ httpOnly: true, secure: HTTPS_SITE, sameSite: "lax" as const, path: "/" });
 
 export function setTokenCookies(c: CookieSetter, t: TokenPair) {
   c.set(ACCESS_COOKIE, t.accessToken, { ...base(), expires: new Date(t.accessTokenExpiresAt) });

@@ -6,12 +6,13 @@ import { clientIp } from "./lib/security/client-ip";
 import { buildCsp, newNonce } from "./lib/security/csp";
 import { csrfCookieName, newCsrfToken } from "./lib/security/csrf";
 import { ipAllowed, parseAllowlist } from "./lib/security/ip-allowlist";
+import { HTTPS_SITE } from "./lib/security/transport";
 
 const intl = createIntlMiddleware(routing);
 const API = (process.env.AGRIPRICE_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
-const SECURE = process.env.NODE_ENV === "production";
+const SECURE = HTTPS_SITE;
 const ADMIN_ALLOW = parseAllowlist(process.env.ADMIN_IP_ALLOWLIST);
-const PUBLIC_CSP = buildCsp();
+const PUBLIC_CSP = buildCsp({ https: HTTPS_SITE });
 
 /**
  * 1) CSP: per-request nonce for /app and /admin (rendered per request); the cacheable policy elsewhere.
@@ -30,7 +31,7 @@ export async function proxy(req: NextRequest) {
   }
 
   const nonce = isPrivate ? newNonce() : undefined;
-  const csp = nonce ? buildCsp({ nonce }) : PUBLIC_CSP;
+  const csp = nonce ? buildCsp({ nonce, https: HTTPS_SITE }) : PUBLIC_CSP;
   const headers = new Headers(req.headers);
   if (nonce) { headers.set("content-security-policy", csp); headers.set("x-nonce", nonce); }
   const res = intl(new NextRequest(req, { headers }));
