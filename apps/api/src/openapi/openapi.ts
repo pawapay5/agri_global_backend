@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
-export const CONTRACT_PATH = join(__dirname, "..", "..", "..", "..", "packages", "contracts", "openapi", "openapi.yaml");
+export const CONTRACT_PATH = join(__dirname, "..", "..", "..", "..", "openapi", "openapi.yaml");
 
 /** Spec generated from controller/DTO decorators. */
 export function buildOpenApi(app: INestApplication): OpenAPIObject {

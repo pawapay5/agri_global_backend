@@ -16,7 +16,7 @@ export const Display = createParamDecorator((_: unknown, ctx: ExecutionContext):
   const req = ctx.switchToHttp().getRequest<Request>();
   const q = req.query as Record<string, string | undefined>;
   const currency = (q.currency ?? req.header("x-currency"))?.toUpperCase();
-  const unit = q.unit ?? req.header("x-unit");
+  const unit = q.unit ?? req.header("x-unit") ?? req.header("x-units");
   const locale = req.header("accept-language")?.split(",")[0]?.split(";")[0]?.trim();
   return {
     currency: currency && /^[A-Z]{3}$/.test(currency) ? currency : undefined,

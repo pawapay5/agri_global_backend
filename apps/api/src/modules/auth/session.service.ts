@@ -15,11 +15,18 @@ import type { DeviceInfoDto } from "./auth.dto";
 
 export interface TokenPair { tokenType: "Bearer"; accessToken: string; accessTokenExpiresAt: string; refreshToken: string; refreshTokenExpiresAt: string }
 
-export type RefreshVerdict = "ok" | "reuse" | "revoked" | "expired";
+export type RefreshVerdict = "ok" | "race" | "reuse" | "revoked" | "expired";
+
+/** Concurrent refreshes (e.g. two tabs, or a prefetch plus a navigation through the web BFF) present the same token within seconds. */
+export const REFRESH_RACE_GRACE_MS = 30_000;
 
 /** Pure decision for a presented refresh token. */
 export function classifyRefresh(row: Pick<RefreshTokenRow, "usedAt" | "revokedAt" | "expiresAt">, now = new Date()): RefreshVerdict {
-  if (row.usedAt) return "reuse";          // already rotated: someone replayed an old token
+  if (row.usedAt) {
+    // Just rotated by a concurrent request: not theft. The caller should pick up the cookie the winner set.
+    if (!row.revokedAt && now.getTime() - row.usedAt.getTime() < REFRESH_RACE_GRACE_MS) return "race";
+    return "reuse";                        // replay of an old token: revoke the family
+  }
   if (row.revokedAt) return "revoked";
   if (row.expiresAt <= now) return "expired";
   return "ok";
@@ -96,16 +103,14 @@ export class SessionService {
       await this.audit.record({ actorId: row.userId, action: "auth.refresh.reuse_detected", entity: "refresh_family", entityId: row.familyId }, client);
       throw AppError.unauthorized("refresh_reused", "Session ended for your security. Please sign in again.");
     }
+    if (verdict === "race") throw AppError.unauthorized("refresh_race", "Token was just rotated by a concurrent request; retry with the latest token.");
     if (verdict !== "ok") throw AppError.unauthorized(`refresh_${verdict}`);
 
     // Atomic single-use claim: only one concurrent caller can win.
     const claimed = await this.db.update(refreshTokens).set({ usedAt: new Date() })
       .where(and(eq(refreshTokens.id, row.id), isNull(refreshTokens.usedAt), isNull(refreshTokens.revokedAt)))
       .returning({ id: refreshTokens.id });
-    if (!claimed.length) {
-      await this.revokeFamily(row.familyId, "reuse_detected");
-      throw AppError.unauthorized("refresh_reused");
-    }
+    if (!claimed.length) throw AppError.unauthorized("refresh_race", "Token was just rotated by a concurrent request; retry with the latest token.");
 
     const user = await loadUser(row.userId);
     if (!user || user.deletionScheduledAt) throw AppError.unauthorized("account_unavailable");

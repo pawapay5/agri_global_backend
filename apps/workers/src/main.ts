@@ -6,13 +6,22 @@ import { purgeDeletedAccounts, snapshotSupply } from "./jobs/accounts";
 import { AlertEvaluator, EvaluateSeriesJob, refreshAggregates, sweepNewAggregates } from "./jobs/alerts";
 import { DeliverJob, Dispatcher, DispatchJob, SendOtpJob } from "./jobs/dispatch";
 import { ReportGenerator } from "./jobs/reports";
+import { revalidateWeb } from "./jobs/revalidate";
 import { buildProviders, PermanentError } from "./providers/providers";
 
 // Queue names are shared with apps/api/src/common/queue/queues.ts.
 const Q = { notifications: "notifications", deliveries: "deliveries", alerts: "alerts", prices: "prices", accounts: "accounts", reports: "reports" } as const;
 
 const log = pino({ name: "agriprice-workers", level: process.env.LOG_LEVEL ?? "info", redact: ["*.code", "*.destination", "*.to"] });
+const revalidate = { url: process.env.WEB_REVALIDATE_URL, secret: process.env.REVALIDATE_SECRET };
 const connection = new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", { maxRetriesPerRequest: null });
+// Log a Redis outage once (and recovery once) instead of an "Unhandled error event" per retry.
+let redisDown = false;
+connection.on("error", (err: Error & { code?: string }) => {
+  if (!redisDown) log.error({ code: err.code ?? err.message }, "cannot reach Redis; is it running? retrying in the background");
+  redisDown = true;
+});
+connection.on("ready", () => { if (redisDown) log.info("reconnected to Redis"); redisDown = false; });
 const db = new Pool({ connectionString: process.env.DATABASE_URL ?? "postgres://agriprice:agriprice@localhost:5432/agriprice", max: 10, application_name: "agriprice-workers" });
 
 const defaults = { attempts: 6, backoff: { type: "exponential" as const, delay: 5_000 }, removeOnComplete: 1000, removeOnFail: 5000 };
@@ -40,7 +49,7 @@ const workers = [
 
   new Worker(Q.alerts, async (job) => {
     if (job.name === "evaluate-series") return evaluator.evaluate(job.data as EvaluateSeriesJob);
-    if (job.name === "sweep") return sweepNewAggregates(db, queues.alerts, log);
+    if (job.name === "sweep") return revalidateWeb(await sweepNewAggregates(db, queues.alerts, log), revalidate, log);
   }, { connection, concurrency: 5 }),
 
   new Worker(Q.prices, async (job) => {
@@ -48,7 +57,7 @@ const workers = [
       const { from, to } = job.data as { from: string; to: string };
       await refreshAggregates(db, from, to);
       // Re-evaluate alerts for the backfilled range.
-      await sweepNewAggregates(db, queues.alerts, log);
+      await revalidateWeb(await sweepNewAggregates(db, queues.alerts, log), revalidate, log);
     }
   }, { connection, concurrency: 1 }),
 

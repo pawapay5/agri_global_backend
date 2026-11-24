@@ -7,7 +7,8 @@ launching in Ghana as **AgriPrice GH** and expanding country by country through 
 
 | Path | What it is |
 |---|---|
-| `packages/contracts` | **OpenAPI 3.1 contract** (`openapi/openapi.yaml`, the single source of truth) + generated TS types |
+| `openapi/openapi.yaml` | **OpenAPI 3.1 contract**, the single source of truth |
+| `packages/contracts` | Generated TS types for the contract |
 | `apps/api` | NestJS 11 API (TypeScript strict), Drizzle + raw SQL, reversible SQL migrations, seeder |
 | `apps/workers` | BullMQ consumers: notification dispatch (FCM, Africa's Talking, Twilio, SES/Postmark/SMTP, WhatsApp), alert evaluation, aggregate refresh, account purge |
 | `apps/ml` | Python 3.12 forecasting: LightGBM quantile + XGBoost median ensemble, walk-forward backtests, SHAP, MLflow |
@@ -36,7 +37,7 @@ python -m agriprice_ml.train --country GH
 ```
 
 ## Contract-first workflow
-1. Edit `packages/contracts/openapi/openapi.yaml` and run `pnpm contract:lint`.
+1. Edit `openapi/openapi.yaml` and run `pnpm contract:lint`.
 2. Run `pnpm contract:gen` to regenerate the TS types for clients.
 3. Implement the handler with `@ApiOperation({ operationId })` matching the spec.
 4. Run `pnpm contract:check`. It builds the spec from decorators and fails on any missing, undocumented

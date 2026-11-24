@@ -127,7 +127,8 @@ export class AlertEvaluator {
  * Safety net beside the per-approval trigger: every few minutes, find series whose approved
  * observations were created since the watermark and enqueue evaluations (job ids dedupe).
  */
-export async function sweepNewAggregates(db: Pool, alertsQueue: Queue, log: Logger) {
+/** Enqueues alert evaluation for newly approved prices; returns the countries whose prices changed. */
+export async function sweepNewAggregates(db: Pool, alertsQueue: Queue, log: Logger): Promise<string[]> {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
@@ -143,7 +144,10 @@ export async function sweepNewAggregates(db: Pool, alertsQueue: Queue, log: Logg
     }
     await client.query(`UPDATE aggregate_watermarks SET processed_until = $1 WHERE name = 'alerts'`, [until]);
     await client.query("COMMIT");
-    if (series.length) log.info({ series: series.length }, "alert sweep enqueued");
+    if (!series.length) return [] as string[];
+    log.info({ series: series.length }, "alert sweep enqueued");
+    const markets = [...new Set(series.map((s) => s.market_id))];
+    return (await db.query<{ country_iso2: string }>(`SELECT DISTINCT country_iso2 FROM markets WHERE id = ANY($1::uuid[])`, [markets])).rows.map((r) => r.country_iso2);
   } catch (e) {
     await client.query("ROLLBACK").catch(() => undefined);
     throw e;
