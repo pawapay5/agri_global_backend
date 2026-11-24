@@ -1,7 +1,6 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { env } from "../env";
 import { clientIp } from "../security/client-ip";
 import { CSRF_HEADER, csrfCookieName, tokensMatch } from "../security/csrf";
 import { AUTH_LIMITS, hit } from "../security/rate-limit";

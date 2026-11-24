@@ -7,7 +7,7 @@ import { ShapPanel } from "@/components/charts/shap-panel";
 import { Badge, Card } from "@/components/ui/primitives";
 import { useCommodity, useExplanation, useForecast, useHistory, useMarkets, useMe } from "@/lib/api/queries";
 import { formatMoney, formatPct, pick } from "@/lib/utils";
-import { PageTitle, QueryState, Segmented } from "./common";
+import { PageTitle, QueryState } from "./common";
 
 /** Market selector shared by forecast and commodity views; the choice lives in the URL (?market=). */
 export function MarketSelect({ cc }: { cc: string }) {
