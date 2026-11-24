@@ -6,13 +6,13 @@ Coolify runs the stack in [`docker-compose.coolify.yml`](../docker-compose.cooli
 |---|---|---|
 | `web` | yes: your site domain | Next.js (standalone). Public pages, app, admin, and the BFF at `/api/*` |
 | `api` | yes: API domain (the mobile app and the price-ingest pipelines use it) | NestJS REST API |
-| `minio` | yes: files domain (image URLs) | S3-compatible storage for uploads and reports |
+| `storage` | yes: files domain (image URLs) | S3-compatible storage (RustFS) for uploads and reports. MinIO is no longer published on Docker Hub. |
 | `workers` | no | alerts, notifications, reports, revalidating web pages |
 | `ml` | no | forecasting service |
 | `migrate` | no (one-shot) | applies database migrations before `api` starts |
 | `postgres` | no | TimescaleDB and PostGIS |
 | `redis` | no | queues, cache, socket.io, web rate limits |
-| `gotenberg`, `clamav`, `mlflow`, `minio-init` | no | PDF rendering, upload virus scanning, model registry, bucket setup |
+| `gotenberg`, `clamav`, `mlflow`, `storage-perms`, `storage-init` | no | PDF rendering, upload virus scanning, model registry, storage volume ownership, bucket setup (makes `agriprice-images` publicly readable) |
 
 **Server sizing.** Plan on at least 4 vCPU, 8 GB RAM and 60 GB disk. ClamAV alone uses about 1.5 GB of RAM. The first build compiles every image, so allow 10–15 minutes.
 
@@ -23,13 +23,13 @@ Coolify runs the stack in [`docker-compose.coolify.yml`](../docker-compose.cooli
 3. Under **Domains**, assign:
    - `web`: `https://agriprice.example`;
    - `api`: `https://api.agriprice.example`;
-   - `minio`: `https://files.agriprice.example`.
+   - `storage`: `https://files.agriprice.example`.
 
    Coolify generates domains if you skip this. Because `NEXT_PUBLIC_SITE_URL` is baked in at build time, redeploy `web` after changing its domain.
 
 ## 2. Environment
 
-Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` value: database, Redis, MinIO, JWT, OTP pepper, revalidation secret and ML token. You must set these in the **Environment Variables** tab yourself. Compose checks the required ones when it builds, so if Coolify offers a build-time toggle for a variable, leave it on:
+Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` value: database, Redis, storage, JWT, OTP pepper, revalidation secret and ML token. You must set these in the **Environment Variables** tab yourself. Compose checks the required ones when it builds, so if Coolify offers a build-time toggle for a variable, leave it on:
 
 | Variable | Required | Notes |
 |---|---|---|
@@ -80,7 +80,7 @@ If Cloudflare proxies your domains:
 
 In Coolify, schedule backups for:
 - `pgdata`, or better, scheduled `pg_dump` from the **postgres** service;
-- `miniodata` (uploads and reports);
+- `storagedata` (uploads and reports);
 - `models` (trained forecast models).
 
 Store `FIELD_ENCRYPTION_KEY` in your password manager.
