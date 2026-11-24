@@ -161,7 +161,10 @@ services:
       POSTGRES_DB: agriprice
     volumes: [pgdata:/home/postgres/pgdata/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d agriprice"]
+      # Over TCP and with a real query: during first-time init the image runs a temporary socket-only server,
+      # which a plain `pg_isready` would report as ready just before Postgres restarts.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d agriprice && PGPASSWORD=$${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U $${POSTGRES_USER} -d agriprice -tAc 'select 1' >/dev/null"]
+      start_period: 30s
       interval: 5s
       retries: 20
     restart: unless-stopped
