@@ -21,7 +21,7 @@ launching in Ghana as **AgriPrice GH** and expanding country by country through 
 
 ```bash
 cp .env.example .env
-docker compose up -d                      # Timescale+PostGIS, Redis, MinIO, Mailpit, MLflow (+ --profile search for Meilisearch)
+docker compose up -d                      # Timescale+PostGIS, Redis, RustFS (S3), Mailpit, MLflow (+ --profile search for Meilisearch)
 pnpm install
 pnpm db:migrate                           # reversible: pnpm db:rollback [--steps N]
 pnpm db:seed gh                           # loads country-packs/_global + gh
