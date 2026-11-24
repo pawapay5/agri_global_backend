@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS user_badges;
+DROP TABLE IF EXISTS badges;
+DROP TABLE IF EXISTS reputation_events;
+DROP TABLE IF EXISTS follows;
+DROP TABLE IF EXISTS reactions;
+ALTER TABLE IF EXISTS posts DROP CONSTRAINT IF EXISTS posts_accepted_comment_fk;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS posts;
+ALTER TABLE users DROP COLUMN IF EXISTS suspended_reason, DROP COLUMN IF EXISTS suspended_at;
+DROP TABLE IF EXISTS moderation_items;
+DROP TABLE IF EXISTS user_blocks;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS conversation_members;
+DROP TABLE IF EXISTS conversations;

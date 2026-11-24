@@ -15,6 +15,10 @@ env:
   EMAIL_PROVIDER: ses
   SMS_PROVIDER: africastalking
   OPEN_METEO_URL: https://api.open-meteo.com/v1/forecast
+  GOTENBERG_URL: http://agriprice-gotenberg:3000
+  CLAMAV_HOST: agriprice-clamav
+  CLAMAV_PORT: "3310"
+  WEB_URL: https://agriprice.app
 
 api:
   replicas: 3

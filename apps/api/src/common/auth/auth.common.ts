@@ -10,7 +10,7 @@ import { AppError } from "../http/problem";
 import { REDIS } from "../redis/redis.module";
 
 export type RoleName =
-  | "farmer" | "trader" | "consumer" | "researcher" | "student" | "policymaker" | "enumerator" | "admin" | "org_admin";
+  | "farmer" | "trader" | "consumer" | "researcher" | "student" | "policymaker" | "enumerator" | "agronomist" | "admin" | "org_admin";
 
 export interface AuthUser { id: string; role: RoleName; country: string; deviceId: string | null; orgId: string | null }
 

@@ -1,0 +1,3762 @@
+openapi: 3.1.0
+info:
+  title: AgriPrice API
+  version: 1.2.0
+  summary: Data. Forecasts. Better Decisions.
+  description: |
+    Global agricultural market-intelligence API. Launches in Ghana (AgriPrice GH) and expands
+    country by country via database-driven "country packs".
+
+    Conventions
+    - All paths are versioned under `/v1`. Breaking changes ship as `/v2`.
+    - Errors use RFC 9457 `application/problem+json`.
+    - List endpoints use opaque cursor pagination (`cursor`, `limit`) and return `{ data, nextCursor }`.
+    - Monetary amounts are decimal strings to avoid float drift.
+    - Every price carries the `observed` value (local currency + local unit) and a `display` value
+      converted to the caller's preferred currency and unit (from `X-Currency` / `X-Unit` headers,
+      query params, or the user's saved preferences, in that order).
+    - Localised strings follow the `Accept-Language` header, with fallback to the country default and then `en`.
+  contact:
+    name: AgriPrice Platform
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+x-realtime:
+  transport: Socket.IO v4, namespace /v1/realtime, Redis adapter
+  auth: "handshake auth { token: <access JWT> }; disconnected with 'unauthorized' on invalid or expired tokens"
+  clientEvents:
+    message:send: "{ conversationId, kind: text|offer, body?, offer?, clientId } → ack { ok, message | error }"
+    message:read: "{ conversationId } → read receipt broadcast"
+    typing: "{ conversationId, typing: boolean } (throttled to 1 per 2 s)"
+    conversation:join: "{ conversationId } (membership checked)"
+  serverEvents:
+    message:new: Message
+    message:delivered: "{ conversationId, messageId, userId, at }"
+    message:read: "{ conversationId, userId, at }"
+    typing: "{ conversationId, userId, typing }"
+    presence: "{ userId, online, lastSeenAt }"
+servers:
+  - url: http://localhost:3001
+    description: Local
+  - url: https://api.agriprice.app
+    description: Production
+security:
+  - bearerAuth: []
+tags:
+  - name: health
+    description: Liveness and readiness probes
+  - name: auth
+    description: Authentication, sessions, 2FA and devices
+  - name: users
+    description: Profile, farming profile, preferences, locations and consents
+  - name: geo
+    description: Countries, admin regions and markets
+  - name: catalogue
+    description: Commodities, varieties, units and search
+  - name: prices
+    description: Price observations, history, comparisons and aggregates
+  - name: admin-prices
+    description: Price ingestion and moderation (privileged)
+  - name: forecasts
+    description: Stored AI forecasts and SHAP explanations
+  - name: insights
+    description: Seasonality, recommendations, weather and export insights
+  - name: alerts
+    description: User price alerts and their history
+  - name: notifications
+    description: In-app inbox, channel preferences and delivery receipts
+  - name: reports
+    description: Async report generation (PDF/XLSX/CSV) with signed URLs and short links
+  - name: billing
+    description: Plans, subscriptions (RevenueCat, Paystack, Flutterwave, Stripe) and entitlements
+  - name: content
+    description: Stories, FAQs, help articles, impact stats and app config
+  - name: support
+    description: Tickets, chat handoff, feedback and issue reports
+  - name: admin
+    description: RBAC-protected administration
+  - name: public-data
+    description: API-key authenticated read-only data for partners and researchers
+  - name: sms-ussd
+    description: SMS commands and USSD menus
+  - name: messaging
+    description: "Conversations, messages, blocking and abuse reports. Realtime: Socket.IO at /v1/realtime (see x-realtime)"
+  - name: marketplace
+    description: Sellers, listings, offers, cart, checkout, orders and reviews
+  - name: payments
+    description: PSP collections, ledger-backed wallet, payouts and disputes
+  - name: community
+    description: Posts, comments, reactions, follows, Q&A and reputation
+
+  - name: knowledge
+    description: Crop guides, pest and disease library, fertiliser calculator, programmes, training, input suppliers
+  - name: seller-analytics
+    description: Seller KPIs, demand index and supply by region
+  - name: internal
+    description: Service-to-service hooks (not for clients)
+paths:
+  # ───────────────────────────── health ─────────────────────────────
+  /healthz:
+    get:
+      tags: [health]
+      operationId: health_live
+      security: []
+      responses:
+        "200": { description: Process is alive, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+  /readyz:
+    get:
+      tags: [health]
+      operationId: health_ready
+      security: []
+      responses:
+        "200": { description: Dependencies reachable, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── auth ─────────────────────────────
+  /v1/auth/register:
+    post:
+      tags: [auth]
+      operationId: auth_register
+      security: []
+      summary: Register with email and password. Sends an email verification OTP.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RegisterRequest" } } }
+      responses:
+        "201": { description: Registered, content: { application/json: { schema: { $ref: "#/components/schemas/AuthResult" } } } }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: auth_login
+      security: []
+      summary: Email + password login. Returns tokens, or an MFA challenge when TOTP is enabled.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LoginRequest" } } }
+      responses:
+        "200": { description: Tokens or MFA challenge, content: { application/json: { schema: { $ref: "#/components/schemas/AuthResult" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/auth/otp/request:
+    post:
+      tags: [auth]
+      operationId: auth_otp_request
+      security: []
+      summary: Send a 6-digit OTP by SMS or email (10-minute TTL, 30-second resend cooldown).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OtpRequest" } } }
+      responses:
+        "202": { description: OTP dispatched, content: { application/json: { schema: { $ref: "#/components/schemas/OtpRequestResult" } } } }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/auth/otp/verify:
+    post:
+      tags: [auth]
+      operationId: auth_otp_verify
+      security: []
+      summary: Verify an OTP (max 5 attempts). For purpose=login this signs the user in, creating the account if needed.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OtpVerifyRequest" } } }
+      responses:
+        "200": { description: Verified, content: { application/json: { schema: { $ref: "#/components/schemas/AuthResult" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/auth/oauth/{provider}:
+    post:
+      tags: [auth]
+      operationId: auth_oauth
+      security: []
+      summary: Sign in with a provider ID token (Google, Apple) or access token (Facebook).
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [google, apple, facebook] }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OAuthRequest" } } }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { $ref: "#/components/schemas/AuthResult" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/auth/mfa/verify:
+    post:
+      tags: [auth]
+      operationId: auth_mfa_verify
+      security: []
+      summary: Complete login with a TOTP code or a recovery code.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/MfaVerifyRequest" } } }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { $ref: "#/components/schemas/AuthResult" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: auth_refresh
+      security: []
+      summary: Rotate the refresh token. Reusing an old token revokes the whole token family.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RefreshRequest" } } }
+      responses:
+        "200": { description: New token pair, content: { application/json: { schema: { $ref: "#/components/schemas/TokenPair" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: auth_logout
+      summary: Revoke the current session (refresh token family).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RefreshRequest" } } }
+      responses:
+        "204": { description: Logged out }
+  /v1/auth/logout-all:
+    post:
+      tags: [auth]
+      operationId: auth_logout_all
+      summary: Revoke all sessions on all devices.
+      responses:
+        "204": { description: All sessions revoked }
+  /v1/auth/password/forgot:
+    post:
+      tags: [auth]
+      operationId: auth_password_forgot
+      security: []
+      summary: Send a reset OTP. Always returns 202 so it can't be used to discover which emails are registered.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ForgotPasswordRequest" } } }
+      responses:
+        "202": { description: Accepted }
+  /v1/auth/password/reset:
+    post:
+      tags: [auth]
+      operationId: auth_password_reset
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ResetPasswordRequest" } } }
+      responses:
+        "204": { description: Password reset; all sessions revoked }
+        "400": { $ref: "#/components/responses/Problem" }
+  /v1/auth/password/change:
+    post:
+      tags: [auth]
+      operationId: auth_password_change
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ChangePasswordRequest" } } }
+      responses:
+        "204": { description: Changed; other sessions revoked }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/auth/2fa/totp/setup:
+    post:
+      tags: [auth]
+      operationId: auth_totp_setup
+      responses:
+        "200": { description: Pending TOTP secret, content: { application/json: { schema: { $ref: "#/components/schemas/TotpSetup" } } } }
+  /v1/auth/2fa/totp/enable:
+    post:
+      tags: [auth]
+      operationId: auth_totp_enable
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TotpCode" } } }
+      responses:
+        "200": { description: Enabled; one-time recovery codes, content: { application/json: { schema: { $ref: "#/components/schemas/RecoveryCodes" } } } }
+        "400": { $ref: "#/components/responses/Problem" }
+  /v1/auth/2fa/totp/disable:
+    post:
+      tags: [auth]
+      operationId: auth_totp_disable
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TotpCode" } } }
+      responses:
+        "204": { description: Disabled }
+        "400": { $ref: "#/components/responses/Problem" }
+  /v1/auth/devices:
+    get:
+      tags: [auth]
+      operationId: auth_devices_list
+      responses:
+        "200": { description: Devices, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Device" } } } } }
+  /v1/auth/devices/current:
+    patch:
+      tags: [auth]
+      operationId: auth_devices_update_current
+      summary: Update the calling device (e.g. its FCM push token).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DeviceUpdate" } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Device" } } } }
+  /v1/auth/devices/{id}:
+    delete:
+      tags: [auth]
+      operationId: auth_devices_revoke
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Device revoked and its sessions ended }
+
+  # ───────────────────────────── users ─────────────────────────────
+  /v1/me:
+    get:
+      tags: [users]
+      operationId: users_me_get
+      responses:
+        "200": { description: Current user, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+    patch:
+      tags: [users]
+      operationId: users_me_update
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UserUpdate" } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+    delete:
+      tags: [users]
+      operationId: users_me_delete
+      summary: Request account deletion. Hard delete runs after a 30-day grace period; contributed prices are anonymised.
+      responses:
+        "202": { description: Deletion scheduled, content: { application/json: { schema: { $ref: "#/components/schemas/DeletionStatus" } } } }
+  /v1/me/deletion/cancel:
+    post:
+      tags: [users]
+      operationId: users_me_deletion_cancel
+      responses:
+        "204": { description: Deletion cancelled }
+  /v1/me/farming-profile:
+    get:
+      tags: [users]
+      operationId: users_farming_profile_get
+      responses:
+        "200": { description: Farming profile, content: { application/json: { schema: { $ref: "#/components/schemas/FarmingProfile" } } } }
+    put:
+      tags: [users]
+      operationId: users_farming_profile_put
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FarmingProfile" } } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/FarmingProfile" } } } }
+  /v1/me/preferences:
+    get:
+      tags: [users]
+      operationId: users_preferences_get
+      responses:
+        "200": { description: Preferences, content: { application/json: { schema: { $ref: "#/components/schemas/Preferences" } } } }
+    put:
+      tags: [users]
+      operationId: users_preferences_put
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/Preferences" } } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/Preferences" } } } }
+  /v1/me/interests:
+    get:
+      tags: [users]
+      operationId: users_interests_get
+      responses:
+        "200": { description: Interests, content: { application/json: { schema: { $ref: "#/components/schemas/Interests" } } } }
+    put:
+      tags: [users]
+      operationId: users_interests_put
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/Interests" } } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/Interests" } } } }
+  /v1/me/locations:
+    get:
+      tags: [users]
+      operationId: users_locations_list
+      responses:
+        "200": { description: Saved locations, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/SavedLocation" } } } } }
+    post:
+      tags: [users]
+      operationId: users_locations_create
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SavedLocationCreate" } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/SavedLocation" } } } }
+  /v1/me/locations/{id}:
+    delete:
+      tags: [users]
+      operationId: users_locations_delete
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Deleted }
+  /v1/me/consents:
+    get:
+      tags: [users]
+      operationId: users_consents_get
+      responses:
+        "200": { description: Consent records, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Consent" } } } } }
+    put:
+      tags: [users]
+      operationId: users_consents_put
+      summary: Grant or withdraw consents. Every change is appended to the audit trail with a timestamp.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ConsentUpdate" } } }
+      responses:
+        "200": { description: Current consents, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Consent" } } } } }
+
+  # ───────────────────────────── geo ─────────────────────────────
+  /v1/countries:
+    get:
+      tags: [geo]
+      operationId: geo_countries_list
+      security: []
+      parameters:
+        - { name: active, in: query, schema: { type: boolean } }
+      responses:
+        "200": { description: Countries, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Country" } } } } }
+  /v1/countries/{iso2}:
+    get:
+      tags: [geo]
+      operationId: geo_countries_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/Iso2Path" }]
+      responses:
+        "200": { description: Country with its pack configuration, content: { application/json: { schema: { $ref: "#/components/schemas/Country" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/regions:
+    get:
+      tags: [geo]
+      operationId: geo_regions_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: parent_id, in: query, schema: { type: string, format: uuid } }
+        - { name: level, in: query, schema: { type: integer, minimum: 1, maximum: 4 } }
+      responses:
+        "200": { description: Regions, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Region" } } } } }
+  /v1/regions/geojson:
+    get:
+      tags: [geo]
+      operationId: geo_regions_geojson
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: level, in: query, schema: { type: integer, minimum: 1, maximum: 4, default: 1 } }
+        - { name: simplify, in: query, description: Simplification tolerance in degrees, schema: { type: number, minimum: 0, maximum: 0.1, default: 0.005 } }
+      responses:
+        "200": { description: GeoJSON FeatureCollection, content: { application/geo+json: { schema: { $ref: "#/components/schemas/FeatureCollection" } } } }
+  /v1/regions/choropleth:
+    get:
+      tags: [geo]
+      operationId: geo_regions_choropleth
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: level, in: query, schema: { type: integer, minimum: 1, maximum: 4, default: 1 } }
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 90, default: 30 } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Region aggregates, content: { application/json: { schema: { $ref: "#/components/schemas/Choropleth" } } } }
+  /v1/markets:
+    get:
+      tags: [geo]
+      operationId: geo_markets_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - { name: type, in: query, schema: { $ref: "#/components/schemas/MarketType" } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Markets, content: { application/json: { schema: { $ref: "#/components/schemas/MarketPage" } } } }
+  /v1/markets/nearby:
+    get:
+      tags: [geo]
+      operationId: geo_markets_nearby
+      security: []
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: radius_km, in: query, schema: { type: number, minimum: 0.1, maximum: 500, default: 50 } }
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Markets sorted by distance, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/NearbyMarket" } } } } }
+  /v1/markets/geojson:
+    get:
+      tags: [geo]
+      operationId: geo_markets_geojson
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+      responses:
+        "200": { description: Market points, content: { application/geo+json: { schema: { $ref: "#/components/schemas/FeatureCollection" } } } }
+  /v1/markets/{id}:
+    get:
+      tags: [geo]
+      operationId: geo_markets_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Market, content: { application/json: { schema: { $ref: "#/components/schemas/Market" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── catalogue ─────────────────────────────
+  /v1/commodity-categories:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_categories_list
+      security: []
+      responses:
+        "200": { description: Categories, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/CommodityCategory" } } } } }
+  /v1/commodities:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_commodities_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: category_id, in: query, schema: { type: string, format: uuid } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Commodities, content: { application/json: { schema: { $ref: "#/components/schemas/CommodityPage" } } } }
+  /v1/commodities/{id}:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_commodities_get
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/CountryQuery"
+      responses:
+        "200": { description: Commodity detail, content: { application/json: { schema: { $ref: "#/components/schemas/CommodityDetail" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/commodities/{id}/varieties:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_varieties_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Varieties, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Variety" } } } } }
+  /v1/units:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_units_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Units with kg conversions, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Unit" } } } } }
+  /v1/search:
+    get:
+      tags: [catalogue]
+      operationId: catalogue_search
+      security: []
+      summary: Multilingual search across commodities and markets (Meilisearch when enabled, Postgres FTS otherwise).
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 100 } }
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        "200": { description: Results, content: { application/json: { schema: { $ref: "#/components/schemas/SearchResults" } } } }
+
+  # ───────────────────────────── prices ─────────────────────────────
+  /v1/prices/submissions:
+    post:
+      tags: [prices]
+      operationId: prices_submit
+      summary: Crowd-sourced price submission. Validated, outlier-scored and queued for review where needed.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PriceSubmission" } } }
+      responses:
+        "201": { description: Accepted, content: { application/json: { schema: { $ref: "#/components/schemas/PriceObservation" } } } }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/prices/latest:
+    get:
+      tags: [prices]
+      operationId: prices_latest
+      security: []
+      summary: Latest price per market for a commodity.
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Latest prices, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MarketPrice" } } } } }
+  /v1/prices/history:
+    get:
+      tags: [prices]
+      operationId: prices_history
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - { name: market_id, in: query, schema: { type: string, format: uuid } }
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/CountryQuery"
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: range, in: query, schema: { type: string, enum: [1M, 3M, 6M, 1Y, ALL], default: 3M } }
+        - { name: interval, in: query, schema: { type: string, enum: [day, week], default: day } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Series and stats, content: { application/json: { schema: { $ref: "#/components/schemas/PriceHistory" } } } }
+  /v1/prices/compare:
+    get:
+      tags: [prices]
+      operationId: prices_compare
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - name: market_ids
+          in: query
+          required: true
+          style: form
+          explode: false
+          schema: { type: array, items: { type: string, format: uuid }, minItems: 2, maxItems: 10 }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: range, in: query, schema: { type: string, enum: [1M, 3M, 6M, 1Y], default: 1M } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Comparison, content: { application/json: { schema: { $ref: "#/components/schemas/MarketComparison" } } } }
+  /v1/prices/regional-averages:
+    get:
+      tags: [prices]
+      operationId: prices_regional_averages
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 90, default: 7 } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Averages per region, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/RegionalAverage" } } } } }
+  /v1/prices/trending:
+    get:
+      tags: [prices]
+      operationId: prices_trending
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: window, in: query, schema: { type: string, enum: [7d, 30d], default: 7d } }
+        - { name: direction, in: query, schema: { type: string, enum: [up, down, both], default: both } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Top movers, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/TrendingItem" } } } } }
+  /v1/dashboard/snapshot:
+    get:
+      tags: [prices]
+      operationId: prices_dashboard_snapshot
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQueryRequired" }]
+      responses:
+        "200": { description: Counts, content: { application/json: { schema: { $ref: "#/components/schemas/DashboardSnapshot" } } } }
+
+  /v1/admin/prices/import:
+    post:
+      tags: [admin-prices]
+      operationId: admin_prices_import
+      summary: Bulk CSV import (admin, org_admin, enumerator). Rows go through the same validation pipeline.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, country]
+              properties:
+                file: { type: string, contentMediaType: text/csv }
+                country: { type: string, pattern: "^[A-Z]{2}$" }
+                source_id: { type: string, format: uuid }
+                dry_run: { type: boolean, default: false }
+      responses:
+        "202": { description: Import report, content: { application/json: { schema: { $ref: "#/components/schemas/ImportReport" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/admin/prices/review-queue:
+    get:
+      tags: [admin-prices]
+      operationId: admin_prices_review_queue
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: status, in: query, schema: { type: string, enum: [pending, flagged], default: pending } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Queue, content: { application/json: { schema: { $ref: "#/components/schemas/ReviewQueuePage" } } } }
+  /v1/admin/prices/{id}/review:
+    post:
+      tags: [admin-prices]
+      operationId: admin_prices_review
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ReviewDecision" } } }
+      responses:
+        "200": { description: Reviewed, content: { application/json: { schema: { $ref: "#/components/schemas/PriceObservation" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── forecasts ─────────────────────────────
+  /v1/forecasts:
+    get:
+      tags: [forecasts]
+      operationId: forecasts_get
+      security: []
+      summary: Latest stored forecast run for a series (market or region). Horizons 1, 3 and 6 months.
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - { name: market_id, in: query, schema: { type: string, format: uuid } }
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: "Forecast, or status=insufficient_data when guardrails withhold it", content: { application/json: { schema: { $ref: "#/components/schemas/Forecast" } } } }
+  /v1/forecasts/{id}/explanation:
+    get:
+      tags: [forecasts]
+      operationId: forecasts_explanation
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - { name: horizon_months, in: query, schema: { type: integer, enum: [1, 3, 6], default: 1 } }
+      responses:
+        "200": { description: SHAP explanation, content: { application/json: { schema: { $ref: "#/components/schemas/ForecastExplanation" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── insights ─────────────────────────────
+  /v1/insights/seasonal:
+    get:
+      tags: [insights]
+      operationId: insights_seasonal
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - { name: market_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Seasonal analysis, content: { application/json: { schema: { $ref: "#/components/schemas/SeasonalAnalysis" } } } }
+  /v1/insights/recommendations:
+    get:
+      tags: [insights]
+      operationId: insights_recommendations
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - { name: market_id, in: query, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Recommendations, content: { application/json: { schema: { $ref: "#/components/schemas/RecommendationSet" } } } }
+  /v1/insights/alternative-markets:
+    get:
+      tags: [insights]
+      operationId: insights_alternative_markets
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - { name: market_id, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: radius_km, in: query, schema: { type: number, minimum: 1, maximum: 1000, default: 200 } }
+        - { name: transport_cost_per_kg_km, in: query, description: Optional transport cost in local currency per kg·km, schema: { type: number, minimum: 0 } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - $ref: "#/components/parameters/CurrencyQuery"
+        - $ref: "#/components/parameters/UnitQuery"
+      responses:
+        "200": { description: Alternatives ranked by net margin, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/AlternativeMarket" } } } } }
+  /v1/insights/planting:
+    get:
+      tags: [insights]
+      operationId: insights_planting
+      parameters:
+        - { name: region_id, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: month, in: query, schema: { type: integer, minimum: 1, maximum: 12 } }
+      responses:
+        "200": { description: Plant suggestions from the crop calendar, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/PlantSuggestion" } } } } }
+  /v1/insights/weather:
+    get:
+      tags: [insights]
+      operationId: insights_weather
+      parameters:
+        - { name: lat, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: location_id, in: query, description: Saved location (alternative to lat/lng), schema: { type: string, format: uuid } }
+        - { name: commodity_ids, in: query, style: form, explode: false, schema: { type: array, items: { type: string, format: uuid }, maxItems: 10 } }
+      responses:
+        "200": { description: Weather and advice, content: { application/json: { schema: { $ref: "#/components/schemas/WeatherAdvice" } } } }
+        "502": { $ref: "#/components/responses/Problem" }
+  /v1/insights/export:
+    get:
+      tags: [insights]
+      operationId: insights_export
+      parameters:
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: destination, in: query, description: "Destination market code, e.g. EU, GB, US, AE", schema: { type: string, maxLength: 8 } }
+        - $ref: "#/components/parameters/CurrencyQuery"
+      responses:
+        "200": { description: Export insights, content: { application/json: { schema: { $ref: "#/components/schemas/ExportInsights" } } } }
+
+  # ───────────────────────────── alerts ─────────────────────────────
+  /v1/alerts:
+    get:
+      tags: [alerts]
+      operationId: alerts_list
+      parameters:
+        - { name: active, in: query, schema: { type: boolean } }
+      responses:
+        "200": { description: Alerts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Alert" } } } } }
+    post:
+      tags: [alerts]
+      operationId: alerts_create
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AlertCreate" } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Alert" } } } }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/alerts/history:
+    get:
+      tags: [alerts]
+      operationId: alerts_history
+      parameters:
+        - { name: alert_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Trigger history, content: { application/json: { schema: { $ref: "#/components/schemas/AlertEventPage" } } } }
+  /v1/alerts/insights:
+    get:
+      tags: [alerts]
+      operationId: alerts_insights
+      responses:
+        "200": { description: Alert statistics, content: { application/json: { schema: { $ref: "#/components/schemas/AlertInsights" } } } }
+  /v1/alerts/{id}:
+    get:
+      tags: [alerts]
+      operationId: alerts_get
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Alert, content: { application/json: { schema: { $ref: "#/components/schemas/Alert" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [alerts]
+      operationId: alerts_update
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AlertUpdate" } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Alert" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [alerts]
+      operationId: alerts_delete
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Deleted }
+
+  # ───────────────────────────── notifications ─────────────────────────────
+  /v1/notifications:
+    get:
+      tags: [notifications]
+      operationId: notifications_list
+      parameters:
+        - { name: category, in: query, schema: { $ref: "#/components/schemas/NotificationCategory" } }
+        - { name: unread, in: query, schema: { type: boolean } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Inbox, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPage" } } } }
+  /v1/notifications/unread-count:
+    get:
+      tags: [notifications]
+      operationId: notifications_unread_count
+      responses:
+        "200": { description: Counts, content: { application/json: { schema: { $ref: "#/components/schemas/UnreadCount" } } } }
+  /v1/notifications/read-all:
+    post:
+      tags: [notifications]
+      operationId: notifications_read_all
+      parameters:
+        - { name: category, in: query, schema: { $ref: "#/components/schemas/NotificationCategory" } }
+      responses:
+        "204": { description: Marked read }
+  /v1/notifications/{id}/read:
+    post:
+      tags: [notifications]
+      operationId: notifications_mark_read
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Marked read }
+  /v1/notifications/preferences:
+    get:
+      tags: [notifications]
+      operationId: notifications_preferences_get
+      responses:
+        "200": { description: Channel preferences, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreferences" } } } }
+    put:
+      tags: [notifications]
+      operationId: notifications_preferences_put
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreferences" } } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreferences" } } } }
+  /v1/webhooks/receipts/{provider}:
+    post:
+      tags: [notifications]
+      operationId: notifications_receipt_webhook
+      security: []
+      summary: Delivery-receipt webhook. Each provider's request signature is verified.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [africastalking, twilio, postmark, ses, whatsapp] }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object, additionalProperties: true } }
+          application/x-www-form-urlencoded: { schema: { type: object, additionalProperties: true } }
+      responses:
+        "204": { description: Recorded }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── reports ─────────────────────────────
+  /v1/reports:
+    get:
+      tags: [reports]
+      operationId: reports_list
+      parameters: [{ $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Report jobs, content: { application/json: { schema: { $ref: "#/components/schemas/ReportJobPage" } } } }
+    post:
+      tags: [reports]
+      operationId: reports_create
+      summary: Queue a report (crop_price, market_analysis, forecast, regional, custom) as PDF, XLSX or CSV.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ReportCreate" } } } }
+      responses:
+        "202": { description: Queued, content: { application/json: { schema: { $ref: "#/components/schemas/ReportJob" } } } }
+        "402": { $ref: "#/components/responses/Problem" }
+  /v1/reports/{id}:
+    get:
+      tags: [reports]
+      operationId: reports_get
+      summary: Job status. When it has succeeded, includes a 24-hour signed download URL and a short link.
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Job, content: { application/json: { schema: { $ref: "#/components/schemas/ReportJob" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /s/{code}:
+    get:
+      tags: [reports]
+      operationId: short_link_resolve
+      security: []
+      summary: Shareable short link. Redirects to a fresh signed URL or the target resource.
+      parameters: [{ name: code, in: path, required: true, schema: { type: string, pattern: "^[0-9A-Za-z]{6,12}$" } }]
+      responses:
+        "302": { description: Redirect }
+        "404": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── billing ─────────────────────────────
+  /v1/billing/plans:
+    get:
+      tags: [billing]
+      operationId: billing_plans_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }]
+      responses:
+        "200": { description: Plans, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Plan" } } } } }
+  /v1/billing/subscription:
+    get:
+      tags: [billing]
+      operationId: billing_subscription_get
+      responses:
+        "200": { description: "Effective plan, subscription and entitlements", content: { application/json: { schema: { $ref: "#/components/schemas/BillingStatus" } } } }
+  /v1/billing/checkout:
+    post:
+      tags: [billing]
+      operationId: billing_checkout
+      summary: Start a web or mobile-money subscription checkout (Paystack, Flutterwave or Stripe). App-store purchases go through RevenueCat.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/BillingCheckout" } } } }
+      responses:
+        "200": { description: Hosted checkout, content: { application/json: { schema: { $ref: "#/components/schemas/CheckoutSession" } } } }
+  /v1/billing/cancel:
+    post:
+      tags: [billing]
+      operationId: billing_cancel
+      summary: Cancel at period end (web subscriptions; app-store subscriptions are managed in the store).
+      responses:
+        "200": { description: Updated status, content: { application/json: { schema: { $ref: "#/components/schemas/BillingStatus" } } } }
+  /v1/webhooks/billing/{provider}:
+    post:
+      tags: [billing]
+      operationId: billing_webhook
+      security: []
+      summary: Subscription webhooks. The signature is verified per provider and processing is idempotent on the event id.
+      parameters: [{ name: provider, in: path, required: true, schema: { type: string, enum: [revenuecat, paystack, flutterwave, stripe] } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "204": { description: Accepted }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── content ─────────────────────────────
+  /v1/content/stories:
+    get:
+      tags: [content]
+      operationId: content_stories_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Success stories, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Story" } } } } }
+  /v1/content/faqs:
+    get:
+      tags: [content]
+      operationId: content_faqs_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: category, in: query, schema: { type: string, maxLength: 40 } }]
+      responses:
+        "200": { description: FAQs, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Faq" } } } } }
+  /v1/content/articles:
+    get:
+      tags: [content]
+      operationId: content_articles_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: q, in: query, schema: { type: string, maxLength: 100 } }, { name: tag, in: query, schema: { type: string, maxLength: 40 } }]
+      responses:
+        "200": { description: Help articles (without body), content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Article" } } } } }
+  /v1/content/articles/{slug}:
+    get:
+      tags: [content]
+      operationId: content_articles_get
+      security: []
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string, pattern: "^[a-z0-9-]{1,120}$" } }]
+      responses:
+        "200": { description: Article, content: { application/json: { schema: { $ref: "#/components/schemas/Article" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/content/impact:
+    get:
+      tags: [content]
+      operationId: content_impact
+      security: []
+      summary: About/impact statistics, computed from live data (cached).
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }]
+      responses:
+        "200": { description: Impact stats, content: { application/json: { schema: { $ref: "#/components/schemas/ImpactStats" } } } }
+  /v1/app-config:
+    get:
+      tags: [content]
+      operationId: content_app_config
+      security: []
+      summary: Minimum app versions and feature flags (country overrides global).
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: platform, in: query, schema: { type: string, enum: [android, ios, web] } }]
+      responses:
+        "200": { description: Config, content: { application/json: { schema: { $ref: "#/components/schemas/AppConfig" } } } }
+
+  # ───────────────────────────── support ─────────────────────────────
+  /v1/support/tickets:
+    get:
+      tags: [support]
+      operationId: support_tickets_list
+      responses:
+        "200": { description: My tickets, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Ticket" } } } } }
+    post:
+      tags: [support]
+      operationId: support_tickets_create
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TicketCreate" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Ticket" } } } }
+  /v1/support/tickets/{id}:
+    get:
+      tags: [support]
+      operationId: support_tickets_get
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Ticket with messages, content: { application/json: { schema: { $ref: "#/components/schemas/Ticket" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/support/tickets/{id}/messages:
+    post:
+      tags: [support]
+      operationId: support_tickets_reply
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TextBody" } } } }
+      responses:
+        "201": { description: Added, content: { application/json: { schema: { $ref: "#/components/schemas/Ticket" } } } }
+  /v1/support/chat-handoff:
+    post:
+      tags: [support]
+      operationId: support_chat_handoff
+      summary: Hand the user over to a human agent. Creates a ticket and notifies the helpdesk by webhook.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ChatHandoff" } } } }
+      responses:
+        "202": { description: Handed off, content: { application/json: { schema: { $ref: "#/components/schemas/Ticket" } } } }
+  /v1/support/feedback:
+    post:
+      tags: [support]
+      operationId: support_feedback
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/FeedbackCreate" } } } }
+      responses:
+        "204": { description: Thanks }
+  /v1/support/issues:
+    post:
+      tags: [support]
+      operationId: support_issue_report
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/IssueCreate" } } } }
+      responses:
+        "201": { description: Recorded, content: { application/json: { schema: { $ref: "#/components/schemas/IdOnly" } } } }
+
+  # ───────────────────────────── admin ─────────────────────────────
+  /v1/admin/tables/{table}:
+    get:
+      tags: [admin]
+      operationId: admin_table_list
+      summary: Generic RBAC-protected CRUD over allow-listed catalogue/content tables.
+      parameters: [{ $ref: "#/components/parameters/AdminTable" }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }, { name: q, in: query, schema: { type: string, maxLength: 100 } }]
+      responses:
+        "200": { description: Rows, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [admin]
+      operationId: admin_table_create
+      parameters: [{ $ref: "#/components/parameters/AdminTable" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/admin/tables/{table}/{id}:
+    patch:
+      tags: [admin]
+      operationId: admin_table_update
+      parameters: [{ $ref: "#/components/parameters/AdminTable" }, { $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+    delete:
+      tags: [admin]
+      operationId: admin_table_delete
+      parameters: [{ $ref: "#/components/parameters/AdminTable" }, { $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Deleted }
+  /v1/admin/country-packs/{iso2}:
+    patch:
+      tags: [admin]
+      operationId: admin_country_pack_update
+      summary: Edit a country's pack configuration (currency, locales, units, brand, config flags, active).
+      parameters: [{ $ref: "#/components/parameters/Iso2Path" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "200": { description: Updated country, content: { application/json: { schema: { $ref: "#/components/schemas/Country" } } } }
+  /v1/admin/users:
+    get:
+      tags: [admin]
+      operationId: admin_users_list
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: role, in: query, schema: { $ref: "#/components/schemas/Role" } }, { name: q, in: query, schema: { type: string, maxLength: 100 } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Users, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/users/{id}:
+    patch:
+      tags: [admin]
+      operationId: admin_users_update
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AdminUserUpdate" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+  /v1/admin/broadcasts:
+    post:
+      tags: [admin]
+      operationId: admin_broadcast
+      summary: Broadcast a notification to an audience (country, role, region, commodity interest).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/Broadcast" } } } }
+      responses:
+        "202": { description: Queued, content: { application/json: { schema: { type: object, properties: { recipients: { type: integer } } } } } }
+  /v1/admin/models:
+    get:
+      tags: [admin]
+      operationId: admin_models
+      summary: Model dashboard (versions, global backtest metrics, worst series).
+      responses:
+        "200": { description: Models, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /v1/admin/audit-log:
+    get:
+      tags: [admin]
+      operationId: admin_audit_log
+      parameters:
+        - { name: actor_id, in: query, schema: { type: string, format: uuid } }
+        - { name: action, in: query, schema: { type: string, maxLength: 80 } }
+        - { name: entity, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        "200": { description: Entries, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/moderation:
+    get:
+      tags: [admin]
+      operationId: admin_moderation_queue
+      parameters: [{ name: target_type, in: query, schema: { $ref: "#/components/schemas/ModerationTarget" } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Open items, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/moderation/{id}/decision:
+    post:
+      tags: [admin]
+      operationId: admin_moderation_decide
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ModerationDecision" } } } }
+      responses:
+        "204": { description: Decided }
+  /v1/admin/disputes:
+    get:
+      tags: [admin]
+      operationId: admin_disputes_list
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [open, under_review, resolved] } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Disputes, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/disputes/{id}/decision:
+    post:
+      tags: [admin]
+      operationId: admin_dispute_decide
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/DisputeDecision" } } } }
+      responses:
+        "200": { description: Resolved order, content: { application/json: { schema: { $ref: "#/components/schemas/Order" } } } }
+  /v1/admin/payouts:
+    get:
+      tags: [admin]
+      operationId: admin_payouts_list
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [pending_review, processing, failed] } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Payouts, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/payouts/{id}/review:
+    post:
+      tags: [admin]
+      operationId: admin_payout_review
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ReviewDecision" } } } }
+      responses:
+        "200": { description: Payout, content: { application/json: { schema: { $ref: "#/components/schemas/Payout" } } } }
+  /v1/admin/reconciliation:
+    get:
+      tags: [admin]
+      operationId: admin_reconciliation
+      parameters: [{ name: provider, in: query, schema: { type: string } }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Daily reconciliation runs, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+
+  # ───────────────────────────── public data API ─────────────────────────────
+  /v1/api-keys:
+    get:
+      tags: [public-data]
+      operationId: api_keys_list
+      responses:
+        "200": { description: My API keys (no secrets), content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/ApiKey" } } } } }
+    post:
+      tags: [public-data]
+      operationId: api_keys_create
+      summary: Create a key. The secret is returned once.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 1, maxLength: 80 } } } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/ApiKeyCreated" } } } }
+        "402": { $ref: "#/components/responses/Problem" }
+  /v1/api-keys/{id}:
+    delete:
+      tags: [public-data]
+      operationId: api_keys_revoke
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Revoked }
+  /v1/public/markets:
+    get:
+      tags: [public-data]
+      operationId: public_markets
+      security: [{ apiKeyAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/CountryQueryRequired" }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Markets, content: { application/json: { schema: { $ref: "#/components/schemas/MarketPage" } } } }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/public/commodities:
+    get:
+      tags: [public-data]
+      operationId: public_commodities
+      security: [{ apiKeyAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Commodities, content: { application/json: { schema: { $ref: "#/components/schemas/CommodityPage" } } } }
+  /v1/public/prices:
+    get:
+      tags: [public-data]
+      operationId: public_prices
+      security: [{ apiKeyAuth: [] }]
+      summary: Daily aggregated prices (per kg, local currency and USD) for research and partner use.
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - { name: market_id, in: query, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/PriceTypeQuery"
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - $ref: "#/components/parameters/Cursor"
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 500 } }
+      responses:
+        "200": { description: Daily aggregates, content: { application/json: { schema: { $ref: "#/components/schemas/PublicPricePage" } } } }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/public/forecasts:
+    get:
+      tags: [public-data]
+      operationId: public_forecasts
+      security: [{ apiKeyAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/CommodityQueryRequired" }, { name: market_id, in: query, schema: { type: string, format: uuid } }, { name: region_id, in: query, schema: { type: string, format: uuid } }, { $ref: "#/components/parameters/PriceTypeQuery" }]
+      responses:
+        "200": { description: Latest forecast (local currency per kg), content: { application/json: { schema: { $ref: "#/components/schemas/Forecast" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  # ───────────────────────────── sms / ussd ─────────────────────────────
+  /v1/webhooks/sms/{provider}:
+    post:
+      tags: [sms-ussd]
+      operationId: sms_inbound
+      security: []
+      summary: "Inbound SMS commands: PRICE <crop> [market], ALERT <crop> BELOW|ABOVE <amount> [market], STOP, HELP. Replies in the user's language."
+      parameters: [{ name: provider, in: path, required: true, schema: { type: string, enum: [africastalking, twilio] } }]
+      requestBody: { required: true, content: { application/x-www-form-urlencoded: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "200": { description: "Reply (provider-specific body, e.g. TwiML)", content: { text/plain: { schema: { type: string } }, application/xml: { schema: { type: string } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/webhooks/ussd/{provider}:
+    post:
+      tags: [sms-ussd]
+      operationId: ussd_session
+      security: []
+      summary: USSD menu session (CON = continue, END = final), backed by the same command engine.
+      parameters: [{ name: provider, in: path, required: true, schema: { type: string, enum: [africastalking] } }]
+      requestBody: { required: true, content: { application/x-www-form-urlencoded: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "200": { description: USSD response, content: { text/plain: { schema: { type: string } } } }
+
+  # ───────────────────────────── messaging ─────────────────────────────
+  /v1/conversations:
+    get:
+      tags: [messaging]
+      operationId: messaging_conversations_list
+      parameters: [{ $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Conversations, content: { application/json: { schema: { $ref: "#/components/schemas/ConversationPage" } } } }
+    post:
+      tags: [messaging]
+      operationId: messaging_conversations_create
+      summary: Start (or reuse) a 1:1 conversation, optionally tied to a listing or order.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ConversationCreate" } } } }
+      responses:
+        "200": { description: Conversation, content: { application/json: { schema: { $ref: "#/components/schemas/Conversation" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{id}/messages:
+    get:
+      tags: [messaging]
+      operationId: messaging_messages_list
+      parameters: [{ $ref: "#/components/parameters/IdPath" }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Messages (newest first), content: { application/json: { schema: { $ref: "#/components/schemas/MessagePage" } } } }
+    post:
+      tags: [messaging]
+      operationId: messaging_messages_send
+      summary: REST fallback for sending. Realtime clients emit `message:send` on /v1/realtime.
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MessageSend" } } } }
+      responses:
+        "201": { description: Sent, content: { application/json: { schema: { $ref: "#/components/schemas/Message" } } } }
+        "429": { $ref: "#/components/responses/Problem" }
+  /v1/conversations/{id}/read:
+    post:
+      tags: [messaging]
+      operationId: messaging_mark_read
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Read receipt recorded }
+  /v1/conversations/{id}/images:
+    post:
+      tags: [messaging]
+      operationId: messaging_image_upload
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, contentMediaType: image/* }, clientId: { type: string } } } } } }
+      responses:
+        "201": { description: Image message, content: { application/json: { schema: { $ref: "#/components/schemas/Message" } } } }
+  /v1/users/{id}/block:
+    post:
+      tags: [messaging]
+      operationId: messaging_block
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Blocked }
+    delete:
+      tags: [messaging]
+      operationId: messaging_unblock
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Unblocked }
+  /v1/moderation/reports:
+    post:
+      tags: [messaging]
+      operationId: moderation_report
+      summary: Report a listing, message, post, comment, user or price for review.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AbuseReport" } } } }
+      responses:
+        "202": { description: Queued }
+
+  # ───────────────────────────── marketplace ─────────────────────────────
+  /v1/marketplace/seller-profile:
+    get:
+      tags: [marketplace]
+      operationId: market_seller_me_get
+      responses:
+        "200": { description: My seller profile, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [marketplace]
+      operationId: market_seller_me_put
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfileUpdate" } } } }
+      responses:
+        "200": { description: Saved, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+  /v1/marketplace/seller-profile/kyc:
+    post:
+      tags: [marketplace]
+      operationId: market_seller_kyc
+      summary: Submit KYC (Ghana Card / national ID number and selfie). Verification is delegated to the KYC provider and the result arrives by webhook.
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [idType, idNumber, selfie], properties: { idType: { type: string, enum: [national_id, passport, voter_id, drivers_licence] }, idNumber: { type: string, maxLength: 40 }, selfie: { type: string, contentMediaType: image/* } } } } } }
+      responses:
+        "202": { description: Pending, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+  /v1/webhooks/kyc:
+    post:
+      tags: [marketplace]
+      operationId: kyc_webhook
+      security: []
+      summary: KYC provider result callback (secret URL token).
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reference, status], properties: { reference: { type: string }, status: { type: string, enum: [verified, rejected] }, reason: { type: string } } } } } }
+      responses:
+        "204": { description: Recorded }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/marketplace/sellers/{id}:
+    get:
+      tags: [marketplace]
+      operationId: market_seller_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Public seller profile, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+  /v1/marketplace/sellers/{id}/reviews:
+    get:
+      tags: [marketplace]
+      operationId: market_seller_reviews
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Reviews, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/marketplace/listings:
+    get:
+      tags: [marketplace]
+      operationId: market_listings_search
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: type, in: query, schema: { type: string, enum: [product, service] } }
+        - { name: service_kind, in: query, schema: { type: string, enum: [transport, storage, input_supply] } }
+        - { name: category_id, in: query, schema: { type: string, format: uuid } }
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - { name: min_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: max_price, in: query, schema: { type: number, minimum: 0 } }
+        - { name: sort, in: query, schema: { type: string, enum: [recent, lowest, highest, nearest], default: recent } }
+        - { name: lat, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Listings, content: { application/json: { schema: { $ref: "#/components/schemas/ListingPage" } } } }
+    post:
+      tags: [marketplace]
+      operationId: market_listings_create
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ListingCreate" } } } }
+      responses:
+        "201": { description: Created (draft), content: { application/json: { schema: { $ref: "#/components/schemas/Listing" } } } }
+  /v1/marketplace/listings/mine:
+    get:
+      tags: [marketplace]
+      operationId: market_listings_mine
+      parameters: [{ name: status, in: query, schema: { $ref: "#/components/schemas/ListingStatus" } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: My listings, content: { application/json: { schema: { $ref: "#/components/schemas/ListingPage" } } } }
+  /v1/marketplace/listings/{id}:
+    get:
+      tags: [marketplace]
+      operationId: market_listings_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Listing, content: { application/json: { schema: { $ref: "#/components/schemas/Listing" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [marketplace]
+      operationId: market_listings_update
+      summary: Edit, publish (status=active) or remove (status=removed).
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ListingUpdate" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Listing" } } } }
+  /v1/marketplace/listings/{id}/photos:
+    post:
+      tags: [marketplace]
+      operationId: market_listing_photo_upload
+      summary: Up to 5 photos. Each is virus-scanned, EXIF-stripped and resized into variants.
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, contentMediaType: image/* } } } } } }
+      responses:
+        "201": { description: Photo, content: { application/json: { schema: { $ref: "#/components/schemas/Photo" } } } }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/marketplace/listings/{id}/photos/{photoId}:
+    delete:
+      tags: [marketplace]
+      operationId: market_listing_photo_delete
+      parameters: [{ $ref: "#/components/parameters/IdPath" }, { name: photoId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "204": { description: Deleted }
+  /v1/marketplace/listings/{id}/favourite:
+    post:
+      tags: [marketplace]
+      operationId: market_favourite_add
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Saved }
+    delete:
+      tags: [marketplace]
+      operationId: market_favourite_remove
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Removed }
+  /v1/marketplace/favourites:
+    get:
+      tags: [marketplace]
+      operationId: market_favourites_list
+      parameters: [{ $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Favourite listings, content: { application/json: { schema: { $ref: "#/components/schemas/ListingPage" } } } }
+  /v1/marketplace/listings/{id}/offers:
+    post:
+      tags: [marketplace]
+      operationId: market_offer_create
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/OfferCreate" } } } }
+      responses:
+        "201": { description: Offer, content: { application/json: { schema: { $ref: "#/components/schemas/Offer" } } } }
+  /v1/marketplace/offers:
+    get:
+      tags: [marketplace]
+      operationId: market_offers_list
+      parameters: [{ name: role, in: query, schema: { type: string, enum: [buyer, seller], default: buyer } }, { name: status, in: query, schema: { type: string, enum: [open, accepted, rejected, countered, expired, withdrawn, used] } }]
+      responses:
+        "200": { description: Offers, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Offer" } } } } }
+  /v1/marketplace/offers/{id}/respond:
+    post:
+      tags: [marketplace]
+      operationId: market_offer_respond
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/OfferResponse" } } } }
+      responses:
+        "200": { description: Updated offer (or the counter-offer), content: { application/json: { schema: { $ref: "#/components/schemas/Offer" } } } }
+  /v1/marketplace/cart:
+    get:
+      tags: [marketplace]
+      operationId: market_cart_get
+      responses:
+        "200": { description: Cart grouped by seller, content: { application/json: { schema: { $ref: "#/components/schemas/Cart" } } } }
+  /v1/marketplace/cart/items:
+    put:
+      tags: [marketplace]
+      operationId: market_cart_upsert
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CartItemUpsert" } } } }
+      responses:
+        "200": { description: Cart, content: { application/json: { schema: { $ref: "#/components/schemas/Cart" } } } }
+  /v1/marketplace/cart/items/{id}:
+    delete:
+      tags: [marketplace]
+      operationId: market_cart_remove
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Cart, content: { application/json: { schema: { $ref: "#/components/schemas/Cart" } } } }
+  /v1/marketplace/checkout:
+    post:
+      tags: [marketplace]
+      operationId: market_checkout
+      summary: Split the cart into one order per seller, with delivery fees and commission. Orders start as pending_payment.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CheckoutRequest" } } } }
+      responses:
+        "201": { description: Orders created, content: { application/json: { schema: { $ref: "#/components/schemas/CheckoutResult" } } } }
+        "409": { $ref: "#/components/responses/Problem" }
+  /v1/marketplace/orders:
+    get:
+      tags: [marketplace]
+      operationId: market_orders_list
+      parameters: [{ name: role, in: query, schema: { type: string, enum: [buyer, seller], default: buyer } }, { name: status, in: query, schema: { $ref: "#/components/schemas/OrderStatus" } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Orders, content: { application/json: { schema: { $ref: "#/components/schemas/OrderPage" } } } }
+  /v1/marketplace/orders/{id}:
+    get:
+      tags: [marketplace]
+      operationId: market_orders_get
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Order with items and events, content: { application/json: { schema: { $ref: "#/components/schemas/Order" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/marketplace/orders/{id}/transition:
+    post:
+      tags: [marketplace]
+      operationId: market_orders_transition
+      summary: "Move the order through its state machine: accept, ship, deliver, confirm, collect_cash, cancel or dispute."
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/OrderTransition" } } } }
+      responses:
+        "200": { description: Order, content: { application/json: { schema: { $ref: "#/components/schemas/Order" } } } }
+        "409": { $ref: "#/components/responses/Problem" }
+  /v1/marketplace/orders/{id}/review:
+    post:
+      tags: [marketplace]
+      operationId: market_orders_review
+      summary: Leave a review. Only the buyer can, and only on a completed order.
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ReviewCreate" } } } }
+      responses:
+        "201": { description: Review, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /v1/disputes/{id}:
+    get:
+      tags: [payments]
+      operationId: disputes_get
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Dispute with evidence, content: { application/json: { schema: { $ref: "#/components/schemas/Dispute" } } } }
+  /v1/disputes/{id}/evidence:
+    post:
+      tags: [payments]
+      operationId: disputes_evidence_upload
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, properties: { file: { type: string }, note: { type: string, maxLength: 2000 } } } } } }
+      responses:
+        "201": { description: Evidence added, content: { application/json: { schema: { $ref: "#/components/schemas/Dispute" } } } }
+
+  # ───────────────────────────── payments / wallet ─────────────────────────────
+  /v1/payments/orders/{id}/pay:
+    post:
+      tags: [payments]
+      operationId: payments_pay_order
+      summary: Collect payment for an order through the PSP (MoMo prompt, card checkout or saved token).
+      parameters: [{ $ref: "#/components/parameters/IdPath" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PayRequest" } } } }
+      responses:
+        "200": { description: Payment initiated, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentIntent" } } } }
+  /v1/payments/methods:
+    get:
+      tags: [payments]
+      operationId: payments_methods_list
+      responses:
+        "200": { description: "Saved methods (PSP tokens, masked)", content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/PaymentMethod" } } } } }
+  /v1/payments/methods/{id}:
+    delete:
+      tags: [payments]
+      operationId: payments_methods_delete
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Deleted }
+  /v1/webhooks/payments/{provider}:
+    post:
+      tags: [payments]
+      operationId: payments_webhook
+      security: []
+      summary: PSP webhooks (Paystack, Flutterwave, Hubtel). The signature is verified, processing is idempotent, and the result is posted to the ledger.
+      parameters: [{ name: provider, in: path, required: true, schema: { type: string, enum: [paystack, flutterwave, hubtel] } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+      responses:
+        "200": { description: Accepted }
+        "401": { $ref: "#/components/responses/Problem" }
+  /v1/wallet:
+    get:
+      tags: [payments]
+      operationId: wallet_get
+      responses:
+        "200": { description: Seller balances, content: { application/json: { schema: { $ref: "#/components/schemas/Wallet" } } } }
+  /v1/wallet/ledger:
+    get:
+      tags: [payments]
+      operationId: wallet_ledger
+      parameters: [{ $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: Ledger entries on my seller account, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/wallet/payout-accounts:
+    get:
+      tags: [payments]
+      operationId: wallet_payout_accounts_list
+      responses:
+        "200": { description: Payout accounts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/PayoutAccount" } } } } }
+    post:
+      tags: [payments]
+      operationId: wallet_payout_accounts_create
+      summary: Register a MoMo or bank payout account. Validated with the PSP and stored as a recipient token.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PayoutAccountCreate" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/PayoutAccount" } } } }
+  /v1/wallet/payouts:
+    get:
+      tags: [payments]
+      operationId: wallet_payouts_list
+      responses:
+        "200": { description: Payouts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Payout" } } } } }
+    post:
+      tags: [payments]
+      operationId: wallet_payouts_request
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PayoutRequest" } } } }
+      responses:
+        "201": { description: Payout, content: { application/json: { schema: { $ref: "#/components/schemas/Payout" } } } }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+
+  # ───────────────────────────── community ─────────────────────────────
+  /v1/community/feed:
+    get:
+      tags: [community]
+      operationId: community_feed
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: type, in: query, schema: { $ref: "#/components/schemas/PostType" } }
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - { name: lat, in: query, schema: { type: number } }
+        - { name: lng, in: query, schema: { type: number } }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: Ranked feed, content: { application/json: { schema: { $ref: "#/components/schemas/PostPage" } } } }
+  /v1/community/posts:
+    post:
+      tags: [community]
+      operationId: community_posts_create
+      summary: Create a post. A price_update post also creates a crowd price observation that goes to review.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PostCreate" } } } }
+      responses:
+        "201": { description: Post, content: { application/json: { schema: { $ref: "#/components/schemas/Post" } } } }
+  /v1/community/posts/{id}:
+    get:
+      tags: [community]
+      operationId: community_posts_get
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Post, content: { application/json: { schema: { $ref: "#/components/schemas/Post" } } } }
+    delete:
+      tags: [community]
+      operationId: community_posts_delete
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Deleted }
+  /v1/community/posts/{id}/photos:
+    post:
+      tags: [community]
+      operationId: community_post_photo_upload
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, contentMediaType: image/* } } } } } }
+      responses:
+        "201": { description: Photo, content: { application/json: { schema: { $ref: "#/components/schemas/Photo" } } } }
+  /v1/community/posts/{id}/comments:
+    get:
+      tags: [community]
+      operationId: community_comments_list
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Threaded comments, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Comment" } } } } }
+    post:
+      tags: [community]
+      operationId: community_comments_create
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CommentCreate" } } } }
+      responses:
+        "201": { description: Comment, content: { application/json: { schema: { $ref: "#/components/schemas/Comment" } } } }
+  /v1/community/posts/{id}/reaction:
+    put:
+      tags: [community]
+      operationId: community_react
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [type], properties: { type: { type: string, enum: [like, helpful, insightful] } } } } } }
+      responses:
+        "204": { description: Reacted }
+    delete:
+      tags: [community]
+      operationId: community_unreact
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Removed }
+  /v1/community/posts/{id}/share:
+    post:
+      tags: [community]
+      operationId: community_share
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Share link, content: { application/json: { schema: { type: object, properties: { url: { type: string } } } } } }
+  /v1/community/posts/{id}/accept-answer:
+    post:
+      tags: [community]
+      operationId: community_accept_answer
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [commentId], properties: { commentId: { type: string, format: uuid } } } } } }
+      responses:
+        "204": { description: Accepted }
+  /v1/community/users/{id}:
+    get:
+      tags: [community]
+      operationId: community_profile
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Public profile with reputation and badges, content: { application/json: { schema: { $ref: "#/components/schemas/CommunityProfile" } } } }
+  /v1/community/users/{id}/follow:
+    post:
+      tags: [community]
+      operationId: community_follow
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Following }
+    delete:
+      tags: [community]
+      operationId: community_unfollow
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Unfollowed }
+
+  # ───────────────────────────── knowledge ─────────────────────────────
+  /v1/knowledge/crop-guides:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_crop_guides_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQueryRequired" }, { name: commodity_id, in: query, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { description: Published guides (summaries), content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/CropGuide" } } } } }
+  /v1/knowledge/crop-guides/{id}:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_crop_guides_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Guide with sections, content: { application/json: { schema: { $ref: "#/components/schemas/CropGuide" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/knowledge/pests:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_pests_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQuery"
+        - { name: commodity_id, in: query, schema: { type: string, format: uuid } }
+        - { name: kind, in: query, schema: { type: string, enum: [pest, disease, weed, deficiency] } }
+        - { name: q, in: query, description: Free text over names and symptoms, schema: { type: string, maxLength: 100 } }
+      responses:
+        "200": { description: Pests and diseases, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/PestDisease" } } } } }
+  /v1/knowledge/pests/{id}:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_pests_get
+      security: []
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Detail with organic and chemical control, content: { application/json: { schema: { $ref: "#/components/schemas/PestDisease" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+  /v1/knowledge/fertiliser/calculate:
+    post:
+      tags: [knowledge]
+      operationId: knowledge_fertiliser_calculate
+      security: []
+      summary: Fertiliser plan from an agronomist-reviewed rule for the crop, country and area, always shown with a safety note.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/FertiliserRequest" } } } }
+      responses:
+        "200": { description: Plan, content: { application/json: { schema: { $ref: "#/components/schemas/FertiliserPlan" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/knowledge/programmes:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_programmes_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQueryRequired" }, { name: open, in: query, schema: { type: boolean } }, { name: commodity_id, in: query, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { description: Government programmes and grants, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Programme" } } } } }
+  /v1/knowledge/training:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_training_list
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: kind, in: query, schema: { type: string, enum: [article, event, video, course] } }, { name: upcoming, in: query, schema: { type: boolean } }]
+      responses:
+        "200": { description: Training articles and events, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/TrainingItem" } } } } }
+  /v1/knowledge/suppliers:
+    get:
+      tags: [knowledge]
+      operationId: knowledge_suppliers_list
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - { name: category, in: query, schema: { type: string, enum: [seed, fertiliser, agrochemical, equipment, feed, veterinary, irrigation, packaging] } }
+        - { name: lat, in: query, schema: { type: number } }
+        - { name: lng, in: query, schema: { type: number } }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { description: "Input suppliers (nearest first when lat/lng given)", content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/InputSupplier" } } } } }
+  /v1/admin/knowledge/{table}/{id}/review:
+    post:
+      tags: [admin]
+      operationId: admin_knowledge_review
+      summary: Agronomist sign-off. Editing a reviewed item clears the sign-off, and fertiliser rules go back to draft.
+      parameters: [{ name: table, in: path, required: true, schema: { type: string, enum: [crop_guides, pest_diseases, fertiliser_rules] } }, { $ref: "#/components/parameters/IdPath" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { publish: { type: boolean, default: true }, note: { type: string, maxLength: 500 } } } } } }
+      responses:
+        "200": { description: Reviewed row, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/admin/knowledge/{table}/{id}/revisions:
+    get:
+      tags: [admin]
+      operationId: admin_knowledge_revisions
+      parameters: [{ name: table, in: path, required: true, schema: { type: string, enum: [crop_guides, pest_diseases, fertiliser_rules, programmes, training_items, input_suppliers] } }, { $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: "Version history (newest first)", content: { application/json: { schema: { type: array, items: { type: object, properties: { version: { type: integer }, data: { type: object, additionalProperties: true }, editedAt: { type: string, format: date-time } } } } } } }
+
+  # ───────────────────────────── seller analytics ─────────────────────────────
+  /v1/seller/analytics/summary:
+    get:
+      tags: [seller-analytics]
+      operationId: seller_analytics_summary
+      parameters: [{ $ref: "#/components/parameters/AnalyticsPeriod" }]
+      responses:
+        "200": { description: KPIs with period-over-period change, content: { application/json: { schema: { $ref: "#/components/schemas/SellerSummary" } } } }
+  /v1/seller/analytics/timeseries:
+    get:
+      tags: [seller-analytics]
+      operationId: seller_analytics_timeseries
+      parameters:
+        - { name: metric, in: query, required: true, schema: { type: string, enum: [revenue, orders, views, offers, kg_sold] } }
+        - { name: interval, in: query, schema: { type: string, enum: [day, week], default: day } }
+        - $ref: "#/components/parameters/AnalyticsPeriod"
+      responses:
+        "200": { description: Series, content: { application/json: { schema: { type: object, properties: { metric: { type: string }, currency: { type: string }, points: { type: array, items: { type: object, properties: { t: { type: string, format: date-time }, value: { type: number } } } } } } } } }
+  /v1/seller/analytics/top-products:
+    get:
+      tags: [seller-analytics]
+      operationId: seller_analytics_top_products
+      parameters: [{ $ref: "#/components/parameters/AnalyticsPeriod" }, { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }]
+      responses:
+        "200": { description: Listings ranked by revenue, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/TopProduct" } } } } }
+  /v1/market-intel/demand:
+    get:
+      tags: [seller-analytics]
+      operationId: market_intel_demand
+      parameters:
+        - $ref: "#/components/parameters/CountryQueryRequired"
+        - $ref: "#/components/parameters/CommodityQueryRequired"
+        - { name: region_id, in: query, schema: { type: string, format: uuid } }
+        - { name: weeks, in: query, schema: { type: integer, minimum: 8, maximum: 104, default: 26 } }
+      responses:
+        "200": { description: "Weekly demand index (100 = normal)", content: { application/json: { schema: { $ref: "#/components/schemas/DemandIndex" } } } }
+  /v1/market-intel/supply:
+    get:
+      tags: [seller-analytics]
+      operationId: market_intel_supply
+      parameters: [{ $ref: "#/components/parameters/CountryQueryRequired" }, { $ref: "#/components/parameters/CommodityQueryRequired" }]
+      responses:
+        "200": { description: "Listed supply by region (latest snapshot) with 4-week change", content: { application/json: { schema: { $ref: "#/components/schemas/SupplyByRegion" } } } }
+
+  # ───────────────────────────── internal ─────────────────────────────
+  /internal/forecasts/refreshed:
+    post:
+      tags: [internal]
+      operationId: internal_forecasts_refreshed
+      security: [{ internalToken: [] }]
+      summary: Called by the nightly ML flow after writing forecasts. Warms caches and triggers the alert evaluator.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [country], properties: { country: { type: string, pattern: "^[A-Z]{2}$" }, modelVersion: { type: string }, series: { type: integer } } } } } }
+      responses:
+        "202": { description: Accepted }
+        "401": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    internalToken:
+      type: http
+      scheme: bearer
+      description: ML_SERVICE_TOKEN shared between internal services
+
+  parameters:
+    IdPath: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Iso2Path: { name: iso2, in: path, required: true, schema: { type: string, pattern: "^[A-Za-z]{2}$" } }
+    CountryQuery: { name: country, in: query, description: ISO 3166-1 alpha-2, schema: { type: string, pattern: "^[A-Za-z]{2}$" } }
+    CountryQueryRequired: { name: country, in: query, required: true, description: ISO 3166-1 alpha-2, schema: { type: string, pattern: "^[A-Za-z]{2}$" } }
+    CommodityQueryRequired: { name: commodity_id, in: query, required: true, schema: { type: string, format: uuid } }
+    PriceTypeQuery: { name: price_type, in: query, schema: { $ref: "#/components/schemas/PriceType" } }
+    CurrencyQuery: { name: currency, in: query, description: ISO 4217 display currency; overrides X-Currency and user preference, schema: { type: string, pattern: "^[A-Z]{3}$" } }
+    UnitQuery: { name: unit, in: query, description: "Display unit code (e.g. kg, bag_50kg); overrides X-Unit and user preference", schema: { type: string, maxLength: 32 } }
+    Cursor: { name: cursor, in: query, schema: { type: string, maxLength: 512 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, schema: { type: string, maxLength: 128 } }
+    AnalyticsPeriod: { name: period, in: query, schema: { type: string, enum: [7d, 30d, 90d, 365d], default: 30d } }
+    AdminTable: { name: table, in: path, required: true, schema: { type: string, enum: [crop_guides, pest_diseases, fertiliser_products, fertiliser_rules, programmes, training_items, input_suppliers, holidays, commodity_categories, commodities, varieties, units, commodity_unit_conversions, crop_calendars, markets, regions, data_sources, agro_advice_rules, export_requirements, notification_templates, plans, commission_rules, faqs, success_stories, help_articles, app_config] } }
+
+  responses:
+    Problem:
+      description: Error
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    ValidationProblem:
+      description: Validation error
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/ValidationProblem" } } }
+
+  schemas:
+    # ── common ──
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference, examples: ["https://agriprice.app/problems/otp-expired"] }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string, description: Stable machine-readable error code }
+        requestId: { type: string }
+    ValidationProblem:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                required: [field, message]
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        checks: { type: object, additionalProperties: { type: string, enum: [up, down] } }
+        version: { type: string }
+    Decimal: { type: string, pattern: "^-?\\d+(\\.\\d+)?$", description: Decimal number encoded as string }
+    LocalizedText:
+      type: object
+      description: Map of BCP-47 locale → text
+      additionalProperties: { type: string }
+    PriceType: { type: string, enum: [retail, wholesale, farm_gate], default: wholesale }
+    Role: { type: string, enum: [farmer, trader, consumer, researcher, student, policymaker, enumerator, agronomist, admin, org_admin] }
+    Channel: { type: string, enum: [push, email, sms, whatsapp, in_app] }
+    MarketType: { type: string, enum: [retail, wholesale, farm_gate, rural_periodic, urban_daily, border, export_hub] }
+    NotificationCategory: { type: string, enum: [price_alert, market_update, weather, system, weekly_insight] }
+    Money:
+      type: object
+      required: [amount, currency, unit]
+      properties:
+        amount: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        unit: { type: string, description: Unit code }
+    PriceValue:
+      type: object
+      description: Observed value as recorded plus the value in the caller's display currency and unit.
+      required: [observed, display, perKgLocal, perKgUsd]
+      properties:
+        observed: { $ref: "#/components/schemas/Money" }
+        display: { $ref: "#/components/schemas/Money" }
+        perKgLocal: { $ref: "#/components/schemas/Decimal" }
+        perKgUsd: { $ref: "#/components/schemas/Decimal" }
+        fxRateId: { type: [string, "null"], format: uuid }
+    GeoPoint:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+    FeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type: { const: FeatureCollection }
+        features:
+          type: array
+          items:
+            type: object
+            required: [type, geometry, properties]
+            properties:
+              type: { const: Feature }
+              id: { type: string }
+              geometry: { type: object }
+              properties: { type: object, additionalProperties: true }
+
+    # ── auth ──
+    DeviceInfo:
+      type: object
+      required: [installationId, platform]
+      properties:
+        installationId: { type: string, maxLength: 128, description: Stable per-install ID generated by the client }
+        platform: { type: string, enum: [android, ios, web] }
+        name: { type: string, maxLength: 100 }
+        appVersion: { type: string, maxLength: 32 }
+        pushToken: { type: string, maxLength: 4096 }
+    RegisterRequest:
+      type: object
+      required: [email, password, fullName, country]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 10, maxLength: 128 }
+        fullName: { type: string, minLength: 1, maxLength: 120 }
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        role: { $ref: "#/components/schemas/Role" }
+        locale: { type: string, maxLength: 16 }
+        acceptTerms: { const: true }
+        device: { $ref: "#/components/schemas/DeviceInfo" }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, maxLength: 128 }
+        device: { $ref: "#/components/schemas/DeviceInfo" }
+    OtpRequest:
+      type: object
+      required: [channel, destination, purpose]
+      properties:
+        channel: { type: string, enum: [sms, email] }
+        destination: { type: string, maxLength: 254, description: E.164 phone number or email }
+        purpose: { type: string, enum: [login, verify_email, verify_phone, reset_password] }
+        locale: { type: string, maxLength: 16 }
+    OtpRequestResult:
+      type: object
+      required: [expiresInSeconds, resendAfterSeconds]
+      properties:
+        expiresInSeconds: { type: integer }
+        resendAfterSeconds: { type: integer }
+    OtpVerifyRequest:
+      type: object
+      required: [channel, destination, purpose, code]
+      properties:
+        channel: { type: string, enum: [sms, email] }
+        destination: { type: string, maxLength: 254 }
+        purpose: { type: string, enum: [login, verify_email, verify_phone] }
+        code: { type: string, pattern: "^\\d{6}$" }
+        country: { type: string, pattern: "^[A-Z]{2}$", description: Required on first login to create the account }
+        device: { $ref: "#/components/schemas/DeviceInfo" }
+    OAuthRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, maxLength: 8192, description: ID token (Google/Apple) or access token (Facebook) }
+        nonce: { type: string, maxLength: 256 }
+        fullName: { type: string, maxLength: 120, description: Apple only sends the name on first sign-in }
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        device: { $ref: "#/components/schemas/DeviceInfo" }
+    MfaVerifyRequest:
+      type: object
+      required: [mfaToken, code]
+      properties:
+        mfaToken: { type: string }
+        code: { type: string, maxLength: 32, description: 6-digit TOTP or a recovery code }
+        device: { $ref: "#/components/schemas/DeviceInfo" }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string, maxLength: 512 }
+    TokenPair:
+      type: object
+      required: [accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, tokenType]
+      properties:
+        tokenType: { const: Bearer }
+        accessToken: { type: string }
+        accessTokenExpiresAt: { type: string, format: date-time }
+        refreshToken: { type: string }
+        refreshTokenExpiresAt: { type: string, format: date-time }
+    AuthResult:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [authenticated, mfa_required, verification_required] }
+        tokens: { $ref: "#/components/schemas/TokenPair" }
+        mfaToken: { type: string, description: Short-lived token for /v1/auth/mfa/verify }
+        user: { $ref: "#/components/schemas/User" }
+        isNewUser: { type: boolean }
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    ResetPasswordRequest:
+      type: object
+      required: [email, code, newPassword]
+      properties:
+        email: { type: string, format: email }
+        code: { type: string, pattern: "^\\d{6}$" }
+        newPassword: { type: string, minLength: 10, maxLength: 128 }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, maxLength: 128 }
+        newPassword: { type: string, minLength: 10, maxLength: 128 }
+    TotpSetup:
+      type: object
+      required: [secret, otpauthUrl]
+      properties:
+        secret: { type: string }
+        otpauthUrl: { type: string }
+    TotpCode:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: "^\\d{6}$" }
+    RecoveryCodes:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes: { type: array, items: { type: string } }
+    Device:
+      type: object
+      required: [id, platform, lastSeenAt, createdAt, current]
+      properties:
+        id: { type: string, format: uuid }
+        platform: { type: string, enum: [android, ios, web] }
+        name: { type: [string, "null"] }
+        appVersion: { type: [string, "null"] }
+        hasPushToken: { type: boolean }
+        lastSeenAt: { type: string, format: date-time }
+        lastIp: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        current: { type: boolean }
+    DeviceUpdate:
+      type: object
+      properties:
+        pushToken: { type: [string, "null"], maxLength: 4096 }
+        name: { type: string, maxLength: 100 }
+        appVersion: { type: string, maxLength: 32 }
+
+    # ── users ──
+    User:
+      type: object
+      required: [id, role, country, emailVerified, phoneVerified, totpEnabled, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: [string, "null"], format: email }
+        phone: { type: [string, "null"] }
+        emailVerified: { type: boolean }
+        phoneVerified: { type: boolean }
+        fullName: { type: [string, "null"] }
+        avatarUrl: { type: [string, "null"] }
+        role: { $ref: "#/components/schemas/Role" }
+        country: { type: string }
+        organisationId: { type: [string, "null"], format: uuid }
+        totpEnabled: { type: boolean }
+        deletionScheduledAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    UserUpdate:
+      type: object
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 120 }
+        role: { type: string, enum: [farmer, trader, consumer, researcher, student, policymaker], description: Users can only self-assign non-privileged roles }
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        avatarUrl: { type: [string, "null"], format: uri }
+    DeletionStatus:
+      type: object
+      required: [deletionScheduledAt]
+      properties:
+        deletionScheduledAt: { type: string, format: date-time }
+    FarmingProfile:
+      type: object
+      properties:
+        cropIds: { type: array, items: { type: string, format: uuid }, maxItems: 50 }
+        farmSize: { type: [number, "null"], minimum: 0 }
+        areaUnit: { type: [string, "null"], enum: [ha, acre, m2, plot, null] }
+        farmingType: { type: [string, "null"], enum: [subsistence, commercial, mixed, organic, irrigated, rainfed, null] }
+        regionId: { type: [string, "null"], format: uuid }
+        yearsOfExperience: { type: [integer, "null"], minimum: 0, maximum: 80 }
+    Preferences:
+      type: object
+      properties:
+        locale: { type: string, maxLength: 16 }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        unit: { type: string, maxLength: 32 }
+        theme: { type: string, enum: [system, light, dark] }
+        defaultRegionId: { type: [string, "null"], format: uuid }
+        defaultPriceType: { $ref: "#/components/schemas/PriceType" }
+    Interests:
+      type: object
+      properties:
+        commodityIds: { type: array, items: { type: string, format: uuid }, maxItems: 100 }
+        marketIds: { type: array, items: { type: string, format: uuid }, maxItems: 100 }
+        topics: { type: array, items: { type: string, enum: [prices, forecasts, weather, export, policy, research] } }
+    SavedLocationCreate:
+      type: object
+      required: [label, point]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 80 }
+        point: { $ref: "#/components/schemas/GeoPoint" }
+        isDefault: { type: boolean }
+    SavedLocation:
+      allOf:
+        - $ref: "#/components/schemas/SavedLocationCreate"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id: { type: string, format: uuid }
+            regionId: { type: [string, "null"], format: uuid }
+            createdAt: { type: string, format: date-time }
+    ConsentType: { type: string, enum: [terms, privacy, marketing, data_sharing_research, location, sms_alerts, whatsapp_alerts] }
+    Consent:
+      type: object
+      required: [type, granted, version, updatedAt]
+      properties:
+        type: { $ref: "#/components/schemas/ConsentType" }
+        granted: { type: boolean }
+        version: { type: string }
+        updatedAt: { type: string, format: date-time }
+    ConsentUpdate:
+      type: object
+      required: [consents]
+      properties:
+        consents:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [type, granted, version]
+            properties:
+              type: { $ref: "#/components/schemas/ConsentType" }
+              granted: { type: boolean }
+              version: { type: string, maxLength: 32 }
+
+    # ── geo ──
+    Country:
+      type: object
+      required: [iso2, name, currency, defaultLocale, locales, defaultUnit, timezone, active]
+      properties:
+        iso2: { type: string }
+        iso3: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        brandName: { type: string, examples: ["AgriPrice GH"] }
+        currency: { type: string }
+        defaultLocale: { type: string }
+        locales: { type: array, items: { type: string } }
+        defaultUnit: { type: string }
+        areaUnit: { type: string }
+        timezone: { type: string }
+        phonePrefix: { type: string }
+        regionLevels: { type: array, items: { type: object, properties: { level: { type: integer }, name: { $ref: "#/components/schemas/LocalizedText" } } } }
+        bbox: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }
+        active: { type: boolean }
+    Region:
+      type: object
+      required: [id, country, code, name, level]
+      properties:
+        id: { type: string, format: uuid }
+        country: { type: string }
+        parentId: { type: [string, "null"], format: uuid }
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        level: { type: integer }
+        centroid: { $ref: "#/components/schemas/GeoPoint" }
+    Choropleth:
+      type: object
+      required: [commodityId, priceType, unit, currency, regions]
+      properties:
+        commodityId: { type: string, format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        currency: { type: string }
+        unit: { type: string }
+        min: { $ref: "#/components/schemas/Decimal" }
+        max: { $ref: "#/components/schemas/Decimal" }
+        regions:
+          type: array
+          items:
+            type: object
+            required: [regionId, code, observations]
+            properties:
+              regionId: { type: string, format: uuid }
+              code: { type: string }
+              name: { $ref: "#/components/schemas/LocalizedText" }
+              avg: { type: ["null", string] }
+              observations: { type: integer }
+              marketCount: { type: integer }
+    Market:
+      type: object
+      required: [id, country, name, type, location]
+      properties:
+        id: { type: string, format: uuid }
+        country: { type: string }
+        regionId: { type: [string, "null"], format: uuid }
+        regionName: { $ref: "#/components/schemas/LocalizedText" }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        type: { $ref: "#/components/schemas/MarketType" }
+        location: { $ref: "#/components/schemas/GeoPoint" }
+        operatingDays: { type: array, items: { type: integer, minimum: 1, maximum: 7 }, description: ISO weekday numbers }
+        photoUrl: { type: [string, "null"] }
+        active: { type: boolean }
+    MarketPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Market" } }
+        nextCursor: { type: [string, "null"] }
+    NearbyMarket:
+      allOf:
+        - $ref: "#/components/schemas/Market"
+        - type: object
+          required: [distanceKm]
+          properties:
+            distanceKm: { type: number }
+            latestPrice:
+              oneOf:
+                - $ref: "#/components/schemas/LatestPricePoint"
+                - type: "null"
+    LatestPricePoint:
+      type: object
+      required: [value, observedAt, priceType]
+      properties:
+        value: { $ref: "#/components/schemas/PriceValue" }
+        observedAt: { type: string, format: date-time }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+
+    # ── catalogue ──
+    CommodityCategory:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        icon: { type: [string, "null"] }
+        sortOrder: { type: integer }
+    Commodity:
+      type: object
+      required: [id, code, name, categoryId, perishability, defaultUnit]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        categoryId: { type: string, format: uuid }
+        hsCode: { type: [string, "null"] }
+        perishability: { type: string, enum: [low, medium, high] }
+        shelfLifeDays: { type: [integer, "null"] }
+        defaultUnit: { type: string }
+        imageUrl: { type: [string, "null"] }
+    CommodityDetail:
+      allOf:
+        - $ref: "#/components/schemas/Commodity"
+        - type: object
+          properties:
+            countryProfile:
+              type: [object, "null"]
+              properties:
+                country: { type: string }
+                localNames: { $ref: "#/components/schemas/LocalizedText" }
+                seasons:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      regionId: { type: [string, "null"], format: uuid }
+                      plantingMonths: { type: array, items: { type: integer } }
+                      harvestMonths: { type: array, items: { type: integer } }
+                      leanMonths: { type: array, items: { type: integer } }
+                majorProducingRegionIds: { type: array, items: { type: string, format: uuid } }
+            varieties: { type: array, items: { $ref: "#/components/schemas/Variety" } }
+    CommodityPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Commodity" } }
+        nextCursor: { type: [string, "null"] }
+    Variety:
+      type: object
+      required: [id, commodityId, code, name]
+      properties:
+        id: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+    Unit:
+      type: object
+      required: [code, name, kind]
+      properties:
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        kind: { type: string, enum: [mass, volume, count, package] }
+        kgFactor: { type: ["null", string], description: Kilograms per unit (commodity-specific where provided) }
+        commodityId: { type: [string, "null"], format: uuid }
+    SearchResults:
+      type: object
+      required: [provider, commodities, markets]
+      properties:
+        provider: { type: string, enum: [meilisearch, postgres] }
+        commodities: { type: array, items: { $ref: "#/components/schemas/Commodity" } }
+        markets: { type: array, items: { $ref: "#/components/schemas/Market" } }
+
+    # ── prices ──
+    PriceSubmission:
+      type: object
+      required: [commodityId, marketId, priceType, amount, currency, unit, observedAt]
+      properties:
+        commodityId: { type: string, format: uuid }
+        varietyId: { type: string, format: uuid }
+        marketId: { type: string, format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        amount: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        unit: { type: string, maxLength: 32 }
+        quality: { type: string, enum: [low, medium, high] }
+        observedAt: { type: string, format: date-time }
+        location: { $ref: "#/components/schemas/GeoPoint" }
+        note: { type: string, maxLength: 500 }
+    PriceStatus: { type: string, enum: [pending, approved, flagged, rejected] }
+    PriceObservation:
+      type: object
+      required: [id, commodityId, marketId, priceType, value, observedAt, status, source]
+      properties:
+        id: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        varietyId: { type: [string, "null"], format: uuid }
+        marketId: { type: string, format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        value: { $ref: "#/components/schemas/PriceValue" }
+        observedAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/PriceStatus" }
+        source: { type: string, enum: [source_pull, crowd, admin_csv, enumerator] }
+        outlierScore: { type: ["null", number], description: Robust z-score (rolling MAD) }
+        flags: { type: array, items: { type: string } }
+    ImportReport:
+      type: object
+      required: [batchId, totalRows, accepted, flagged, rejected, dryRun]
+      properties:
+        batchId: { type: string, format: uuid }
+        dryRun: { type: boolean }
+        totalRows: { type: integer }
+        accepted: { type: integer }
+        flagged: { type: integer }
+        rejected: { type: integer }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [row, message]
+            properties:
+              row: { type: integer }
+              field: { type: string }
+              message: { type: string }
+    ReviewQueueItem:
+      allOf:
+        - $ref: "#/components/schemas/PriceObservation"
+        - type: object
+          properties:
+            submittedBy: { type: [string, "null"], format: uuid }
+            seriesMedianPerKg: { type: ["null", string] }
+            commodityName: { $ref: "#/components/schemas/LocalizedText" }
+            marketName: { $ref: "#/components/schemas/LocalizedText" }
+    ReviewQueuePage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/ReviewQueueItem" } }
+        nextCursor: { type: [string, "null"] }
+    ReviewDecision:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [approve, reject] }
+        reason: { type: string, maxLength: 500 }
+    MarketPrice:
+      type: object
+      required: [marketId, marketName, value, observedAt, priceType]
+      properties:
+        marketId: { type: string, format: uuid }
+        marketName: { $ref: "#/components/schemas/LocalizedText" }
+        regionId: { type: [string, "null"], format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        value: { $ref: "#/components/schemas/PriceValue" }
+        observedAt: { type: string, format: date-time }
+        changePctWoW: { type: ["null", number], description: "% change vs. 7 days earlier" }
+    PricePoint:
+      type: object
+      required: [t, avg]
+      properties:
+        t: { type: string, format: date-time }
+        avg: { $ref: "#/components/schemas/Decimal" }
+        min: { $ref: "#/components/schemas/Decimal" }
+        max: { $ref: "#/components/schemas/Decimal" }
+        n: { type: integer }
+    PriceStats:
+      type: object
+      required: [high, low, average, changePctWoW, volatility]
+      properties:
+        high: { type: ["null", string] }
+        low: { type: ["null", string] }
+        average: { type: ["null", string] }
+        latest: { type: ["null", string] }
+        changePctWoW: { type: ["null", number] }
+        volatility:
+          type: object
+          description: Coefficient of variation, plus a ±1σ band around the mean
+          properties:
+            cv: { type: ["null", number] }
+            bandLow: { type: ["null", string] }
+            bandHigh: { type: ["null", string] }
+            label: { type: string, enum: [low, moderate, high, insufficient_data] }
+    PriceHistory:
+      type: object
+      required: [commodityId, priceType, range, interval, currency, unit, points, stats]
+      properties:
+        commodityId: { type: string, format: uuid }
+        marketId: { type: [string, "null"], format: uuid }
+        regionId: { type: [string, "null"], format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        range: { type: string }
+        interval: { type: string }
+        currency: { type: string }
+        unit: { type: string }
+        localCurrency: { type: string }
+        points: { type: array, items: { $ref: "#/components/schemas/PricePoint" } }
+        stats: { $ref: "#/components/schemas/PriceStats" }
+    MarketComparison:
+      type: object
+      required: [commodityId, currency, unit, markets]
+      properties:
+        commodityId: { type: string, format: uuid }
+        currency: { type: string }
+        unit: { type: string }
+        markets:
+          type: array
+          items:
+            type: object
+            required: [marketId, marketName, points, stats]
+            properties:
+              marketId: { type: string, format: uuid }
+              marketName: { $ref: "#/components/schemas/LocalizedText" }
+              latest: { oneOf: [{ $ref: "#/components/schemas/LatestPricePoint" }, { type: "null" }] }
+              points: { type: array, items: { $ref: "#/components/schemas/PricePoint" } }
+              stats: { $ref: "#/components/schemas/PriceStats" }
+        cheapestMarketId: { type: [string, "null"], format: uuid }
+        priciestMarketId: { type: [string, "null"], format: uuid }
+        spreadPct: { type: ["null", number] }
+    RegionalAverage:
+      type: object
+      required: [regionId, code, avg, observations, currency, unit]
+      properties:
+        regionId: { type: string, format: uuid }
+        code: { type: string }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        avg: { $ref: "#/components/schemas/Decimal" }
+        avgLocal: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string }
+        unit: { type: string }
+        observations: { type: integer }
+        marketCount: { type: integer }
+    TrendingItem:
+      type: object
+      required: [commodityId, commodityName, changePct, current, previous, currency, unit]
+      properties:
+        commodityId: { type: string, format: uuid }
+        commodityName: { $ref: "#/components/schemas/LocalizedText" }
+        changePct: { type: number }
+        current: { $ref: "#/components/schemas/Decimal" }
+        previous: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string }
+        unit: { type: string }
+        marketsReporting: { type: integer }
+    DashboardSnapshot:
+      type: object
+      required: [country, commodities, markets, regions, priceRecords, lastUpdatedAt]
+      properties:
+        country: { type: string }
+        commodities: { type: integer }
+        markets: { type: integer }
+        regions: { type: integer }
+        priceRecords: { type: integer }
+        priceRecordsLast7d: { type: integer }
+        lastUpdatedAt: { type: ["null", string], format: date-time }
+
+    # ── forecasts ──
+    ConfidenceLabel: { type: string, enum: [high, medium, low] }
+    ForecastHorizon:
+      type: object
+      required: [horizonMonths, status, targetDate, p10, p50, p90, confidence]
+      properties:
+        horizonMonths: { type: integer, enum: [1, 3, 6] }
+        status: { type: string, enum: [available, insufficient_data] }
+        reason: { type: [string, "null"], enum: [backtest_mape_above_25, null], description: Why this horizon is withheld }
+        targetDate: { type: string, format: date }
+        p10: { type: ["null", string] }
+        p50: { type: ["null", string] }
+        p90: { type: ["null", string] }
+        changePctVsLatest: { type: ["null", number] }
+        backtestMape: { type: ["null", number], description: Mean absolute % error of this series at this horizon in walk-forward backtest }
+        intervalWidthPct: { type: ["null", number], description: (p90 - p10) / p50 × 100 }
+        confidence: { oneOf: [{ $ref: "#/components/schemas/ConfidenceLabel" }, { type: "null" }] }
+    Forecast:
+      type: object
+      required: [status, commodityId, priceType, horizons]
+      properties:
+        status: { type: string, enum: [available, insufficient_data], description: "insufficient_data is returned instead of a forecast when guardrails fail" }
+        reasons: { type: array, items: { type: string, enum: [no_forecast, insufficient_history, stale_data, backtest_mape_above_25] } }
+        historyWeeks: { type: ["null", integer] }
+        lastObservedAt: { type: ["null", string], format: date }
+        id: { type: [string, "null"], format: uuid }
+        commodityId: { type: string, format: uuid }
+        marketId: { type: [string, "null"], format: uuid }
+        regionId: { type: [string, "null"], format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        modelVersion: { type: string }
+        generatedAt: { type: string, format: date-time }
+        asOfDate: { type: string, format: date }
+        currency: { type: string }
+        unit: { type: string }
+        latestActual: { type: ["null", string] }
+        horizons: { type: array, items: { $ref: "#/components/schemas/ForecastHorizon" } }
+    ShapFeature:
+      type: object
+      required: [feature, i18nKey, contribution, sharePct, direction]
+      properties:
+        feature: { type: string, description: Model feature name }
+        i18nKey: { type: string, examples: ["forecast.feature.rainfall_30d"] }
+        value: { type: ["null", number, string], description: Feature value at prediction time }
+        contribution: { type: number, description: Signed SHAP value in price-per-kg local currency }
+        sharePct: { type: number, description: "|contribution| / Σ|contributions| × 100" }
+        direction: { type: string, enum: [up, down] }
+    ForecastExplanation:
+      type: object
+      required: [forecastId, horizonMonths, baseValue, features, insight]
+      properties:
+        forecastId: { type: string, format: uuid }
+        horizonMonths: { type: integer }
+        baseValue: { type: number }
+        features: { type: array, maxItems: 7, items: { $ref: "#/components/schemas/ShapFeature" } }
+        insight:
+          type: object
+          required: [i18nKey, params, text]
+          properties:
+            i18nKey: { type: string }
+            params: { type: object, additionalProperties: true }
+            text: { type: string, description: Rendered in the requested locale }
+
+    # ── insights ──
+    SeasonalAnalysis:
+      type: object
+      required: [commodityId, currency, unit, years, monthlyAverage, peakMonths, lowMonths, avgMonthlyChangePct]
+      properties:
+        commodityId: { type: string, format: uuid }
+        currency: { type: string }
+        unit: { type: string }
+        years:
+          type: array
+          items:
+            type: object
+            required: [year, months]
+            properties:
+              year: { type: integer }
+              months: { type: array, minItems: 12, maxItems: 12, items: { type: ["null", string] } }
+        monthlyAverage: { type: array, minItems: 12, maxItems: 12, items: { type: ["null", string] } }
+        peakMonths: { type: array, items: { type: integer } }
+        lowMonths: { type: array, items: { type: integer } }
+        avgMonthlyChangePct: { type: array, minItems: 12, maxItems: 12, items: { type: ["null", number] }, description: Mean % change from the previous month for each calendar month }
+        insight: { type: string }
+    Recommendation:
+      type: object
+      required: [kind, title, rationale, confidence, basis]
+      properties:
+        kind: { type: string, enum: [sell_now, hold, alternative_market, plant] }
+        title: { type: string }
+        rationale: { type: string }
+        i18nKey: { type: string }
+        params: { type: object, additionalProperties: true }
+        confidence: { $ref: "#/components/schemas/ConfidenceLabel" }
+        expectedChangePct: { type: ["null", number] }
+        marginPct: { type: ["null", number] }
+        marketId: { type: [string, "null"], format: uuid }
+        basis: { type: array, items: { type: string, enum: [forecast, seasonality, spatial_spread, crop_calendar, perishability] } }
+    RecommendationSet:
+      type: object
+      required: [commodityId, marketId, generatedAt, recommendations]
+      properties:
+        commodityId: { type: string, format: uuid }
+        marketId: { type: string, format: uuid }
+        generatedAt: { type: string, format: date-time }
+        recommendations: { type: array, items: { $ref: "#/components/schemas/Recommendation" } }
+    AlternativeMarket:
+      type: object
+      required: [market, distanceKm, latest, grossMarginPct]
+      properties:
+        market: { $ref: "#/components/schemas/Market" }
+        distanceKm: { type: number }
+        latest: { $ref: "#/components/schemas/LatestPricePoint" }
+        grossMarginPct: { type: number, description: "% price difference vs. the reference market" }
+        netMarginPct: { type: ["null", number], description: After estimated transport cost when one is given }
+    PlantSuggestion:
+      type: object
+      required: [commodityId, commodityName, plantingWindow, harvestMonths, score, reasons]
+      properties:
+        commodityId: { type: string, format: uuid }
+        commodityName: { $ref: "#/components/schemas/LocalizedText" }
+        plantingWindow: { type: array, items: { type: integer } }
+        harvestMonths: { type: array, items: { type: integer } }
+        expectedHarvestPriceChangePct: { type: ["null", number] }
+        score: { type: number }
+        reasons: { type: array, items: { type: string } }
+    WeatherDay:
+      type: object
+      required: [date, tempMinC, tempMaxC, precipitationMm]
+      properties:
+        date: { type: string, format: date }
+        tempMinC: { type: number }
+        tempMaxC: { type: number }
+        precipitationMm: { type: number }
+        precipitationProbabilityPct: { type: ["null", number] }
+        humidityPct: { type: ["null", number] }
+        windMaxKmh: { type: ["null", number] }
+        weatherCode: { type: ["null", integer] }
+    Advice:
+      type: object
+      required: [code, severity, i18nKey, text]
+      properties:
+        code: { type: string, examples: [heavy_rain_delay_spraying, fall_armyworm_risk, dry_spell_irrigate] }
+        severity: { type: string, enum: [info, warning, critical] }
+        i18nKey: { type: string }
+        text: { type: string }
+        commodityId: { type: [string, "null"], format: uuid }
+        validFrom: { type: string, format: date }
+        validTo: { type: string, format: date }
+    WeatherAdvice:
+      type: object
+      required: [location, fetchedAt, days, advice]
+      properties:
+        location: { $ref: "#/components/schemas/GeoPoint" }
+        source: { const: open-meteo }
+        fetchedAt: { type: string, format: date-time }
+        days: { type: array, items: { $ref: "#/components/schemas/WeatherDay" } }
+        advice: { type: array, items: { $ref: "#/components/schemas/Advice" } }
+    ExportInsights:
+      type: object
+      required: [commodityId, trend, requirements]
+      properties:
+        commodityId: { type: string, format: uuid }
+        hsCode: { type: [string, "null"] }
+        currency: { type: string }
+        trend:
+          type: array
+          items:
+            type: object
+            required: [period, priceUsdPerKg]
+            properties:
+              period: { type: string, description: YYYY-MM }
+              destination: { type: string }
+              priceUsdPerKg: { $ref: "#/components/schemas/Decimal" }
+              display: { $ref: "#/components/schemas/Decimal" }
+              volumeTonnes: { type: ["null", number] }
+        premiumOverDomesticPct: { type: ["null", number] }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [destination, code, title, mandatory]
+            properties:
+              destination: { type: string }
+              code: { type: string, examples: [eu_phytosanitary_certificate, globalgap, mrl_compliance] }
+              title: { type: string }
+              description: { type: string }
+              mandatory: { type: boolean }
+              authority: { type: string }
+              url: { type: string, format: uri }
+
+    # ── alerts ──
+    AlertCondition: { type: string, enum: [above, below, pct_change] }
+    AlertCreate:
+      type: object
+      required: [commodityId, condition, threshold, channels]
+      properties:
+        commodityId: { type: string, format: uuid }
+        marketId: { type: string, format: uuid }
+        regionId: { type: string, format: uuid }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        condition: { $ref: "#/components/schemas/AlertCondition" }
+        threshold: { $ref: "#/components/schemas/Decimal" }
+        thresholdCurrency: { type: string, pattern: "^[A-Z]{3}$", description: Required for above/below; defaults to user preference }
+        thresholdUnit: { type: string, maxLength: 32, description: Required for above/below; defaults to user preference }
+        pctWindowDays: { type: integer, minimum: 1, maximum: 90, default: 7, description: "For pct_change, the comparison window" }
+        channels: { type: array, minItems: 1, uniqueItems: true, items: { $ref: "#/components/schemas/Channel" } }
+        cooldownHours: { type: integer, minimum: 1, maximum: 168, default: 24 }
+        active: { type: boolean, default: true }
+    AlertUpdate:
+      type: object
+      properties:
+        threshold: { $ref: "#/components/schemas/Decimal" }
+        condition: { $ref: "#/components/schemas/AlertCondition" }
+        pctWindowDays: { type: integer, minimum: 1, maximum: 90 }
+        channels: { type: array, minItems: 1, uniqueItems: true, items: { $ref: "#/components/schemas/Channel" } }
+        cooldownHours: { type: integer, minimum: 1, maximum: 168 }
+        active: { type: boolean }
+    Alert:
+      allOf:
+        - $ref: "#/components/schemas/AlertCreate"
+        - type: object
+          required: [id, createdAt, triggerCount]
+          properties:
+            id: { type: string, format: uuid }
+            thresholdPerKgLocal: { type: ["null", string] }
+            lastTriggeredAt: { type: [string, "null"], format: date-time }
+            triggerCount: { type: integer }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    AlertEvent:
+      type: object
+      required: [id, alertId, triggeredAt, condition, observedValue, threshold, direction, deliveredChannels]
+      properties:
+        id: { type: string, format: uuid }
+        alertId: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        marketId: { type: [string, "null"], format: uuid }
+        triggeredAt: { type: string, format: date-time }
+        condition: { $ref: "#/components/schemas/AlertCondition" }
+        observedValue: { $ref: "#/components/schemas/Decimal" }
+        threshold: { $ref: "#/components/schemas/Decimal" }
+        changePct: { type: ["null", number] }
+        direction: { type: string, enum: [above, below] }
+        deliveredChannels: { type: array, items: { $ref: "#/components/schemas/Channel" } }
+        suppressedReason: { type: [string, "null"], enum: [quiet_hours, null] }
+    AlertEventPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/AlertEvent" } }
+        nextCursor: { type: [string, "null"] }
+    AlertInsights:
+      type: object
+      required: [activeAlerts, triggeredTotal, triggered30d, aboveCount, belowCount, trend30d]
+      properties:
+        activeAlerts: { type: integer }
+        triggeredTotal: { type: integer }
+        triggered30d: { type: integer }
+        aboveCount: { type: integer }
+        belowCount: { type: integer }
+        trend30d:
+          type: array
+          items:
+            type: object
+            required: [date, count]
+            properties:
+              date: { type: string, format: date }
+              count: { type: integer }
+        mostFrequent:
+          type: [object, "null"]
+          properties:
+            alertId: { type: string, format: uuid }
+            commodityId: { type: string, format: uuid }
+            commodityName: { $ref: "#/components/schemas/LocalizedText" }
+            count: { type: integer }
+
+    # ── notifications ──
+    Notification:
+      type: object
+      required: [id, category, title, body, createdAt, read]
+      properties:
+        id: { type: string, format: uuid }
+        category: { $ref: "#/components/schemas/NotificationCategory" }
+        title: { type: string }
+        body: { type: string }
+        data: { type: object, additionalProperties: true, description: "Deep-link payload, e.g. { commodityId, marketId }" }
+        read: { type: boolean }
+        readAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    NotificationPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Notification" } }
+        nextCursor: { type: [string, "null"] }
+    UnreadCount:
+      type: object
+      required: [total, byCategory]
+      properties:
+        total: { type: integer }
+        byCategory: { type: object, additionalProperties: { type: integer } }
+    NotificationPreferences:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: object
+          description: Per-category channel opt-ins
+          propertyNames: { $ref: "#/components/schemas/NotificationCategory" }
+          additionalProperties: { type: array, items: { $ref: "#/components/schemas/Channel" } }
+        quietHours:
+          type: [object, "null"]
+          properties:
+            start: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" }
+            end: { type: string, pattern: "^([01]\\d|2[0-3]):[0-5]\\d$" }
+            timezone: { type: string }
+        whatsappNumber: { type: [string, "null"] }
+
+    # ── shared (modules 10–20) ──
+    IdOnly: { type: object, required: [id], properties: { id: { type: string, format: uuid } } }
+    TextBody: { type: object, required: [body], properties: { body: { type: string, minLength: 1, maxLength: 5000 } } }
+    RowPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { type: object, additionalProperties: true } }
+        nextCursor: { type: [string, "null"] }
+    Photo:
+      type: object
+      required: [id, urls]
+      properties:
+        id: { type: string, format: uuid }
+        position: { type: integer }
+        width: { type: integer }
+        height: { type: integer }
+        urls: { type: object, properties: { thumb: { type: string }, medium: { type: string }, large: { type: string } } }
+
+    # ── reports ──
+    ReportCreate:
+      type: object
+      required: [type, format, country, from, to]
+      properties:
+        type: { type: string, enum: [crop_price, market_analysis, forecast, regional, custom, seller_performance] }
+        format: { type: string, enum: [pdf, xlsx, csv] }
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        commodityIds: { type: array, maxItems: 20, items: { type: string, format: uuid } }
+        marketIds: { type: array, maxItems: 30, items: { type: string, format: uuid } }
+        regionIds: { type: array, maxItems: 20, items: { type: string, format: uuid } }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        unit: { type: string, maxLength: 32 }
+        sections: { type: array, items: { type: string, enum: [summary, history, comparison, regional, seasonal, forecast, explanations] }, description: For custom reports }
+    ReportJob:
+      type: object
+      required: [id, type, format, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        format: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed] }
+        params: { type: object, additionalProperties: true }
+        downloadUrl: { type: [string, "null"], description: Signed URL valid for 24 hours }
+        downloadUrlExpiresAt: { type: [string, "null"], format: date-time }
+        shortUrl: { type: [string, "null"] }
+        bytes: { type: [integer, "null"] }
+        error: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: [string, "null"], format: date-time }
+    ReportJobPage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/ReportJob" } }, nextCursor: { type: [string, "null"] } }
+
+    # ── billing ──
+    Plan:
+      type: object
+      required: [code, name, entitlements]
+      properties:
+        code: { type: string, enum: [free, premium, organisation] }
+        name: { $ref: "#/components/schemas/LocalizedText" }
+        prices: { type: object, additionalProperties: { type: object, properties: { monthly: { type: string }, yearly: { type: string } } } }
+        entitlements: { $ref: "#/components/schemas/Entitlements" }
+    Entitlements:
+      type: object
+      properties:
+        forecast_horizons: { type: array, items: { type: integer } }
+        alerts_max: { type: integer }
+        alert_channels: { type: array, items: { type: string } }
+        reports_per_month: { type: integer }
+        report_formats: { type: array, items: { type: string } }
+        history_range: { type: array, items: { type: string } }
+        export_insights: { type: boolean }
+        recommendations: { type: boolean }
+        api_daily_quota: { type: integer }
+        api_keys_max: { type: integer }
+        seats: { type: integer }
+    BillingStatus:
+      type: object
+      required: [plan, entitlements]
+      properties:
+        plan: { type: string, enum: [free, premium, organisation] }
+        source: { type: string, enum: [personal, organisation, none] }
+        subscription:
+          type: [object, "null"]
+          properties:
+            id: { type: string, format: uuid }
+            provider: { type: string }
+            status: { type: string }
+            currentPeriodEnd: { type: [string, "null"], format: date-time }
+            cancelAtPeriodEnd: { type: boolean }
+        entitlements: { $ref: "#/components/schemas/Entitlements" }
+    BillingCheckout:
+      type: object
+      required: [plan, interval, provider]
+      properties:
+        plan: { type: string, enum: [premium, organisation] }
+        interval: { type: string, enum: [monthly, yearly] }
+        provider: { type: string, enum: [paystack, flutterwave, stripe] }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        organisationId: { type: string, format: uuid }
+        returnUrl: { type: string, format: uri }
+    CheckoutSession:
+      type: object
+      required: [provider, reference, authorizationUrl]
+      properties: { provider: { type: string }, reference: { type: string }, authorizationUrl: { type: string } }
+
+    # ── content ──
+    Story:
+      type: object
+      properties: { id: { type: string, format: uuid }, title: { type: string }, body: { type: string }, personName: { type: [string, "null"] }, personRole: { type: [string, "null"] }, imageUrl: { type: [string, "null"] }, publishedAt: { type: string, format: date-time } }
+    Faq:
+      type: object
+      properties: { id: { type: string, format: uuid }, category: { type: string }, question: { type: string }, answer: { type: string } }
+    Article:
+      type: object
+      properties: { slug: { type: string }, title: { type: string }, body: { type: string, description: Markdown (detail endpoint only) }, tags: { type: array, items: { type: string } }, updatedAt: { type: string, format: date-time } }
+    ImpactStats:
+      type: object
+      properties:
+        countries: { type: integer }
+        markets: { type: integer }
+        commodities: { type: integer }
+        priceRecords: { type: integer }
+        users: { type: integer }
+        farmers: { type: integer }
+        crowdContributors30d: { type: integer }
+        alertsDelivered30d: { type: integer }
+        forecastSeries: { type: integer }
+        medianForecastMape1m: { type: ["null", number] }
+        computedAt: { type: string, format: date-time }
+    AppConfig:
+      type: object
+      required: [minVersion, flags]
+      properties:
+        minVersion: { type: object, additionalProperties: { type: string } }
+        latestVersion: { type: object, additionalProperties: { type: string } }
+        flags: { type: object, additionalProperties: true }
+
+    # ── support ──
+    TicketCreate:
+      type: object
+      required: [category, subject, body]
+      properties:
+        category: { type: string, enum: [account, prices, payments, marketplace, technical, other] }
+        subject: { type: string, minLength: 3, maxLength: 160 }
+        body: { type: string, minLength: 1, maxLength: 5000 }
+        orderId: { type: string, format: uuid }
+    Ticket:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        category: { type: string }
+        subject: { type: string }
+        status: { type: string, enum: [open, pending, resolved, closed] }
+        priority: { type: string }
+        messages: { type: array, items: { type: object, properties: { id: { type: string }, body: { type: string }, fromStaff: { type: boolean }, createdAt: { type: string, format: date-time } } } }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ChatHandoff:
+      type: object
+      required: [summary]
+      properties: { summary: { type: string, maxLength: 2000 }, transcript: { type: array, maxItems: 100, items: { type: object, properties: { role: { type: string }, text: { type: string } } } }, category: { type: string } }
+    FeedbackCreate:
+      type: object
+      properties: { rating: { type: integer, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 }, context: { type: object, additionalProperties: true } }
+    IssueCreate:
+      type: object
+      required: [kind, description]
+      properties:
+        kind: { type: string, enum: [bug, wrong_price, wrong_market, crash, other] }
+        description: { type: string, maxLength: 5000 }
+        screen: { type: string, maxLength: 100 }
+        appVersion: { type: string, maxLength: 32 }
+        device: { type: object, additionalProperties: true }
+
+    # ── admin ──
+    AdminUserUpdate:
+      type: object
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        organisationId: { type: [string, "null"], format: uuid }
+        suspended: { type: boolean }
+        reason: { type: string, maxLength: 500 }
+    Broadcast:
+      type: object
+      required: [country, category, title, body]
+      properties:
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        roles: { type: array, items: { $ref: "#/components/schemas/Role" } }
+        regionIds: { type: array, items: { type: string, format: uuid } }
+        commodityIds: { type: array, items: { type: string, format: uuid } }
+        category: { $ref: "#/components/schemas/NotificationCategory" }
+        title: { type: string, maxLength: 120 }
+        body: { type: string, maxLength: 1000 }
+        channels: { type: array, items: { $ref: "#/components/schemas/Channel" } }
+    ModerationTarget: { type: string, enum: [listing, message, post, comment, user, price] }
+    ModerationDecision:
+      type: object
+      required: [action]
+      properties: { action: { type: string, enum: [none, hide, remove, warn_user, suspend_user] }, note: { type: string, maxLength: 500 } }
+    DisputeDecision:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string, enum: [release_seller, refund_buyer, split] }
+        refundAmount: { $ref: "#/components/schemas/Decimal" }
+        note: { type: string, maxLength: 2000 }
+
+    # ── public data ──
+    ApiKey:
+      type: object
+      properties: { id: { type: string, format: uuid }, name: { type: string }, prefix: { type: string }, scopes: { type: array, items: { type: string } }, lastUsedAt: { type: [string, "null"], format: date-time }, createdAt: { type: string, format: date-time }, dailyQuota: { type: integer }, usedToday: { type: integer } }
+    ApiKeyCreated:
+      allOf:
+        - $ref: "#/components/schemas/ApiKey"
+        - type: object
+          required: [secret]
+          properties: { secret: { type: string, description: Shown once. Send as the X-API-Key header. } }
+    PublicPricePage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              marketId: { type: string, format: uuid }
+              commodityId: { type: string, format: uuid }
+              priceType: { type: string }
+              currency: { type: string }
+              avgPerKgLocal: { $ref: "#/components/schemas/Decimal" }
+              minPerKgLocal: { $ref: "#/components/schemas/Decimal" }
+              maxPerKgLocal: { $ref: "#/components/schemas/Decimal" }
+              avgPerKgUsd: { $ref: "#/components/schemas/Decimal" }
+              observations: { type: integer }
+        nextCursor: { type: [string, "null"] }
+        licence: { type: string }
+
+    # ── messaging ──
+    ConversationCreate:
+      type: object
+      required: [userId]
+      properties: { userId: { type: string, format: uuid }, listingId: { type: string, format: uuid }, orderId: { type: string, format: uuid } }
+    Conversation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        listingId: { type: [string, "null"], format: uuid }
+        orderId: { type: [string, "null"], format: uuid }
+        members: { type: array, items: { type: object, properties: { userId: { type: string }, name: { type: [string, "null"] }, online: { type: boolean }, lastReadAt: { type: [string, "null"] } } } }
+        lastMessage: { oneOf: [{ $ref: "#/components/schemas/Message" }, { type: "null" }] }
+        unread: { type: integer }
+        lastMessageAt: { type: [string, "null"], format: date-time }
+    ConversationPage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/Conversation" } }, nextCursor: { type: [string, "null"] } }
+    MessageSend:
+      type: object
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [text, offer] }
+        body: { type: string, maxLength: 4000 }
+        offer: { $ref: "#/components/schemas/OfferCreate" }
+        clientId: { type: string, maxLength: 64, description: Client-generated id; resending the same id is idempotent }
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversationId: { type: string, format: uuid }
+        senderId: { type: [string, "null"], format: uuid }
+        kind: { type: string, enum: [text, image, offer, system] }
+        body: { type: [string, "null"] }
+        payload: { type: object, additionalProperties: true }
+        flags: { type: array, items: { type: string } }
+        warning: { type: [string, "null"], description: Safety banner shown with flagged messages }
+        clientId: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+    MessagePage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/Message" } }, nextCursor: { type: [string, "null"] } }
+    AbuseReport:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType: { $ref: "#/components/schemas/ModerationTarget" }
+        targetId: { type: string, format: uuid }
+        reason: { type: string, enum: [scam, spam, harassment, inappropriate, wrong_price, counterfeit, other] }
+        details: { type: string, maxLength: 2000 }
+
+    # ── marketplace ──
+    SellerProfileUpdate:
+      type: object
+      required: [displayName]
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 80 }
+        bio: { type: string, maxLength: 1000 }
+        regionId: { type: string, format: uuid }
+        location: { $ref: "#/components/schemas/GeoPoint" }
+        deliverySettings: { type: object, additionalProperties: true }
+    SellerProfile:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+        bio: { type: [string, "null"] }
+        country: { type: string }
+        regionId: { type: [string, "null"], format: uuid }
+        verified: { type: boolean }
+        kycStatus: { type: string, enum: [none, pending, verified, rejected], description: Only visible to the owner }
+        rating: { type: ["null", number] }
+        ratingCount: { type: integer }
+        responseTimeMins: { type: ["null", integer] }
+        deliverySettings: { type: object, additionalProperties: true }
+        activeListings: { type: integer }
+    ListingStatus: { type: string, enum: [draft, active, low_stock, sold_out, removed] }
+    ListingCreate:
+      type: object
+      required: [type, title, pricePerUnit, currency, unit, quantity]
+      properties:
+        type: { type: string, enum: [product, service] }
+        serviceKind: { type: string, enum: [transport, storage, input_supply] }
+        categoryId: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        title: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, maxLength: 4000 }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        unit: { type: string, maxLength: 32 }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        minOrderQty: { $ref: "#/components/schemas/Decimal" }
+        lowStockThreshold: { $ref: "#/components/schemas/Decimal" }
+        qualityGrade: { type: string, enum: [A, B, C, ungraded] }
+        harvestDate: { type: string, format: date }
+        regionId: { type: string, format: uuid }
+        location: { $ref: "#/components/schemas/GeoPoint" }
+    ListingUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, maxLength: 4000 }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal" }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        minOrderQty: { $ref: "#/components/schemas/Decimal" }
+        lowStockThreshold: { $ref: "#/components/schemas/Decimal" }
+        qualityGrade: { type: string, enum: [A, B, C, ungraded] }
+        harvestDate: { type: string, format: date }
+        status: { type: string, enum: [draft, active, removed] }
+    Listing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        seller: { type: object, properties: { displayName: { type: string }, verified: { type: boolean }, rating: { type: ["null", number] }, responseTimeMins: { type: ["null", integer] } } }
+        type: { type: string }
+        serviceKind: { type: [string, "null"] }
+        categoryId: { type: [string, "null"], format: uuid }
+        commodityId: { type: [string, "null"], format: uuid }
+        title: { type: string }
+        description: { type: [string, "null"] }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string }
+        unit: { type: string }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        minOrderQty: { $ref: "#/components/schemas/Decimal" }
+        qualityGrade: { type: [string, "null"] }
+        harvestDate: { type: [string, "null"], format: date }
+        regionId: { type: [string, "null"], format: uuid }
+        location: { oneOf: [{ $ref: "#/components/schemas/GeoPoint" }, { type: "null" }] }
+        distanceKm: { type: ["null", number] }
+        status: { $ref: "#/components/schemas/ListingStatus" }
+        priceFlag: { type: [string, "null"], enum: [far_above_market, far_below_market, null] }
+        priceDeviationPct: { type: ["null", number], description: vs. 30-day regional (else national) market average }
+        photos: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        favourite: { type: boolean }
+        publishedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    ListingPage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/Listing" } }, nextCursor: { type: [string, "null"] } }
+    OfferCreate:
+      type: object
+      required: [quantity, pricePerUnit]
+      properties: { quantity: { $ref: "#/components/schemas/Decimal" }, pricePerUnit: { $ref: "#/components/schemas/Decimal" }, listingId: { type: string, format: uuid, description: Required when sent as a chat message } }
+    OfferResponse:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [accept, reject, counter, withdraw] }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal" }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+    Offer:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        buyerId: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        fromUserId: { type: string, format: uuid }
+        parentId: { type: [string, "null"], format: uuid }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal" }
+        status: { type: string }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    CartItemUpsert:
+      type: object
+      required: [listingId, quantity]
+      properties: { listingId: { type: string, format: uuid }, quantity: { $ref: "#/components/schemas/Decimal" }, offerId: { type: string, format: uuid } }
+    Cart:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              sellerId: { type: string, format: uuid }
+              sellerName: { type: string }
+              currency: { type: string }
+              subtotal: { $ref: "#/components/schemas/Decimal" }
+              deliveryOptions: { type: array, items: { type: object, properties: { option: { type: string }, fee: { type: string }, days: { type: integer } } } }
+              items: { type: array, items: { type: object, additionalProperties: true } }
+        problems: { type: array, items: { type: object, properties: { listingId: { type: string }, code: { type: string } } } }
+    CheckoutRequest:
+      type: object
+      required: [paymentMethod, delivery]
+      properties:
+        paymentMethod: { type: string, enum: [momo, card, pay_on_delivery] }
+        delivery:
+          type: array
+          description: Delivery option per seller
+          items: { type: object, required: [sellerId, option], properties: { sellerId: { type: string, format: uuid }, option: { type: string, enum: [pickup, standard, express] } } }
+        address: { type: object, properties: { line1: { type: string, maxLength: 200 }, town: { type: string, maxLength: 80 }, regionId: { type: string, format: uuid }, phone: { type: string, maxLength: 20 }, point: { $ref: "#/components/schemas/GeoPoint" } } }
+    CheckoutResult:
+      type: object
+      properties: { checkoutId: { type: string, format: uuid }, total: { $ref: "#/components/schemas/Decimal" }, currency: { type: string }, orders: { type: array, items: { $ref: "#/components/schemas/Order" } } }
+    OrderStatus: { type: string, enum: [pending_payment, paid_in_escrow, accepted, in_transit, delivered, completed, cancelled, disputed, refunded] }
+    Order:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        checkoutId: { type: string, format: uuid }
+        buyerId: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        currency: { type: string }
+        subtotal: { $ref: "#/components/schemas/Decimal" }
+        deliveryFee: { $ref: "#/components/schemas/Decimal" }
+        commission: { $ref: "#/components/schemas/Decimal", description: Visible to the seller and admins }
+        total: { $ref: "#/components/schemas/Decimal" }
+        paymentMethod: { type: string }
+        deliveryOption: { type: string }
+        stateDeadlineAt: { type: [string, "null"], format: date-time }
+        allowedActions: { type: array, items: { type: string }, description: Actions the caller may take now }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        events: { type: array, items: { type: object, additionalProperties: true } }
+        disputeId: { type: [string, "null"], format: uuid }
+        createdAt: { type: string, format: date-time }
+    OrderPage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/Order" } }, nextCursor: { type: [string, "null"] } }
+    OrderTransition:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [accept, ship, deliver, confirm, collect_cash, cancel, dispute] }
+        reason: { type: string, maxLength: 1000 }
+        disputeReason: { type: string, enum: [not_received, not_as_described, damaged, wrong_quantity, other] }
+        expectedVersion: { type: integer, description: Optimistic-concurrency guard }
+    ReviewCreate:
+      type: object
+      required: [rating]
+      properties: { rating: { type: integer, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } }
+    Dispute:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        reason: { type: string }
+        description: { type: string }
+        status: { type: string }
+        resolution: { type: [object, "null"], additionalProperties: true }
+        evidence: { type: array, items: { type: object, properties: { id: { type: string }, uploadedBy: { type: string }, note: { type: [string, "null"] }, url: { type: [string, "null"] }, createdAt: { type: string } } } }
+        createdAt: { type: string, format: date-time }
+
+    # ── payments ──
+    PayRequest:
+      type: object
+      required: [provider]
+      properties:
+        provider: { type: string, enum: [paystack, flutterwave, hubtel] }
+        method: { type: string, enum: [momo, card] }
+        network: { type: string, enum: [mtn, telecel, airteltigo] }
+        msisdn: { type: string, pattern: "^\\+[1-9]\\d{6,14}$" }
+        paymentMethodId: { type: string, format: uuid }
+        saveMethod: { type: boolean }
+    PaymentIntent:
+      type: object
+      required: [paymentId, status, reference]
+      properties:
+        paymentId: { type: string, format: uuid }
+        reference: { type: string }
+        status: { type: string, enum: [initiated, pending, succeeded, failed] }
+        authorizationUrl: { type: [string, "null"], description: Card checkout / 3-D Secure }
+        displayText: { type: [string, "null"], description: "e.g. 'Approve the prompt on your phone'" }
+    PaymentMethod:
+      type: object
+      properties: { id: { type: string, format: uuid }, provider: { type: string }, type: { type: string }, label: { type: string }, isDefault: { type: boolean } }
+    Wallet:
+      type: object
+      properties:
+        currency: { type: string }
+        available: { $ref: "#/components/schemas/Decimal" }
+        inEscrow: { $ref: "#/components/schemas/Decimal", description: Funds for this seller's orders not yet released }
+        pendingPayouts: { $ref: "#/components/schemas/Decimal" }
+        lifetimeEarnings: { $ref: "#/components/schemas/Decimal" }
+        limits: { type: object, properties: { min: { type: string }, max: { type: string }, reviewAbove: { type: string } } }
+    PayoutAccountCreate:
+      type: object
+      required: [type, provider, accountNumber, accountName]
+      properties:
+        type: { type: string, enum: [momo, bank] }
+        provider: { type: string, enum: [paystack, flutterwave, hubtel] }
+        network: { type: string, enum: [mtn, telecel, airteltigo] }
+        bankCode: { type: string, maxLength: 20 }
+        accountNumber: { type: string, maxLength: 30 }
+        accountName: { type: string, maxLength: 120 }
+        isDefault: { type: boolean }
+    PayoutAccount:
+      type: object
+      properties: { id: { type: string, format: uuid }, type: { type: string }, provider: { type: string }, label: { type: string }, network: { type: [string, "null"] }, isDefault: { type: boolean } }
+    PayoutRequest:
+      type: object
+      required: [amount]
+      properties: { amount: { $ref: "#/components/schemas/Decimal" }, accountId: { type: string, format: uuid } }
+    Payout:
+      type: object
+      properties: { id: { type: string, format: uuid }, amount: { type: string }, currency: { type: string }, status: { type: string }, accountId: { type: string, format: uuid }, failureReason: { type: [string, "null"] }, createdAt: { type: string, format: date-time } }
+
+    # ── community ──
+    PostType: { type: string, enum: [price_update, market_news, tip, question] }
+    PostCreate:
+      type: object
+      required: [type, body]
+      properties:
+        type: { $ref: "#/components/schemas/PostType" }
+        body: { type: string, minLength: 1, maxLength: 5000 }
+        commodityId: { type: string, format: uuid }
+        marketId: { type: string, format: uuid }
+        price: { type: object, required: [amount, currency, unit], properties: { amount: { $ref: "#/components/schemas/Decimal" }, currency: { type: string }, unit: { type: string }, priceType: { $ref: "#/components/schemas/PriceType" } } }
+        location: { $ref: "#/components/schemas/GeoPoint" }
+    Post:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        author: { type: object, properties: { id: { type: string }, name: { type: [string, "null"] }, reputation: { type: integer }, badges: { type: array, items: { type: string } } } }
+        type: { $ref: "#/components/schemas/PostType" }
+        body: { type: string }
+        commodityId: { type: [string, "null"], format: uuid }
+        marketId: { type: [string, "null"], format: uuid }
+        price: { type: [object, "null"], additionalProperties: true }
+        priceObservationStatus: { type: [string, "null"], enum: [pending, approved, flagged, rejected, null] }
+        photos: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        status: { type: string }
+        acceptedCommentId: { type: [string, "null"], format: uuid }
+        counts: { type: object, properties: { comments: { type: integer }, reactions: { type: integer }, shares: { type: integer } } }
+        myReaction: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+    PostPage:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/Post" } }, nextCursor: { type: [string, "null"] } }
+    CommentCreate:
+      type: object
+      required: [body]
+      properties: { body: { type: string, minLength: 1, maxLength: 2000 }, parentId: { type: string, format: uuid } }
+    Comment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        postId: { type: string, format: uuid }
+        parentId: { type: [string, "null"], format: uuid }
+        author: { type: object, properties: { id: { type: string }, name: { type: [string, "null"] } } }
+        body: { type: string }
+        accepted: { type: boolean }
+        replies: { type: array, items: { $ref: "#/components/schemas/Comment" } }
+        createdAt: { type: string, format: date-time }
+    CommunityProfile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+        role: { type: string }
+        reputation: { type: integer }
+        badges: { type: array, items: { type: object, properties: { code: { type: string }, name: { type: string }, period: { type: string } } } }
+        followers: { type: integer }
+        following: { type: integer }
+        isFollowing: { type: boolean }
+        posts: { type: integer }
+        approvedPriceReports: { type: integer }
+
+    # ── knowledge ──
+    CropGuide:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        title: { type: string }
+        summary: { type: string }
+        sections: { type: array, items: { type: object, properties: { key: { type: string }, title: { type: string }, body: { type: string } } } }
+        version: { type: integer }
+        reviewedAt: { type: [string, "null"], format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PestDisease:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string }
+        name: { type: string }
+        scientificName: { type: [string, "null"] }
+        commodityIds: { type: array, items: { type: string, format: uuid } }
+        symptoms: { type: string }
+        photos: { type: array, items: { type: object, properties: { urls: { type: object, additionalProperties: true }, caption: { type: string }, credit: { type: string } } } }
+        organicControl: { type: string }
+        chemicalControl: { type: string }
+        prevention: { type: string }
+        safetyNote: { type: string }
+        version: { type: integer }
+        reviewedAt: { type: [string, "null"], format: date-time }
+    FertiliserRequest:
+      type: object
+      required: [country, commodityId, area, areaUnit]
+      properties:
+        country: { type: string, pattern: "^[A-Z]{2}$" }
+        commodityId: { type: string, format: uuid }
+        area: { type: number, exclusiveMinimum: 0, maximum: 100000 }
+        areaUnit: { type: string, maxLength: 16, description: "ha, acre, m2, or a country-pack local unit" }
+        regionId: { type: string, format: uuid }
+        farmingType: { type: string, enum: [subsistence, commercial, mixed, organic, irrigated, rainfed] }
+    FertiliserPlan:
+      type: object
+      required: [ruleId, ruleVersion, hectares, applications, safetyNote, reviewedAt]
+      properties:
+        ruleId: { type: string, format: uuid }
+        ruleVersion: { type: integer }
+        hectares: { type: string }
+        source: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        applications:
+          type: array
+          items:
+            type: object
+            properties:
+              stage: { type: string }
+              product: { type: string }
+              productCode: { type: string }
+              kg: { type: string }
+              bags: { type: number, description: Rounded up to the nearest half bag }
+              bagsExact: { type: string }
+              bagKg: { type: string }
+              timing: { type: string }
+              method: { type: [string, "null"] }
+              nutrientsKg: { type: object, properties: { n: { type: string }, p2o5: { type: string }, k2o: { type: string } } }
+        totals: { type: object, properties: { kg: { type: string }, nKg: { type: string }, p2o5Kg: { type: string }, k2oKg: { type: string } } }
+        notes: { type: string }
+        safetyNote: { type: string }
+    Programme:
+      type: object
+      properties: { id: { type: string, format: uuid }, kind: { type: string }, title: { type: string }, body: { type: string }, agency: { type: [string, "null"] }, eligibility: { type: string }, opensAt: { type: [string, "null"], format: date }, closesAt: { type: [string, "null"], format: date }, open: { type: boolean }, url: { type: [string, "null"] } }
+    TrainingItem:
+      type: object
+      properties: { id: { type: string, format: uuid }, kind: { type: string }, title: { type: string }, body: { type: string }, startsAt: { type: [string, "null"], format: date-time }, endsAt: { type: [string, "null"], format: date-time }, venue: { type: [string, "null"] }, regionId: { type: [string, "null"] }, url: { type: [string, "null"] } }
+    InputSupplier:
+      type: object
+      properties: { id: { type: string, format: uuid }, name: { type: string }, categories: { type: array, items: { type: string } }, description: { type: string }, regionId: { type: [string, "null"] }, location: { oneOf: [{ $ref: "#/components/schemas/GeoPoint" }, { type: "null" }] }, distanceKm: { type: ["null", number] }, phone: { type: [string, "null"] }, whatsapp: { type: [string, "null"] }, website: { type: [string, "null"] }, verified: { type: boolean }, sellerId: { type: [string, "null"] } }
+
+    # ── seller analytics ──
+    Kpi:
+      type: object
+      properties: { value: { type: number }, previous: { type: number }, changePct: { type: ["null", number] } }
+    SellerSummary:
+      type: object
+      properties:
+        period: { type: string }
+        currency: { type: string }
+        revenue: { $ref: "#/components/schemas/Kpi" }
+        ordersPlaced: { $ref: "#/components/schemas/Kpi" }
+        ordersCompleted: { $ref: "#/components/schemas/Kpi" }
+        activeBuyers: { $ref: "#/components/schemas/Kpi" }
+        views: { $ref: "#/components/schemas/Kpi" }
+        conversionPct: { $ref: "#/components/schemas/Kpi" }
+        activeListings: { type: integer }
+        cancellationRatePct: { type: ["null", number] }
+    TopProduct:
+      type: object
+      properties: { listingId: { type: string, format: uuid }, title: { type: string }, commodityId: { type: [string, "null"] }, revenue: { type: number }, kgSold: { type: number }, orders: { type: integer }, views: { type: integer }, conversionPct: { type: ["null", number] } }
+    DemandIndex:
+      type: object
+      properties:
+        commodityId: { type: string, format: uuid }
+        regionId: { type: [string, "null"] }
+        method: { type: string }
+        points: { type: array, items: { type: object, properties: { week: { type: string, format: date }, index: { type: ["null", number] }, activity: { type: number }, kgOrdered: { type: number }, avgPricePerKg: { type: ["null", number] } } } }
+        byRegion: { type: array, items: { type: object, properties: { regionId: { type: string }, name: { type: string }, index: { type: ["null", number] } } } }
+    SupplyByRegion:
+      type: object
+      properties:
+        commodityId: { type: string, format: uuid }
+        snapshotAt: { type: [string, "null"], format: date-time }
+        totalKg: { type: number }
+        regions: { type: array, items: { type: object, properties: { regionId: { type: [string, "null"] }, name: { type: string }, quantityKg: { type: number }, sharePct: { type: number }, listings: { type: integer }, sellers: { type: integer }, change4wPct: { type: ["null", number] } } } }

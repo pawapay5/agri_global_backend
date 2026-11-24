@@ -107,3 +107,13 @@ export_requirements:
     authority: HSE (GB MRL Statutory Register)
     title: { en: Pesticide residue (MRL) compliance }
     description: { en: "Residues must meet GB maximum residue levels." }
+
+# Plans: codes and entitlements. Prices and provider plan ids are business settings, so set them
+# through PATCH /v1/admin/tables/plans/{code}, e.g.
+#   prices:       {"GHS": {"monthly": "...", "yearly": "..."}}
+#   provider_ids: {"paystack": {"monthly_GHS": "PLN_..."}, "stripe": {"monthly_USD": "price_..."}}
+# Entitlements left empty here use the defaults in apps/api/src/modules/billing/entitlements.logic.ts.
+plans:
+  - { code: free, sort_order: 0, name: { en: Free, fr: Gratuit } }
+  - { code: premium, sort_order: 1, name: { en: Premium, fr: Premium } }
+  - { code: organisation, sort_order: 2, name: { en: Organisation, fr: Organisation } }

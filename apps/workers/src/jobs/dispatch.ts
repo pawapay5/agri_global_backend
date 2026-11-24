@@ -124,6 +124,13 @@ export class Dispatcher {
     await this.db.query(`UPDATE notification_deliveries SET status = $2, last_error = $3 WHERE id = $1`, [id, status, err.slice(0, 500)]);
   }
 
+  /** Outbound SMS reply (two-way SMS / commands). */
+  async sendSms(j: { to: string; body: string }): Promise<void> {
+    const provider = this.providers.sms;
+    if (!provider) throw new PermanentError("No sms provider configured");
+    await provider.send({ to: j.to, body: j.body.slice(0, 459) });
+  }
+
   async sendOtp(j: SendOtpJob): Promise<void> {
     const provider = this.providers[j.channel];
     if (!provider) throw new PermanentError(`No ${j.channel} provider configured`);

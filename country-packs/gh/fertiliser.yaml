@@ -1,0 +1,12 @@
+# Fertiliser products: standard nutrient grades (% N, P2O5, K2O, S) and common bag sizes.
+# Application RULES are deliberately not seeded. Each crop/region recommendation must be entered in the
+# admin CMS with a source citation and signed off by an agronomist (POST /v1/admin/knowledge/fertiliser_rules/{id}/review)
+# before the calculator will use it.
+products:
+  - { code: npk_15_15_15, name: { en: "NPK 15-15-15" }, n: 15, p2o5: 15, k2o: 15, s: 0, bag_kg: 50 }
+  - { code: urea, name: { en: "Urea (46-0-0)" }, n: 46, p2o5: 0, k2o: 0, s: 0, bag_kg: 50 }
+  - { code: soa, name: { en: "Sulphate of Ammonia (21-0-0 + 24S)" }, n: 21, p2o5: 0, k2o: 0, s: 24, bag_kg: 50 }
+  - { code: tsp, name: { en: "Triple Superphosphate (0-46-0)" }, n: 0, p2o5: 46, k2o: 0, s: 0, bag_kg: 50 }
+  - { code: mop, name: { en: "Muriate of Potash (0-0-60)" }, n: 0, p2o5: 0, k2o: 60, s: 0, bag_kg: 50 }
+# Local area units used by farmers, as hectares per unit. "Rope" sizes vary by area: confirm locally.
+area_units: {}

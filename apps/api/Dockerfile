@@ -7,6 +7,7 @@ COPY packages/contracts/package.json packages/contracts/
 COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile --filter @agriprice/api...
 COPY packages/contracts packages/contracts
+COPY openapi openapi
 COPY apps/api apps/api
 COPY country-packs country-packs
 RUN pnpm --filter @agriprice/contracts build && pnpm --filter @agriprice/api build \
@@ -20,7 +21,7 @@ COPY --from=build /out/package.json ./
 COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /repo/apps/api/migrations ./migrations
 COPY --from=build /repo/apps/api/scripts ./scripts
-COPY --from=build /repo/packages/contracts/openapi /packages/contracts/openapi
+COPY --from=build /repo/openapi /openapi
 COPY --from=build /repo/country-packs /country-packs
 USER node
 EXPOSE 3001

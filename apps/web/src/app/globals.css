@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Brand tokens (from the AgriPrice GH mockups). Light first; dark overrides below. */
+:root {
+  --brand: #0f5132;          /* deep green */
+  --brand-fg: #ffffff;
+  --leaf: #3bb54a;           /* leaf green */
+  --forecast: #f59e0b;       /* forecast orange */
+  --up: #16a34a;
+  --down: #dc2626;
+  --surface: #f7f9f8;
+  --background: #ffffff;
+  --foreground: #13241b;
+  --muted: #eef3f0;
+  --muted-fg: #5b6b62;
+  --card: #ffffff;
+  --border: #dfe7e2;
+  --ring: #3bb54a;
+  --info-bg: #eaf3ff;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --brand: #3bb54a;
+  --brand-fg: #06170e;
+  --surface: #0b1410;
+  --background: #08110d;
+  --foreground: #e6efe9;
+  --muted: #13211a;
+  --muted-fg: #9fb2a7;
+  --card: #0f1a14;
+  --border: #1f3128;
+  --info-bg: #0f1d2b;
+  --up: #22c55e;
+  --down: #f87171;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-leaf: var(--leaf);
+  --color-forecast: var(--forecast);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-surface: var(--surface);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-fg: var(--muted-fg);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-info: var(--info-bg);
+  --radius-xl: var(--radius);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--surface); color: var(--foreground); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

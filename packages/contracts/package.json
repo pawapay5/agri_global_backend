@@ -7,12 +7,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./openapi.yaml": "./openapi/openapi.yaml"
+    "./openapi.yaml": "../../openapi/openapi.yaml"
   },
-  "files": ["dist", "openapi"],
+  "files": ["dist"],
   "scripts": {
-    "lint": "redocly lint openapi/openapi.yaml --config redocly.yaml",
-    "generate": "openapi-typescript openapi/openapi.yaml -o src/generated/schema.ts",
+    "lint": "redocly lint ../../openapi/openapi.yaml --config redocly.yaml",
+    "generate": "openapi-typescript ../../openapi/openapi.yaml -o src/generated/schema.ts",
     "build": "pnpm generate && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

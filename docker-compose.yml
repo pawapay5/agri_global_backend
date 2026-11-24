@@ -50,6 +50,17 @@ services:
     ports: ["7700:7700"]
     volumes: [meilidata:/meili_data]
 
+  # HTML → PDF for reports
+  gotenberg:
+    image: gotenberg/gotenberg:8.20
+    ports: ["3002:3000"]
+
+  # Virus scanning for uploads (clamd INSTREAM on 3310). The first start downloads signatures (~1-2 min).
+  clamav:
+    image: clamav/clamav:1.4
+    ports: ["3310:3310"]
+    volumes: [clamdata:/var/lib/clamav]
+
   mailpit:
     image: axllent/mailpit:v1.24
     ports: ["1025:1025", "8025:8025"]
@@ -69,3 +80,4 @@ volumes:
   miniodata: {}
   meilidata: {}
   mlflowdata: {}
+  clamdata: {}

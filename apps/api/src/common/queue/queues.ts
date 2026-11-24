@@ -12,6 +12,9 @@ export const QUEUES = {
   alerts: "alerts",
   prices: "prices",
   accounts: "accounts",
+  commerce: "commerce",   // consumed by the API scheduler (RUN_SCHEDULERS=true): refunds, payouts, timeouts, reconciliation
+  reports: "reports",
+  messaging: "messaging",
 } as const;
 
 export interface DispatchNotificationJob {
@@ -56,6 +59,13 @@ export class QueueService implements OnModuleDestroy {
   refreshAggregates(job: RefreshAggregatesJob) {
     return this.q(QUEUES.prices).add("refresh-aggregates", job);
   }
+  /** Generic enqueue with an optional dedupe job id. */
+  raw(queue: string, name: string, data: unknown, jobId?: string, opts?: JobsOptions) {
+    return this.q(queue).add(name, data, { ...opts, jobId });
+  }
+
+  queue(name: string) { return this.q(name); }
+
   async onModuleDestroy() { await Promise.all([...this.queues.values()].map((q) => q.close())); }
 }
 

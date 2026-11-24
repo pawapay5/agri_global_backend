@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/__pycache__
+**/*.egg-info
+**/.venv
+.git
+.env
+.env.*
+!.env.example
+**/test-results
+**/playwright-report

@@ -1,4 +1,5 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Global, Inject, Injectable, Module } from "@nestjs/common";
 import { APP_CONFIG, AppConfig } from "../../config/config";
 
@@ -24,6 +25,15 @@ export class StorageService {
     const r = await this.client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     return Buffer.from(await r.Body!.transformToByteArray());
   }
+
+  /** Time-limited download link (reports: 24 h). */
+  signedGetUrl(bucket: string, key: string, expiresInSeconds = 86_400, filename?: string): Promise<string> {
+    return getSignedUrl(this.client, new GetObjectCommand({
+      Bucket: bucket, Key: key, ...(filename ? { ResponseContentDisposition: `attachment; filename="${filename.replace(/"/g, "")}"` } : {}),
+    }), { expiresIn: expiresInSeconds });
+  }
+
+  async remove(bucket: string, key: string) { await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })); }
 
   /** Public URL for images served through the CDN / MinIO public bucket policy. */
   publicUrl(bucket: string, key: string | null | undefined): string | null {
