@@ -165,3 +165,48 @@ export function useLatestMany(ids: string[], cc: string, pt: PriceType = "wholes
     })),
   });
 }
+
+// ── Catalogue & insights ──
+export const useCategories = () =>
+  useQuery({ queryKey: ["categories"] as const, queryFn: () => unwrap(api.GET("/v1/commodity-categories")), staleTime: 3_600_000 });
+
+export const useSeasonal = (id: string, cc: string, market?: string) =>
+  useQuery({
+    queryKey: ["seasonal", id, cc, market ?? "all"] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/seasonal", { params: { query: { commodity_id: id, country: cc, market_id: market } } })),
+    staleTime: 3_600_000, enabled: Boolean(id && cc),
+  });
+
+/** Follow / unfollow a commodity by rewriting the interests list (PUT replaces it), keeping markets and topics. */
+export function useToggleFollow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, follow, current }: { id: string; follow: boolean; current: S["Interests"] | undefined }) => {
+      const ids = new Set(current?.commodityIds ?? []);
+      if (follow) ids.add(id); else ids.delete(id);
+      return unwrap(api.PUT("/v1/me/interests", { body: { ...current, commodityIds: [...ids] } }));
+    },
+    onSuccess: (v) => qc.setQueryData(["me", "interests"], v),
+  });
+}
+
+// ── Geo: regions, heatmap, nearby ──
+export const useRegions = (cc: string) =>
+  useQuery({ queryKey: ["regions", cc] as const, queryFn: () => unwrap(api.GET("/v1/regions", { params: { query: { country: cc } } })), staleTime: 86_400_000, enabled: Boolean(cc) });
+
+export const useRegionsGeo = (cc: string) =>
+  useQuery({ queryKey: ["regions-geo", cc] as const, queryFn: () => unwrap(api.GET("/v1/regions/geojson", { params: { query: { country: cc } } })), staleTime: 86_400_000, enabled: Boolean(cc) });
+
+export const useChoropleth = (cc: string, commodityId: string, days: number) =>
+  useQuery({
+    queryKey: ["choropleth", cc, commodityId, days] as const,
+    queryFn: () => unwrap(api.GET("/v1/regions/choropleth", { params: { query: { country: cc, commodity_id: commodityId, days } } })),
+    staleTime: 600_000, placeholderData: keepPreviousData, enabled: Boolean(cc && commodityId),
+  });
+
+export const useNearby = (p: { lat: number | null; lng: number | null; radiusKm: number; commodityId?: string }) =>
+  useQuery({
+    queryKey: ["nearby", p.lat, p.lng, p.radiusKm, p.commodityId ?? ""] as const,
+    queryFn: () => unwrap(api.GET("/v1/markets/nearby", { params: { query: { lat: p.lat!, lng: p.lng!, radius_km: p.radiusKm, commodity_id: p.commodityId, limit: 50 } } })),
+    staleTime: 300_000, placeholderData: keepPreviousData, enabled: p.lat != null && p.lng != null,
+  });

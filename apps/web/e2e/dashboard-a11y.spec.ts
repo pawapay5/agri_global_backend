@@ -45,11 +45,15 @@ for (const path of PAGES) {
   });
 }
 
-for (const path of ["/en/app", "/en/app/alerts", "/en/app/forecast", "/en/app/settings/security"]) {
-  test(`axe (signed in): ${path}`, async ({ page }) => {
+for (const path of ["/en/app", "/en/app/alerts", "/en/app/forecast", "/en/app/commodities", "/en/app/settings/security"]) {
+  test(`axe + CSP (signed in): ${path}`, async ({ page }) => {
+    // The strict nonce CSP must not block anything we ship (e.g. the theme script allowed by THEME_SCRIPT_HASH).
+    const csp: string[] = [];
+    page.on("console", (m) => { if (m.type() === "error" && m.text().includes("Content Security Policy")) csp.push(m.text().slice(0, 200)); });
     await signIn(page);
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     expect(await axe(page)).toEqual([]);
+    expect(csp, "CSP violations").toEqual([]);
   });
 }
