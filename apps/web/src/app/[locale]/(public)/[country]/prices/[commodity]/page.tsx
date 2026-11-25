@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ForecastChart } from "@/components/charts/forecast-chart";
+import { PriceChart } from "@/components/agri/charts/price-chart";
+import { DataFreshness } from "@/components/agri/data-freshness";
 import { alternates, breadcrumbs, JsonLd } from "@/components/seo/json-ld";
 import { Change } from "@/components/price/change";
 import { buttonVariants, Card, CardTitle, Skeleton } from "@/components/ui/primitives";
@@ -64,9 +65,9 @@ async function LiveSection({ cc, slug, locale, countryName, commodityName }: { c
       <JsonLd data={dataset} />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <div className="mb-3 flex items-baseline justify-between"><CardTitle>{t("sixMonths")}</CardTitle><span className="text-xs text-muted-fg">{currency}/{unit}</span></div>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2"><CardTitle>{t("sixMonths")}</CardTitle><DataFreshness at={lastUpdated} /></div>
           {history?.points.length ? (
-            <ForecastChart history={history.points} currency={currency} unit={unit} locale={locale} labels={{ historical: t("sixMonths"), forecast: "", range: "" }} />
+            <PriceChart history={history.points} currency={currency} unit={unit} title={t("commodityTitle", { commodity: commodityName, country: countryName })} />
           ) : <p className="py-12 text-center text-muted-fg">{t("noData")}</p>}
           {history?.stats ? (
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

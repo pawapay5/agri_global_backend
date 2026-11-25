@@ -44,7 +44,7 @@ export function Label({ className, ...props }: React.ComponentProps<"label">) {
 }
 
 export function Badge({ className, tone = "neutral", ...props }: React.ComponentProps<"span"> & { tone?: "neutral" | "brand" | "up" | "down" | "forecast" }) {
-  const tones = { neutral: "bg-muted text-muted-fg", brand: "bg-leaf/15 text-brand", up: "bg-up/10 text-up", down: "bg-down/10 text-down", forecast: "bg-forecast/15 text-forecast" };
+  const tones = { neutral: "bg-muted text-muted-fg", brand: "bg-leaf/15 text-brand", up: "bg-up/10 text-up-ink", down: "bg-down/10 text-down-ink", forecast: "bg-forecast/15 text-forecast-ink" };
   return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", tones[tone], className)} {...props} />;
 }
 

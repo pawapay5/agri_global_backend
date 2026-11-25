@@ -95,3 +95,51 @@ export function useDeleteAlert() {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.alerts }),
   });
 }
+
+// ── Profile & onboarding ──
+export function useUpdateMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["UserUpdate"]) => unwrap(api.PATCH("/v1/me", { body })),
+    onSuccess: (me) => qc.setQueryData(qk.me, me),
+  });
+}
+
+export const useInterests = () => useQuery({ queryKey: ["me", "interests"] as const, queryFn: () => unwrap(api.GET("/v1/me/interests")) });
+
+export function useSaveInterests() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["Interests"]) => unwrap(api.PUT("/v1/me/interests", { body })),
+    onSuccess: (v) => qc.setQueryData(["me", "interests"], v),
+  });
+}
+
+// ── Security: TOTP 2FA & devices ──
+export const useTotpSetup = () => useMutation({ mutationFn: () => unwrap(api.POST("/v1/auth/2fa/totp/setup")) });
+
+export function useTotpEnable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => unwrap(api.POST("/v1/auth/2fa/totp/enable", { body: { code } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.me }),
+  });
+}
+
+export function useTotpDisable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => unwrap(api.POST("/v1/auth/2fa/totp/disable", { body: { code } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.me }),
+  });
+}
+
+export const useDevices = () => useQuery({ queryKey: ["devices"] as const, queryFn: () => unwrap(api.GET("/v1/auth/devices")) });
+
+export function useRevokeDevice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(api.DELETE("/v1/auth/devices/{id}", { params: { path: { id } } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["devices"] }),
+  });
+}

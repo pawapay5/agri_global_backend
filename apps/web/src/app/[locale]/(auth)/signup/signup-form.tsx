@@ -53,7 +53,7 @@ export function SignupForm({ countries }: { countries: { iso2: string; name: str
         <Button type="submit" className="w-full" disabled={f.formState.isSubmitting}>{t("signup")}</Button>
       </form>
       <p className="text-center text-xs uppercase tracking-wide text-muted-fg">{t("or")}</p>
-      <SocialSignIn country={countryValue ?? "GH"} onResult={() => window.location.assign(`/${locale}/app`)} onError={err} />
+      <SocialSignIn country={countryValue ?? "GH"} onResult={(_s, isNewUser) => window.location.assign(`/${locale}/app${isNewUser ? "/onboarding" : ""}`)} onError={err} />
       <p className="text-center text-sm">{t("haveAccount")} <Link href="/login" className="font-semibold text-brand hover:underline">{t("login")}</Link></p>
     </div>
   );

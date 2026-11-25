@@ -2083,11 +2083,12 @@ components:
         status: { type: string, enum: [ok, degraded, down] }
         checks: { type: object, additionalProperties: { type: string, enum: [up, down] } }
         version: { type: string }
-    Decimal: { type: string, pattern: "^-?\\d+(\\.\\d+)?$", description: Decimal number encoded as string }
+    Decimal: { type: string, pattern: "^-?\\d+(\\.\\d+)?$", description: Decimal number encoded as string, examples: ["14.20"] }
     LocalizedText:
       type: object
       description: Map of BCP-47 locale → text
       additionalProperties: { type: string }
+      examples: [{ en: Tomato, fr: Tomate }]
     PriceType: { type: string, enum: [retail, wholesale, farm_gate], default: wholesale }
     Role: { type: string, enum: [farmer, trader, consumer, researcher, student, policymaker, enumerator, agronomist, admin, org_admin] }
     Channel: { type: string, enum: [push, email, sms, whatsapp, in_app] }
@@ -2098,8 +2099,8 @@ components:
       required: [amount, currency, unit]
       properties:
         amount: { $ref: "#/components/schemas/Decimal" }
-        currency: { type: string, pattern: "^[A-Z]{3}$" }
-        unit: { type: string, description: Unit code }
+        currency: { type: string, pattern: "^[A-Z]{3}$", examples: [GHS] }
+        unit: { type: string, description: Unit code, examples: [kg] }
     PriceValue:
       type: object
       description: Observed value as recorded plus the value in the caller's display currency and unit.
@@ -2211,15 +2212,16 @@ components:
       required: [accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt, tokenType]
       properties:
         tokenType: { const: Bearer }
-        accessToken: { type: string }
-        accessTokenExpiresAt: { type: string, format: date-time }
-        refreshToken: { type: string }
-        refreshTokenExpiresAt: { type: string, format: date-time }
+        # Mock example: an unsigned JWT whose claims (role, exp in 2100) let the web proxy route a Prism session.
+        accessToken: { type: string, examples: ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiZmFybWVyIiwiY291bnRyeSI6IkdIIiwiaXNzIjoiYWdyaXByaWNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.mock-signature"] }
+        accessTokenExpiresAt: { type: string, format: date-time, examples: ["2099-12-31T23:59:59Z"] }
+        refreshToken: { type: string, examples: [mock-refresh-token] }
+        refreshTokenExpiresAt: { type: string, format: date-time, examples: ["2099-12-31T23:59:59Z"] }
     AuthResult:
       type: object
       required: [status]
       properties:
-        status: { type: string, enum: [authenticated, mfa_required, verification_required] }
+        status: { type: string, enum: [authenticated, mfa_required, verification_required], examples: [authenticated] }
         tokens: { $ref: "#/components/schemas/TokenPair" }
         mfaToken: { type: string, description: Short-lived token for /v1/auth/mfa/verify }
         user: { $ref: "#/components/schemas/User" }
@@ -2283,15 +2285,15 @@ components:
       type: object
       required: [id, role, country, emailVerified, phoneVerified, totpEnabled, createdAt]
       properties:
-        id: { type: string, format: uuid }
-        email: { type: [string, "null"], format: email }
-        phone: { type: [string, "null"] }
-        emailVerified: { type: boolean }
+        id: { type: string, format: uuid, examples: [00000000-0000-4000-8000-000000000001] }
+        email: { type: [string, "null"], format: email, examples: [ama@example.com] }
+        phone: { type: [string, "null"], examples: ["+233241234567"] }
+        emailVerified: { type: boolean, examples: [true] }
         phoneVerified: { type: boolean }
-        fullName: { type: [string, "null"] }
+        fullName: { type: [string, "null"], examples: [Ama Mensah] }
         avatarUrl: { type: [string, "null"] }
         role: { $ref: "#/components/schemas/Role" }
-        country: { type: string }
+        country: { type: string, examples: [GH] }
         organisationId: { type: [string, "null"], format: uuid }
         totpEnabled: { type: boolean }
         deletionScheduledAt: { type: [string, "null"], format: date-time }

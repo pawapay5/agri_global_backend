@@ -75,9 +75,18 @@ describe("csp", () => {
     expect(buildCsp({ dev: false, https: false })).not.toContain("upgrade-insecure-requests");
     expect(buildCsp({ nonce: "n", dev: false, https: false })).not.toContain("upgrade-insecure-requests");
   });
-  it("cacheable policy allows inline bootstrap scripts but nothing else third-party", () => {
-    const script = buildCsp({ dev: false }).split("; ").find((d) => d.startsWith("script-src"))!;
-    expect(script).toBe("script-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/client https://appleid.cdn-apple.com");
+  const none = { google: false, apple: false, facebook: false };
+  const directive = (p: string, name: string) => p.split("; ").find((d) => d.startsWith(name))!;
+  it("cacheable policy allows inline bootstrap scripts and nothing third-party when no sign-in provider is configured", () => {
+    const p = buildCsp({ dev: false, providers: none });
+    expect(directive(p, "script-src")).toBe("script-src 'self' 'unsafe-inline'");
+    expect(directive(p, "frame-src")).toBe("frame-src 'none'");
+  });
+  it("allows only the configured providers' hosts", () => {
+    const p = buildCsp({ dev: false, providers: { ...none, facebook: true } });
+    expect(directive(p, "script-src")).toBe("script-src 'self' 'unsafe-inline' https://connect.facebook.net");
+    expect(directive(p, "frame-src")).toContain("https://www.facebook.com");
+    expect(p).not.toContain("accounts.google.com");
   });
 });
 

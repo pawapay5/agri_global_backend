@@ -32,6 +32,17 @@ export async function POST(req: Request, ctx: RouteContext<"/api/auth/[action]">
     return new NextResponse(null, { status: 204 });
   }
 
+  if (action === "logout-all") {
+    // Ends every session on every device, then this browser's cookies. Needs a live session.
+    const at = jar.get(ACCESS_COOKIE)?.value;
+    if (!at) return problem(401, "no_session", "Unauthorized");
+    const r = await fetch(`${env.apiUrl}/v1/auth/logout-all`, { method: "POST", headers: { Authorization: `Bearer ${at}`, ...forwardedFor(req) }, signal: upstreamSignal() }).catch((e: unknown) => e as Error);
+    if (r instanceof Error) return upstreamUnavailable(env.apiUrl, r);
+    if (!r.ok && r.status !== 401) return new NextResponse(await r.text(), { status: r.status, headers: { "Content-Type": "application/problem+json" } });
+    clearTokenCookies(jar);
+    return new NextResponse(null, { status: 204 });
+  }
+
   if (action === "refresh") {
     const rt = jar.get(REFRESH_COOKIE)?.value;
     if (!rt) return problem(401, "no_session", "Unauthorized");

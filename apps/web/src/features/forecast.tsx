@@ -2,8 +2,10 @@
 import { AlertTriangle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { ForecastChart } from "@/components/charts/forecast-chart";
-import { ShapPanel } from "@/components/charts/shap-panel";
+import { ForecastChart } from "@/components/agri/charts/forecast-chart";
+import { DataFreshness } from "@/components/agri/data-freshness";
+import { EmptyState } from "@/components/agri/empty-state";
+import { ShapBars } from "@/components/agri/shap-bars";
 import { Badge, Card } from "@/components/ui/primitives";
 import { useCommodity, useExplanation, useForecast, useHistory, useMarkets, useMe } from "@/lib/api/queries";
 import { formatMoney, formatPct, pick } from "@/lib/utils";
@@ -46,11 +48,7 @@ export function ForecastView({ commodityId, embedded = false }: { commodityId: s
       {!market ? <Card className="text-sm text-muted-fg">{t("app.selectMarket")}</Card> : (
         <QueryState q={forecast}>
           {(f) => f.status !== "available" ? (
-            <Card role="status" className="flex gap-3">
-              <AlertTriangle aria-hidden className="size-6 shrink-0 text-forecast" />
-              <div><p className="font-semibold">{t("app.insufficient")}</p>
-                <ul className="mt-1 list-disc ps-5 text-sm text-muted-fg">{(f.reasons ?? []).map((r) => <li key={r}>{t.has(`app.reasons.${r}`) ? t(`app.reasons.${r}`) : r}</li>)}</ul></div>
-            </Card>
+            <EmptyState icon={AlertTriangle} title={t("app.insufficient")} reasons={f.reasons} />
           ) : (
             <div className="grid gap-6 xl:grid-cols-5">
               <Card className="space-y-4 xl:col-span-3">
@@ -69,8 +67,9 @@ export function ForecastView({ commodityId, embedded = false }: { commodityId: s
                     </button>
                   ))}
                 </div>
-                <ForecastChart history={history.data?.points ?? []} horizons={f.horizons} currency={f.currency ?? ""} unit={f.unit ?? "kg"} locale={locale}
-                  labels={{ historical: t("app.history"), forecast: t("app.forecast"), range: t("app.range") }} />
+                <ForecastChart history={history.data?.points ?? []} horizons={f.horizons} currency={f.currency ?? ""} unit={f.unit ?? "kg"}
+                  title={`${pick(commodity.data?.name, locale)} · ${t("nav.forecast")}`} />
+                <DataFreshness at={f.generatedAt} />
                 {(() => {
                   const h = f.horizons.find((x) => x.horizonMonths === horizon);
                   return h?.status === "available" ? (
@@ -84,7 +83,7 @@ export function ForecastView({ commodityId, embedded = false }: { commodityId: s
               </Card>
               <Card className="xl:col-span-2">
                 <QueryState q={explanation}>
-                  {(e) => <ShapPanel features={e.features} insight={e.insight.text} featureLabel={featureLabel} />}
+                  {(e) => (<><h3 className="mb-3 text-base font-semibold">{t("app.why")}</h3><ShapBars features={e.features} insight={e.insight.text} featureLabel={featureLabel} /></>)}
                 </QueryState>
               </Card>
             </div>

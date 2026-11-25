@@ -1,6 +1,7 @@
 "use client";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { RangeTabs } from "@/components/agri/range-tabs";
 import { Card, Skeleton } from "@/components/ui/primitives";
 import { ApiError } from "@/lib/api/browser";
 
@@ -33,15 +34,7 @@ export function PageTitle({ title, subtitle, actions }: { title: string; subtitl
   );
 }
 
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-xl bg-muted p-1">
-      {options.map((o) => (
-        <button key={o.value} role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium ${value === o.value ? "bg-brand text-brand-fg" : "text-muted-fg hover:text-foreground"}`}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+/** Back-compat name for RangeTabs (radiogroup with arrow-key navigation). */
+export function Segmented<T extends string>(props: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+  return <RangeTabs {...props} />;
 }

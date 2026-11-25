@@ -26,7 +26,9 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
   const feedback = useFeedback();
   const problem = useProblemMessage();
   const err = (code: string) => feedback.error(problem(code));
-  const done = (status: string) => (status === "mfa_required" ? setStep("mfa") : window.location.assign(next));
+  // Phone or social sign-in can create the account: new users go through first-run setup.
+  const done = (status: string, isNewUser = false) =>
+    status === "mfa_required" ? setStep("mfa") : window.location.assign(isNewUser ? `/${locale}/app/onboarding` : next);
 
   const emailForm = useForm({ resolver: zodResolver(emailSchema) });
   const phoneForm = useForm({ resolver: zodResolver(phoneSchema) });
@@ -34,7 +36,7 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
 
   const onEmail = emailForm.handleSubmit(async (v) => {
     const r = await bff("login", v);
-    if (r.ok) done(r.data.status); else err(r.problem.code);
+    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem.code);
   });
   const onPhone = phoneForm.handleSubmit(async (v) => {
     const r = await bff("otp-request", { channel: "sms", destination: v.phone, purpose: "login", locale });
@@ -44,7 +46,7 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
     const r = step === "mfa"
       ? await bff("mfa", { code: v.code })
       : await bff("otp-verify", { channel: "sms", destination: phone, purpose: "login", code: v.code });
-    if (r.ok) done(r.data.status); else err(r.problem.code);
+    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem.code);
   });
 
   return (

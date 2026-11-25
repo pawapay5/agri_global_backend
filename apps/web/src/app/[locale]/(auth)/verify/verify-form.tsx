@@ -37,7 +37,8 @@ export function VerifyForm() {
     setBusy(true);
     const r = await bff("otp-verify", { channel: "email", destination: email, purpose: "verify_email", code: digits.join("") });
     setBusy(false);
-    if (r.ok) window.location.assign(`/${locale}/app`);
+    // New accounts go through first-run setup; it can be skipped.
+    if (r.ok) window.location.assign(`/${locale}/app/onboarding`);
     else feedback.error(problem(r.problem.code));
   };
 

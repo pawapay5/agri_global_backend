@@ -2953,9 +2953,18 @@ export interface components {
             };
             version?: string;
         };
-        /** @description Decimal number encoded as string */
+        /**
+         * @description Decimal number encoded as string
+         * @example 14.20
+         */
         Decimal: string;
-        /** @description Map of BCP-47 locale → text */
+        /**
+         * @description Map of BCP-47 locale → text
+         * @example {
+         *       "en": "Tomato",
+         *       "fr": "Tomate"
+         *     }
+         */
         LocalizedText: {
             [key: string]: string;
         };
@@ -2974,8 +2983,12 @@ export interface components {
         NotificationCategory: "price_alert" | "market_update" | "weather" | "system" | "weekly_insight";
         Money: {
             amount: components["schemas"]["Decimal"];
+            /** @example GHS */
             currency: string;
-            /** @description Unit code */
+            /**
+             * @description Unit code
+             * @example kg
+             */
             unit: string;
         };
         /** @description Observed value as recorded plus the value in the caller's display currency and unit. */
@@ -3076,15 +3089,26 @@ export interface components {
         TokenPair: {
             /** @constant */
             tokenType: "Bearer";
+            /** @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiZmFybWVyIiwiY291bnRyeSI6IkdIIiwiaXNzIjoiYWdyaXByaWNlIiwiZXhwIjo0MTAyNDQ0ODAwfQ.mock-signature */
             accessToken: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2099-12-31T23:59:59Z
+             */
             accessTokenExpiresAt: string;
+            /** @example mock-refresh-token */
             refreshToken: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2099-12-31T23:59:59Z
+             */
             refreshTokenExpiresAt: string;
         };
         AuthResult: {
-            /** @enum {string} */
+            /**
+             * @example authenticated
+             * @enum {string}
+             */
             status: "authenticated" | "mfa_required" | "verification_required";
             tokens?: components["schemas"]["TokenPair"];
             /** @description Short-lived token for /v1/auth/mfa/verify */
@@ -3137,16 +3161,26 @@ export interface components {
             appVersion?: string;
         };
         User: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @example 00000000-0000-4000-8000-000000000001
+             */
             id: string;
-            /** Format: email */
+            /**
+             * Format: email
+             * @example ama@example.com
+             */
             email?: string | null;
+            /** @example +233241234567 */
             phone?: string | null;
+            /** @example true */
             emailVerified: boolean;
             phoneVerified: boolean;
+            /** @example Ama Mensah */
             fullName?: string | null;
             avatarUrl?: string | null;
             role: components["schemas"]["Role"];
+            /** @example GH */
             country: string;
             /** Format: uuid */
             organisationId?: string | null;

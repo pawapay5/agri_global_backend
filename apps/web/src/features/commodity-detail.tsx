@@ -2,7 +2,7 @@
 import { Heart } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { ForecastChart } from "@/components/charts/forecast-chart";
+import { PriceChart } from "@/components/agri/charts/price-chart";
 import { Change } from "@/components/price/change";
 import { Badge, Card, CardTitle } from "@/components/ui/primitives";
 import { useCommodity, useHistory, useLatest, useMe } from "@/lib/api/queries";
@@ -70,7 +70,7 @@ export function CommodityDetail({ id }: { id: string }) {
           </Card>
           <Card>
             <CardTitle>{tp("sixMonths")}</CardTitle>
-            <QueryState q={history}>{(h) => <ForecastChart history={h.points} currency={h.currency} unit={h.unit} locale={locale} height={220} labels={{ historical: t("history"), forecast: "", range: "" }} />}</QueryState>
+            <QueryState q={history}>{(h) => <PriceChart history={h.points} currency={h.currency} unit={h.unit} height={220} title={pick(commodity.data?.name, locale)} />}</QueryState>
           </Card>
         </div>
       )}
@@ -81,7 +81,7 @@ export function CommodityDetail({ id }: { id: string }) {
           <QueryState q={history}>
             {(h) => (
               <>
-                <ForecastChart history={h.points} currency={h.currency} unit={h.unit} locale={locale} labels={{ historical: t("history"), forecast: "", range: "" }} />
+                <PriceChart history={h.points} currency={h.currency} unit={h.unit} title={pick(commodity.data?.name, locale)} />
                 <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
                   {([["average", h.stats.average], ["high", h.stats.high], ["low", h.stats.low], ["latest", h.stats.latest]] as const).map(([k, v]) => (
                     <div key={k}><dt className="capitalize text-muted-fg">{tp.has(k) ? tp(k) : k}</dt><dd className="font-semibold tabular">{formatMoney(v, h.currency, locale)}</dd></div>
