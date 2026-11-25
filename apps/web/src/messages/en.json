@@ -214,7 +214,10 @@
     "errorTitle": "Something went wrong",
     "successTitle": "Done",
     "ok": "OK",
-    "close": "Close"
+    "close": "Close",
+    "notifications": "Notifications ({hotkey})",
+    "cancel": "Cancel",
+    "toastLabel": "Notification"
   },
   "ds": {
     "actual": "Actual",
