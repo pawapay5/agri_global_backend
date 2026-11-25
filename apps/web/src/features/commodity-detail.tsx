@@ -97,7 +97,7 @@ export function CommodityDetail({ id }: { id: string }) {
       {tab === "forecast" && <ForecastView commodityId={id} embedded />}
 
       {tab === "markets" && (
-        <Card className="overflow-x-auto p-0">
+        <Card className="overflow-x-auto p-0" tabIndex={0} role="region" aria-label={t("marketsTab")}>
           <QueryState q={latest} empty={(d) => !d.length}>
             {(rows) => (
               <table className="w-full min-w-[32rem] text-sm">

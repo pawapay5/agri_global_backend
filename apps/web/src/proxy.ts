@@ -7,6 +7,7 @@ import { buildCsp, newNonce } from "./lib/security/csp";
 import { csrfCookieName, newCsrfToken } from "./lib/security/csrf";
 import { ipAllowed, parseAllowlist } from "./lib/security/ip-allowlist";
 import { HTTPS_SITE } from "./lib/security/transport";
+import { isUnknownPublicPath } from "./lib/pack-index";
 
 const intl = createIntlMiddleware(routing);
 const API = (process.env.AGRIPRICE_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
@@ -28,6 +29,11 @@ export async function proxy(req: NextRequest) {
 
   if (area === "admin" && !ipAllowed(clientIp(req.headers), ADMIN_ALLOW)) {
     return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Unknown country / crop / market / region: a real 404 (a streamed page can only show not-found with status 200).
+  if (routing.locales.includes(locale as (typeof routing.locales)[number]) && isUnknownPublicPath(req.nextUrl.pathname.split("/").slice(2))) {
+    return NextResponse.rewrite(new URL(`/${locale}/not-found-404`, req.url), { status: 404, headers: { "Content-Security-Policy": PUBLIC_CSP } });
   }
 
   const nonce = isPrivate ? newNonce() : undefined;

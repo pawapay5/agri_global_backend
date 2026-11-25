@@ -65,7 +65,7 @@ async function PricesIndexBody({ params }: Pick<PageProps<"/[locale]/[country]/p
       <JsonLd data={breadcrumbs([{ name: "AgriPrice", url: `/${locale}` }, { name: t("indexTitle", { country: name }), url: `/${locale}/${country}/prices` }], env.siteUrl)} />
       <h1 className="text-3xl font-bold">{t("indexTitle", { country: name })}</h1>
       <p className="mt-2 text-muted-fg">{t("indexDescription", { count: c.commodityCodes.length, country: name })}</p>
-      <Card className="mt-8 overflow-x-auto p-0">
+      <Card className="mt-8 overflow-x-auto p-0" tabIndex={0} role="region" aria-label={t("indexTitle", { country: name })}>
         <table className="w-full min-w-[28rem] text-sm">
           <thead className="bg-muted text-muted-fg">
             <tr><th scope="col" className="px-4 py-2 text-start">{t("commodity")}</th><th scope="col" className="py-2 text-end">{t("price")}</th><th scope="col" className="py-2 text-end">{t("change")}</th><th scope="col" className="hidden px-4 py-2 text-end sm:table-cell">{t("marketsReporting")}</th></tr>

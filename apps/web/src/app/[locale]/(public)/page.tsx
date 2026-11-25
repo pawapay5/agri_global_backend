@@ -25,7 +25,7 @@ async function Ticker({ cc, locale }: { cc: string; locale: string }) {
   const codeById = new Map((catalogue ?? []).map((c) => [c.id, c.code]));
   if (!items?.length) return <p className="text-sm text-white/80">{t("tickerEmpty")}</p>;
   return (
-    <ul className="flex gap-6 overflow-x-auto pb-1 text-sm" aria-label={t("tickerTitle")}>
+    <ul className="flex gap-6 overflow-x-auto pb-1 text-sm" aria-label={t("tickerTitle")} tabIndex={0}>
       {items.map((i) => (
         <li key={i.commodityId} className="flex shrink-0 items-center gap-2">
           {codeById.get(i.commodityId) ? (

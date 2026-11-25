@@ -17,7 +17,7 @@ export class GeoRepository {
 
   toMarket(r: MarketRow) {
     return {
-      id: r.id, country: r.country_iso2, regionId: r.region_id, regionName: r.region_name ?? undefined, name: r.name, type: r.type,
+      id: r.id, country: r.country_iso2, code: r.code, regionId: r.region_id, regionName: r.region_name ?? undefined, name: r.name, type: r.type,
       location: { lat: r.lat, lng: r.lng }, operatingDays: r.operating_days ?? [],
       photoUrl: this.storage.publicUrl(this.storage.cfg.s3.imagesBucket, r.photo_key), active: r.active,
     };

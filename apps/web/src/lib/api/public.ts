@@ -12,6 +12,8 @@ export const tags = {
   prices: (cc: string) => `prices:${cc.toUpperCase()}`,
   catalogue: (cc: string) => `catalogue:${cc.toUpperCase()}`,
   content: "content",
+  listings: (cc: string) => `listings:${cc.toUpperCase()}`,
+  listing: (id: string) => `listing:${id}`,
 };
 
 /**
@@ -134,3 +136,121 @@ export async function findCommodity(cc: string, slug: string, locale: string) {
   const list = await getCommodities(cc, locale);
   return list?.find((c) => c.code === codeOf(slug)) ?? null;
 }
+
+// ── Markets, regions, content, plans, marketplace ──
+
+/** All markets of a country (paged API, cached for hours): maps pack codes to API ids. */
+export async function getMarkets(cc: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.catalogue(cc));
+  const all: S["Market"][] = [];
+  let cursor: string | undefined;
+  for (let i = 0; i < 20; i++) {
+    const page = await guard(() => api().GET("/v1/markets", { params: { query: { country: cc.toUpperCase(), limit: 100, cursor } } }));
+    if (!page) return all.length ? all : null;
+    all.push(...page.data);
+    if (!page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+  return all;
+}
+
+export async function findMarket(cc: string, code: string) {
+  return (await getMarkets(cc))?.find((m) => m.code === code) ?? null;
+}
+
+export async function getRegions(cc: string) {
+  "use cache";
+  cacheLife("days"); cacheTag(tags.catalogue(cc));
+  return guard(() => api().GET("/v1/regions", { params: { query: { country: cc.toUpperCase() } } }));
+}
+
+/** Average price per region for one commodity over the last 30 days. */
+export async function getChoropleth(commodityId: string, cc: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.prices(cc));
+  return guard(() => api().GET("/v1/regions/choropleth", { params: { query: { country: cc.toUpperCase(), commodity_id: commodityId, days: 30 } } }));
+}
+
+export async function getRegionsGeo(cc: string) {
+  "use cache";
+  cacheLife("days"); cacheTag(tags.catalogue(cc));
+  return guard(() => api().GET("/v1/regions/geojson", { params: { query: { country: cc.toUpperCase() } } }));
+}
+
+export async function getArticles(cc: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/content/articles", { params: { query: { country: cc.toUpperCase() } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getArticle(slug: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/content/articles/{slug}", { params: { path: { slug } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getFaqs(cc: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/content/faqs", { params: { query: { country: cc.toUpperCase() } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getAllStories(cc: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/content/stories", { params: { query: { country: cc.toUpperCase(), limit: 50 } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getGuides(cc: string, locale: string, commodityId?: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/knowledge/crop-guides", { params: { query: { country: cc.toUpperCase(), commodity_id: commodityId } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getGuide(id: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/knowledge/crop-guides/{id}", { params: { path: { id } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getPests(cc: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/knowledge/pests", { params: { query: { country: cc.toUpperCase() } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getPest(id: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/knowledge/pests/{id}", { params: { path: { id } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getPlans(cc: string, locale: string) {
+  "use cache";
+  cacheLife("hours"); cacheTag(tags.content);
+  return guard(() => api().GET("/v1/billing/plans", { params: { query: { country: cc.toUpperCase() } }, headers: { "Accept-Language": locale } }));
+}
+
+export async function getListings(cc: string) {
+  "use cache";
+  cacheLife("minutes"); cacheTag(tags.listings(cc));
+  return guard(() => api().GET("/v1/marketplace/listings", { params: { query: { country: cc.toUpperCase(), limit: 48 } } }));
+}
+
+export async function getListing(id: string) {
+  "use cache";
+  cacheLife("minutes"); cacheTag(tags.listing(id));
+  return guard(() => api().GET("/v1/marketplace/listings/{id}", { params: { path: { id } } }));
+}
+
+/**
+ * Readable slug that ends in the record's UUID, for records without their own slug (pests, listings):
+ * "fall-armyworm-6f1c…". The page reads the id back from the last 36 characters.
+ */
+export const idSlug = (title: string, id: string) =>
+  `${title.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60)}-${id}`.replace(/^-/, "");
+export const idFromSlug = (slug: string) => {
+  const m = slug.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  return m ? m[0].toLowerCase() : null;
+};

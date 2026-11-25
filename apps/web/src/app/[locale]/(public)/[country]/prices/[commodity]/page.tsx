@@ -88,7 +88,7 @@ async function LiveSection({ cc, slug, locale, countryName, commodityName }: { c
         </div>
       </div>
 
-      <Card className="mt-6 overflow-x-auto p-0">
+      <Card className="mt-6 overflow-x-auto p-0" tabIndex={0} role="region" aria-label={t("latestByMarket")}>
         <h2 className="px-4 pt-4 text-base font-semibold">{t("latestByMarket")}</h2>
         {latest?.length ? (
           <table className="mt-2 w-full min-w-[32rem] text-sm">

@@ -2428,10 +2428,11 @@ components:
               marketCount: { type: integer }
     Market:
       type: object
-      required: [id, country, name, type, location]
+      required: [id, country, code, name, type, location]
       properties:
         id: { type: string, format: uuid }
         country: { type: string }
+        code: { type: string, description: "Stable market code from the country pack (e.g. kumasi_central); used in public URLs", examples: [kumasi_central] }
         regionId: { type: [string, "null"], format: uuid }
         regionName: { $ref: "#/components/schemas/LocalizedText" }
         name: { $ref: "#/components/schemas/LocalizedText" }
@@ -2704,23 +2705,23 @@ components:
       properties:
         commodityId: { type: string, format: uuid }
         commodityName: { $ref: "#/components/schemas/LocalizedText" }
-        changePct: { type: number }
+        changePct: { type: number, examples: [4.2] }
         current: { $ref: "#/components/schemas/Decimal" }
         previous: { $ref: "#/components/schemas/Decimal" }
-        currency: { type: string }
-        unit: { type: string }
-        marketsReporting: { type: integer }
+        currency: { type: string, examples: [GHS] }
+        unit: { type: string, examples: [kg] }
+        marketsReporting: { type: integer, examples: [12] }
     DashboardSnapshot:
       type: object
       required: [country, commodities, markets, regions, priceRecords, lastUpdatedAt]
       properties:
-        country: { type: string }
-        commodities: { type: integer }
-        markets: { type: integer }
-        regions: { type: integer }
-        priceRecords: { type: integer }
-        priceRecordsLast7d: { type: integer }
-        lastUpdatedAt: { type: ["null", string], format: date-time }
+        country: { type: string, examples: [GH] }
+        commodities: { type: integer, examples: [24] }
+        markets: { type: integer, examples: [38] }
+        regions: { type: integer, examples: [16] }
+        priceRecords: { type: integer, examples: [18420] }
+        priceRecordsLast7d: { type: integer, examples: [612] }
+        lastUpdatedAt: { type: ["null", string], format: date-time, examples: ["2026-11-24T08:30:00Z"] }
 
     # ── forecasts ──
     ConfidenceLabel: { type: string, enum: [high, medium, low] }
