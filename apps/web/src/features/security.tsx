@@ -3,7 +3,7 @@ import { Laptop, ShieldCheck, ShieldOff, Smartphone } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { useFeedback } from "@/components/feedback/feedback";
+import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { Badge, Button, Card, CardTitle, Input, Label } from "@/components/ui/primitives";
 import { ApiError } from "@/lib/api/browser";
 import { useDevices, useMe, useRevokeDevice, useTotpDisable, useTotpEnable, useTotpSetup } from "@/lib/api/queries";
@@ -158,20 +158,17 @@ function SignOutAllCard() {
   const t = useTranslations("security");
   const locale = useLocale();
   const feedback = useFeedback();
-  const problem = (code: string) => feedback.error(code);
+  const problem = useProblemMessage();
+  const signOutAll = async () => {
+    const ok = await feedback.confirm({ title: t("signOutAll"), description: t("signOutAllBody"), confirmLabel: t("signOutAllConfirm"), destructive: true });
+    if (!ok) return;
+    const r = await bff("logout-all");
+    if (r.ok) window.location.assign(`/${locale}/login`); else feedback.error(problem(r.problem.code));
+  };
   return (
     <Card className="flex flex-wrap items-center justify-between gap-3">
       <div><CardTitle>{t("signOutAll")}</CardTitle><p className="mt-1 text-sm text-muted-fg">{t("signOutAllBody")}</p></div>
-      <Button variant="outline" className="text-down"
-        onClick={() => feedback.error(t("signOutAllBody"), {
-          title: t("signOutAll"), actionLabel: t("signOutAllConfirm"),
-          onAction: async () => {
-            const r = await bff("logout-all");
-            if (r.ok) window.location.assign(`/${locale}/login`); else problem(r.problem.code);
-          },
-        })}>
-        {t("signOutAll")}
-      </Button>
+      <Button variant="outline" className="text-down" onClick={signOutAll}>{t("signOutAll")}</Button>
     </Card>
   );
 }

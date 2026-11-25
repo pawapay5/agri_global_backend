@@ -51,7 +51,7 @@ test("sign-up through to a first alert", async ({ page, context }) => {
   await page.getByLabel("Commodity").selectOption({ index: 1 });
   await page.getByLabel(/Threshold/).fill("12.50");
   await page.getByRole("button", { name: "Create alert" }).click();
-  await expect(page.getByRole("alertdialog")).toContainText("Your alert is set");
+  await expect(page.getByRole("status").filter({ hasText: "Your alert is set" })).toBeVisible();
 
   expect(problems, "API calls the contract rejected").toEqual([]);
 });

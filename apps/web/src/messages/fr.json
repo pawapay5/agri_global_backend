@@ -102,7 +102,10 @@
     "errorTitle": "Un problème est survenu",
     "successTitle": "C'est fait",
     "ok": "OK",
-    "close": "Fermer"
+    "close": "Fermer",
+    "notifications": "Notifications ({hotkey})",
+    "cancel": "Annuler",
+    "toastLabel": "Notification"
   },
   "ds": {
     "actual": "Réel",
