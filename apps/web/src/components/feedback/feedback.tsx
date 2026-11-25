@@ -119,8 +119,18 @@ export function useFeedback(): Feedback {
   return ctx;
 }
 
-/** Turns a problem `code` from the API into the localised auth message, with a generic fallback. */
+type ProblemLike = string | { code?: string; detail?: string } | null | undefined;
+
+/**
+ * Turns an API problem into a message: the localised text for a known `code`; otherwise the API's own `detail`
+ * (plain English from the backend, better than a generic line); otherwise a generic message.
+ */
 export function useProblemMessage() {
   const t = useTranslations("auth");
-  return useCallback((code?: string) => (code && t.has(`errors.${code}`) ? t(`errors.${code}`) : t("errors.generic")), [t]);
+  return useCallback((p?: ProblemLike) => {
+    const code = typeof p === "string" ? p : p?.code;
+    const detail = typeof p === "string" ? undefined : p?.detail;
+    if (code && t.has(`errors.${code}`)) return t(`errors.${code}`);
+    return detail?.trim() || t("errors.generic");
+  }, [t]);
 }

@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     const r = await bff("reset", { email, code, newPassword: password });
     if (r.ok) feedback.success(t("passwordUpdated"), { actionLabel: t("login"), onAction: () => router.push("/login") });
-    else feedback.error(problem(r.problem.code));
+    else feedback.error(problem(r.problem));
   };
 
   return (

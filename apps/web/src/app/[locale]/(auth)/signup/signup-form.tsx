@@ -26,11 +26,11 @@ export function SignupForm({ countries }: { countries: { iso2: string; name: str
   const countryValue = useWatch({ control: f.control, name: "country" });
   const feedback = useFeedback();
   const problem = useProblemMessage();
-  const err = (code: string) => feedback.error(problem(code));
+  const err = (p: { code: string; detail?: string }) => feedback.error(problem(p));
 
   const onSubmit = f.handleSubmit(async (v) => {
     const r = await bff("register", { ...v, locale });
-    if (!r.ok) return err(r.problem.code);
+    if (!r.ok) return err(r.problem);
     // The backend has emailed a verification code; confirm it before entering the app.
     router.replace({ pathname: "/verify", query: { email: v.email } });
   });

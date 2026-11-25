@@ -39,14 +39,14 @@ export function VerifyForm() {
     setBusy(false);
     // New accounts go through first-run setup; it can be skipped.
     if (r.ok) window.location.assign(`/${locale}/app/onboarding`);
-    else feedback.error(problem(r.problem.code));
+    else feedback.error(problem(r.problem));
   };
 
   const resend = async () => {
     const r = await bff("otp-request", { channel: "email", destination: email, purpose: "verify_email", locale });
     setCooldown(r.ok ? 30 : r.problem.retryAfterSeconds ?? 30);
     if (r.ok) feedback.success(t("codeResent"));
-    else feedback.error(problem(r.problem.code));
+    else feedback.error(problem(r.problem));
   };
 
   return (
