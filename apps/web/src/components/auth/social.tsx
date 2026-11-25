@@ -20,14 +20,14 @@ const FB_API = "v21.0";
 export const socialEnabled = Boolean(GOOGLE || APPLE || FACEBOOK);
 
 export function SocialSignIn({ country, onResult, onError }: {
-  country: string; onResult: (status: string, isNewUser: boolean) => void; onError: (code: string) => void;
+  country: string; onResult: (status: string, isNewUser: boolean) => void; onError: (problem: { code: string; detail?: string }) => void;
 }) {
   const googleEl = useRef<HTMLDivElement>(null);
   const [googleReady, setGoogleReady] = useState(false);
 
   const exchange = useCallback(async (provider: string, token: string, extra: Record<string, string> = {}) => {
     const r = await bff(`oauth/${provider}`, { token, country, ...extra });
-    if (r.ok) onResult(r.data.status, Boolean(r.data.isNewUser)); else onError(r.problem.code);
+    if (r.ok) onResult(r.data.status, Boolean(r.data.isNewUser)); else onError(r.problem);
   }, [country, onResult, onError]);
 
   useEffect(() => {

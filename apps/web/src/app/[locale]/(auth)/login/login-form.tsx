@@ -25,7 +25,7 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
   const [phone, setPhone] = useState("");
   const feedback = useFeedback();
   const problem = useProblemMessage();
-  const err = (code: string) => feedback.error(problem(code));
+  const err = (p: { code: string; detail?: string }) => feedback.error(problem(p));
   // Phone or social sign-in can create the account: new users go through first-run setup.
   const done = (status: string, isNewUser = false) =>
     status === "mfa_required" ? setStep("mfa") : window.location.assign(isNewUser ? `/${locale}/app/onboarding` : next);
@@ -36,17 +36,17 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
 
   const onEmail = emailForm.handleSubmit(async (v) => {
     const r = await bff("login", v);
-    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem.code);
+    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem);
   });
   const onPhone = phoneForm.handleSubmit(async (v) => {
     const r = await bff("otp-request", { channel: "sms", destination: v.phone, purpose: "login", locale });
-    if (r.ok) { setPhone(v.phone); setStep("phone-code"); } else err(r.problem.code);
+    if (r.ok) { setPhone(v.phone); setStep("phone-code"); } else err(r.problem);
   });
   const onCode = codeForm.handleSubmit(async (v) => {
     const r = step === "mfa"
       ? await bff("mfa", { code: v.code })
       : await bff("otp-verify", { channel: "sms", destination: phone, purpose: "login", code: v.code });
-    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem.code);
+    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem);
   });
 
   return (

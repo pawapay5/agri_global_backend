@@ -163,7 +163,7 @@ function SignOutAllCard() {
     const ok = await feedback.confirm({ title: t("signOutAll"), description: t("signOutAllBody"), confirmLabel: t("signOutAllConfirm"), destructive: true });
     if (!ok) return;
     const r = await bff("logout-all");
-    if (r.ok) window.location.assign(`/${locale}/login`); else feedback.error(problem(r.problem.code));
+    if (r.ok) window.location.assign(`/${locale}/login`); else feedback.error(problem(r.problem));
   };
   return (
     <Card className="flex flex-wrap items-center justify-between gap-3">

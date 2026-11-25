@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { assertSameOrigin, deviceInfo, forwardedFor, problem, rateLimit, upstreamUnavailable } from "@/lib/auth/bff";
+import { assertSameOrigin, deviceInfo, forwardedFor, logRejected, problem, rateLimit, upstreamUnavailable } from "@/lib/auth/bff";
 import { setMfaCookie, setTokenCookies, type TokenPair, upstreamSignal } from "@/lib/auth/tokens";
 import { env } from "@/lib/env";
 
@@ -20,7 +20,11 @@ export async function POST(req: Request, ctx: RouteContext<"/api/auth/oauth/[pro
     body: JSON.stringify({ ...body, device: await deviceInfo(req.headers.get("user-agent")) }),
   }).catch((e: unknown) => e as Error);
   if (upstream instanceof Error) return upstreamUnavailable(env.apiUrl, upstream);
-  if (!upstream.ok) return new NextResponse(await upstream.text(), { status: upstream.status, headers: { "Content-Type": "application/problem+json" } });
+  if (!upstream.ok) {
+    const text = await upstream.text();
+    logRejected("POST", `/v1/auth/oauth/${provider}`, upstream.status, text);
+    return new NextResponse(text, { status: upstream.status, headers: { "Content-Type": "application/problem+json" } });
+  }
   const data = (await upstream.json()) as { status: string; tokens?: TokenPair; mfaToken?: string; user?: unknown; isNewUser?: boolean };
   const jar = await cookies();
   if (data.tokens) setTokenCookies(jar, data.tokens);

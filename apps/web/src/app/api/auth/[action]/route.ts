@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { assertSameOrigin, deviceInfo, forwardedFor, problem, rateLimit, upstreamUnavailable } from "@/lib/auth/bff";
+import { assertSameOrigin, deviceInfo, forwardedFor, logRejected, problem, rateLimit, upstreamUnavailable } from "@/lib/auth/bff";
 import { ACCESS_COOKIE, clearTokenCookies, MFA_COOKIE, REFRESH_COOKIE, refreshTokens, setMfaCookie, setTokenCookies, type TokenPair, upstreamSignal } from "@/lib/auth/tokens";
 import { env } from "@/lib/env";
 
@@ -77,6 +77,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/auth/[action]">
   if (upstream instanceof Error) return upstreamUnavailable(env.apiUrl, upstream);
 
   const text = await upstream.text();
+  if (!upstream.ok) logRejected("POST", spec.path, upstream.status, text);
   if (!upstream.ok || !text) return new NextResponse(text || null, { status: upstream.status, headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" } });
 
   const data = JSON.parse(text) as AuthResult;

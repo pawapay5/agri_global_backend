@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { assertSameOrigin, forwardedFor, problem, upstreamUnavailable } from "@/lib/auth/bff";
+import { assertSameOrigin, forwardedFor, logRejected, problem, upstreamUnavailable } from "@/lib/auth/bff";
 import { clientIp } from "@/lib/security/client-ip";
 import { ipAllowed, parseAllowlist } from "@/lib/security/ip-allowlist";
 import { ACCESS_COOKIE, REFRESH_COOKIE, refreshTokens, setTokenCookies, upstreamSignal } from "@/lib/auth/tokens";
@@ -48,6 +48,12 @@ async function handle(req: Request, ctx: RouteContext<"/api/v1/[...path]">) {
 
   const headers = new Headers();
   for (const k of FORWARD_RES) { const v = res.headers.get(k); if (v) headers.set(k, v); }
+  // Rejections are logged with their code; the body is read only for those (errors are small JSON documents).
+  if (res.status >= 400) {
+    const text = await res.text();
+    logRejected(req.method, `/v1/${path.join("/")}`, res.status, text);
+    return new NextResponse(text, { status: res.status, headers });
+  }
   return new NextResponse(res.body, { status: res.status, headers });
 }
 

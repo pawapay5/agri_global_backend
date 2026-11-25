@@ -76,6 +76,23 @@ If Cloudflare proxies your domains:
 - set `CLIENT_IP_HEADER=cf-connecting-ip` so rate limits and the admin allow-list see visitors, not Cloudflare;
 - lock the server's firewall to Cloudflare's IP ranges, otherwise anyone can bypass Cloudflare and forge that header.
 
+## Troubleshooting sign-in and sign-up
+
+1. **Open `https://<web domain>/api/health?deep=1`.**
+
+   | What it shows | What it means | What to do |
+   |---|---|---|
+   | `api.reachable: false` | The web container can't reach the API. | The `api` service isn't running or isn't healthy. Check its logs. |
+   | `api.ready: false` | The API can't reach its database. | The `checks` field names Postgres or Redis as down. |
+   | `data.countries: 0` | No country is loaded. | Every sign-up fails with "AgriPrice isn't available in that country yet". Run the seed: in the **api** terminal, `node dist/seed/seed.cli.js gh`. |
+
+2. **Read the web container's log.** Every rejected request has one line:
+   - `[bff] POST /v1/auth/register → 422 country_unsupported` means the API refused it, and the last word is the reason.
+   - `[bff] 403 cross_site_request: Origin host "…" is not one of ours […]` means the browser's address doesn't match the site's configured domain. Redeploy `web` after changing its domain.
+   - `[bff] 403 csrf_failed: no … cookie` usually means the site URL scheme is wrong. If the site URL says `https://` but the site is served over `http://`, the browser drops the security cookie.
+   - `[bff] API unreachable at …` means the network path from web to API is broken.
+3. **The toast in the browser shows the specific reason** for every error code the API can return. A test fails the build if the backend adds a code without a message.
+
 ## 6. Backups
 
 In Coolify, schedule backups for:
