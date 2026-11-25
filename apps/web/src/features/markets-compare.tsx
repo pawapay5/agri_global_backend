@@ -92,7 +92,7 @@ export function MarketsCompare() {
                 <p className="mt-2 text-xs text-muted-fg">{d.currency}/{d.unit}</p>
               </Card>
             ) : (
-              <Card className="overflow-x-auto p-0">
+              <Card className="overflow-x-auto p-0" tabIndex={0} role="region" aria-label={t("comparison")}>
                 <table className="w-full min-w-[36rem] text-sm">
                   <thead className="bg-muted text-muted-fg">
                     {table.getHeaderGroups().map((hg) => (

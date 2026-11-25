@@ -13,7 +13,8 @@ export function CommodityAvatar({ name, imageUrl, size = "md", labelled = false,
   const px = SIZES[size];
   const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
   const box = cn("inline-grid shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-brand", className);
-  if (imageUrl) {
+  // Only real http(s) URLs: anything else (empty, relative, malformed) falls back to initials instead of a broken image.
+  if (imageUrl && /^https?:\/\/[^/]+\//.test(imageUrl)) {
     return (
       <span className={box} style={{ width: px, height: px }}>
         <Image src={imageUrl} alt={labelled ? name : ""} width={px} height={px} className="size-full object-cover" sizes={`${px}px`} />

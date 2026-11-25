@@ -81,6 +81,8 @@ services:
         NEXT_PUBLIC_APPLE_SERVICE_ID: ${NEXT_PUBLIC_APPLE_SERVICE_ID:-}
         # The public Facebook app id (the same value the API verifies against); not the app secret.
         NEXT_PUBLIC_FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+        NEXT_PUBLIC_SUPPORT_WHATSAPP: ${SUPPORT_WHATSAPP:-}
         IMAGES_HOST: ${SERVICE_FQDN_STORAGE}
     environment:
       - SERVICE_FQDN_WEB_3000

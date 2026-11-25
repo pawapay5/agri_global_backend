@@ -3,10 +3,6 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
-/**
- * Build-time knowledge of launched countries, read from /country-packs (the same files the backend seeds from).
- * Used for generateStaticParams and sitemaps so prerendering never depends on the API being up.
- */
 const PACKS = join(process.cwd(), "..", "..", "country-packs");
 
 export interface PackCountry { iso2: string; name: Record<string, string>; brand: string | null; currency: string; active: boolean; commodityCodes: string[]; markets: { code: string; name: Record<string, string> }[] }
@@ -43,3 +39,35 @@ export function packCatalogue(): PackCommodity[] {
 
 export function packCountry(slug: string) { return packCountries().find((c) => countrySlug(c.iso2) === slug.toLowerCase()) ?? null; }
 export function packCommodity(code: string) { return packCatalogue().find((c) => c.code === code) ?? null; }
+
+// ── Markets, regions and data sources per country (from the same pack files the backend seeds) ──
+export interface PackMarket { code: string; region: string; type: string; location: [number, number]; operatingDays: number[]; name: Record<string, string> }
+export interface PackRegion { code: string; iso: string; level: number; name: Record<string, string>; centroid: [number, number] }
+export interface PackSource { code: string; name: string; kind: string; url?: string; licence?: string }
+
+const packFile = <T>(iso2: string, file: string): T => parse(readFileSync(join(PACKS, iso2.toLowerCase(), file), "utf8")) as T;
+const memo = new Map<string, unknown>();
+function once<T>(key: string, load: () => T): T {
+  if (!memo.has(key)) { try { memo.set(key, load()); } catch { memo.set(key, []); } }
+  return memo.get(key) as T;
+}
+
+export function packMarkets(iso2: string): PackMarket[] {
+  return once(`markets:${iso2}`, () => packFile<{ code: string; region: string; type: string; location: [number, number]; operating_days?: number[]; name: Record<string, string> }[]>(iso2, "markets.yaml")
+    .map((m) => ({ code: m.code, region: m.region, type: m.type, location: m.location, operatingDays: m.operating_days ?? [], name: m.name })));
+}
+
+export function packRegions(iso2: string): PackRegion[] {
+  return once(`regions:${iso2}`, () => packFile<PackRegion[]>(iso2, "regions.yaml"));
+}
+
+export function packSources(iso2: string): PackSource[] {
+  return once(`sources:${iso2}`, () => packFile<{ code: string; name: string; kind: string; url?: string; licence?: string }[]>(iso2, "sources.yaml")
+    .map((s) => ({ code: s.code, name: s.name, kind: s.kind, url: s.url, licence: s.licence })));
+}
+
+/** URL slug ⇄ pack code: "kumasi-central" ⇄ "kumasi_central"; regions use lower-case codes ("ah" ⇄ "AH"). */
+export const marketSlug = (code: string) => code.replace(/_/g, "-");
+export const regionSlug = (code: string) => code.toLowerCase();
+export function packMarket(iso2: string, slug: string) { return packMarkets(iso2).find((m) => marketSlug(m.code) === slug) ?? null; }
+export function packRegion(iso2: string, slug: string) { return packRegions(iso2).find((r) => regionSlug(r.code) === slug) ?? null; }

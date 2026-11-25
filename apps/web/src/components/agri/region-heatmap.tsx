@@ -7,7 +7,7 @@ import { cn, pick } from "@/lib/utils";
 type Ring = [number, number][];
 type Geometry = { type: "Polygon"; coordinates: Ring[] } | { type: "MultiPolygon"; coordinates: Ring[][] };
 export interface RegionFeature { type: "Feature"; properties: { code: string } & Record<string, unknown>; geometry: Geometry }
-export interface RegionValue { regionId: string; code: string; name?: Record<string, string>; avg: string | null; observations: number; marketCount?: number }
+export interface RegionValue { regionId: string; code: string; name?: Record<string, string>; avg?: string | null; observations: number; marketCount?: number }
 
 const BINS = 5;
 

@@ -6,6 +6,6 @@ const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").repla
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/*/app/", "/*/admin/", "/*/login", "/*/signup"] }],
-    sitemap: packCountries().map((c) => `${base}/sitemap/${countrySlug(c.iso2)}.xml`),
+    sitemap: [...packCountries().map((c) => `${base}/sitemap/${countrySlug(c.iso2)}.xml`), `${base}/sitemap/site.xml`],
   };
 }

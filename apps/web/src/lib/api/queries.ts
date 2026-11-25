@@ -1,5 +1,5 @@
 "use client";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, idempotencyKey, unwrap, type S } from "./browser";
 
 type PriceType = S["PriceType"];
@@ -24,28 +24,28 @@ export const qk = {
 export const useMe = () => useQuery({ queryKey: qk.me, queryFn: () => unwrap(api.GET("/v1/me")), staleTime: 60_000 });
 
 export const useSnapshot = (cc: string) =>
-  useQuery({ queryKey: qk.snapshot(cc), queryFn: () => unwrap(api.GET("/v1/dashboard/snapshot", { params: { query: { country: cc } } })), staleTime: 60_000 });
+  useQuery({ queryKey: qk.snapshot(cc), queryFn: () => unwrap(api.GET("/v1/dashboard/snapshot", { params: { query: { country: cc } } })), staleTime: 60_000, enabled: Boolean(cc) });
 
 export const useTrending = (cc: string) =>
-  useQuery({ queryKey: qk.trending(cc), queryFn: () => unwrap(api.GET("/v1/prices/trending", { params: { query: { country: cc, limit: 8 } } })), staleTime: 60_000 });
+  useQuery({ queryKey: qk.trending(cc), queryFn: () => unwrap(api.GET("/v1/prices/trending", { params: { query: { country: cc, limit: 8 } } })), staleTime: 60_000, enabled: Boolean(cc) });
 
 export const useCommodities = (cc: string) =>
-  useQuery({ queryKey: qk.commodities(cc), queryFn: () => unwrap(api.GET("/v1/commodities", { params: { query: { country: cc, limit: 100 } } })), staleTime: 3_600_000 });
+  useQuery({ queryKey: qk.commodities(cc), queryFn: () => unwrap(api.GET("/v1/commodities", { params: { query: { country: cc, limit: 100 } } })), staleTime: 3_600_000, enabled: Boolean(cc) });
 
 export const useCommodity = (id: string, cc: string) =>
-  useQuery({ queryKey: qk.commodity(id, cc), queryFn: () => unwrap(api.GET("/v1/commodities/{id}", { params: { path: { id }, query: { country: cc } } })), staleTime: 3_600_000 });
+  useQuery({ queryKey: qk.commodity(id, cc), queryFn: () => unwrap(api.GET("/v1/commodities/{id}", { params: { path: { id }, query: { country: cc } } })), staleTime: 3_600_000, enabled: Boolean(id && cc) });
 
 export const useMarkets = (cc: string) =>
-  useQuery({ queryKey: qk.markets(cc), queryFn: () => unwrap(api.GET("/v1/markets", { params: { query: { country: cc, limit: 100 } } })), staleTime: 3_600_000 });
+  useQuery({ queryKey: qk.markets(cc), queryFn: () => unwrap(api.GET("/v1/markets", { params: { query: { country: cc, limit: 100 } } })), staleTime: 3_600_000, enabled: Boolean(cc) });
 
 export const useLatest = (id: string, cc: string, pt: PriceType = "wholesale") =>
-  useQuery({ queryKey: qk.latest(id, cc, pt), queryFn: () => unwrap(api.GET("/v1/prices/latest", { params: { query: { commodity_id: id, country: cc, price_type: pt } } })), staleTime: 60_000 });
+  useQuery({ queryKey: qk.latest(id, cc, pt), queryFn: () => unwrap(api.GET("/v1/prices/latest", { params: { query: { commodity_id: id, country: cc, price_type: pt } } })), staleTime: 60_000, enabled: Boolean(id && cc) });
 
 export const useHistory = (id: string, cc: string, range: Range, market?: string) =>
   useQuery({
     queryKey: qk.history(id, cc, range, market),
     queryFn: () => unwrap(api.GET("/v1/prices/history", { params: { query: { commodity_id: id, country: cc, range, market_id: market, interval: range === "1Y" || range === "ALL" ? "week" : "day" } } })),
-    placeholderData: keepPreviousData, staleTime: 300_000,
+    placeholderData: keepPreviousData, staleTime: 300_000, enabled: Boolean(id && cc),
   });
 
 export const useForecast = (id: string, opts: { market?: string; region?: string }) =>
@@ -141,5 +141,27 @@ export function useRevokeDevice() {
   return useMutation({
     mutationFn: (id: string) => unwrap(api.DELETE("/v1/auth/devices/{id}", { params: { path: { id } } })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["devices"] }),
+  });
+}
+
+// ── Notifications ──
+export const useNotifications = (opts: { limit?: number; unread?: boolean } = {}) =>
+  useQuery({
+    queryKey: ["notifications", opts.limit ?? 20, opts.unread ?? false] as const,
+    queryFn: () => unwrap(api.GET("/v1/notifications", { params: { query: { limit: opts.limit ?? 20, unread: opts.unread } } })),
+    staleTime: 30_000,
+  });
+
+export const useUnreadCount = () =>
+  useQuery({ queryKey: ["notifications", "unread-count"] as const, queryFn: () => unwrap(api.GET("/v1/notifications/unread-count")), staleTime: 30_000 });
+
+/** Latest prices for several commodities at once (one cached query each, shared with the commodity pages). */
+export function useLatestMany(ids: string[], cc: string, pt: PriceType = "wholesale") {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: qk.latest(id, cc, pt),
+      queryFn: () => unwrap(api.GET("/v1/prices/latest", { params: { query: { commodity_id: id, country: cc, price_type: pt } } })),
+      staleTime: 60_000, enabled: Boolean(cc && id),
+    })),
   });
 }

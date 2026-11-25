@@ -14,15 +14,18 @@ export async function POST(req: Request) {
   if (!want.length || got.length !== want.length || !timingSafeEqual(got, want)) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   }
-  const body = (await req.json().catch(() => ({}))) as { country?: string; scopes?: string[] };
+  const body = (await req.json().catch(() => ({}))) as { country?: string; scopes?: string[]; tags?: string[] };
   const country = (body.country ?? "").toUpperCase();
-  if (!/^[A-Z]{2}$/.test(country)) return NextResponse.json({ code: "country_required" }, { status: 422 });
-  const scopes = body.scopes?.length ? body.scopes : ["prices"];
+  const explicit = (body.tags ?? []).filter((t) => /^(listing:[0-9a-f-]{36}|content)$/.test(t)); // e.g. one edited listing
+  if (!/^[A-Z]{2}$/.test(country) && !explicit.length) return NextResponse.json({ code: "country_required" }, { status: 422 });
+  const scopes = body.scopes?.length ? body.scopes : explicit.length ? [] : ["prices"];
+  const byScope: Record<string, (cc: string) => string> = {
+    prices: tags.prices, catalogue: tags.catalogue, listings: tags.listings, content: () => tags.content,
+  };
   const done: string[] = [];
-  for (const s of scopes) {
-    const tag = s === "catalogue" ? tags.catalogue(country) : s === "content" ? tags.content : tags.prices(country);
-    revalidateTag(tag, "max"); // stale-while-revalidate: visitors never wait on a cold page
-    done.push(tag);
+  for (const t of [...scopes.filter((s) => byScope[s]).map((s) => byScope[s]!(country)), ...explicit]) {
+    revalidateTag(t, "max"); // stale-while-revalidate: visitors never wait on a cold page
+    done.push(t);
   }
   return NextResponse.json({ revalidated: done });
 }

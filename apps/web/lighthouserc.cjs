@@ -8,7 +8,7 @@
  * asserted as ≤ 210 KB of script transferred until the total-budget question is settled.
  */
 const PORT = 3100;
-const pages = ["/en", "/en/gh/prices", "/en/gh/prices/maize-white", "/fr/gh/prices"];
+const pages = ["/en", "/en/gh/prices", "/en/gh/prices/maize-white", "/en/gh/markets/kumasi-central", "/en/gh/regions/ah", "/en/methodology", "/fr/gh/prices"];
 
 module.exports = {
   ci: {

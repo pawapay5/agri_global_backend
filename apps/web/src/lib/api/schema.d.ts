@@ -3313,6 +3313,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             country: string;
+            /**
+             * @description Stable market code from the country pack (e.g. kumasi_central); used in public URLs
+             * @example kumasi_central
+             */
+            code: string;
             /** Format: uuid */
             regionId?: string | null;
             regionName?: components["schemas"]["LocalizedText"];
@@ -3560,21 +3565,34 @@ export interface components {
             /** Format: uuid */
             commodityId: string;
             commodityName: components["schemas"]["LocalizedText"];
+            /** @example 4.2 */
             changePct: number;
             current: components["schemas"]["Decimal"];
             previous: components["schemas"]["Decimal"];
+            /** @example GHS */
             currency: string;
+            /** @example kg */
             unit: string;
+            /** @example 12 */
             marketsReporting?: number;
         };
         DashboardSnapshot: {
+            /** @example GH */
             country: string;
+            /** @example 24 */
             commodities: number;
+            /** @example 38 */
             markets: number;
+            /** @example 16 */
             regions: number;
+            /** @example 18420 */
             priceRecords: number;
+            /** @example 612 */
             priceRecordsLast7d?: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2026-11-24T08:30:00Z
+             */
             lastUpdatedAt: null | string;
         };
         /** @enum {string} */
