@@ -1,19 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import { cn, formatPct } from "@/lib/utils";
+import { ChangeBadge } from "@/components/agri/change-badge";
 
-/** Up/down change indicator. Colour is never the only signal: an arrow and a sign accompany it. */
+/** Back-compat wrapper: week-on-week change as a ChangeBadge (arrow + sign + screen-reader text). */
 export function Change({ pct, className }: { pct: number | null | undefined; className?: string }) {
-  if (pct == null || !Number.isFinite(pct)) return <span className={cn("text-muted-fg", className)}>—</span>;
-  const Icon = pct > 0 ? ArrowUpRight : pct < 0 ? ArrowDownRight : Minus;
-  return (
-    <span className={cn("inline-flex items-center gap-0.5 text-sm font-semibold tabular", pct > 0 ? "text-up" : pct < 0 ? "text-down" : "text-muted-fg", className)}>
-      <Icon aria-hidden className="size-4" />
-      <span>{formatPct(pct)}</span>
-    </span>
-  );
+  return <ChangeBadge value={pct} className={className} />;
 }
 
-/** Tiny inline SVG trend line: works in server components and OG images (no chart lib). */
+/** Tiny inline SVG trend line: works in server components and OG images (no chart lib). Decorative. */
 export function Sparkline({ values, width = 96, height = 28, className }: { values: number[]; width?: number; height?: number; className?: string }) {
   const v = values.filter(Number.isFinite);
   if (v.length < 2) return null;

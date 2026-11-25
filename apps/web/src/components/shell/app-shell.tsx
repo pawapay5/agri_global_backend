@@ -1,5 +1,5 @@
 "use client";
-import { Bell, ChartSpline, House, LogOut, Store, Wheat } from "lucide-react";
+import { Bell, ChartSpline, House, LogOut, ShieldCheck, Store, Wheat } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -59,14 +59,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="border-t border-border pt-4">
           <p className="truncate text-sm font-semibold">{me.data?.fullName ?? me.data?.email ?? me.data?.phone ?? "…"}</p>
           <p className="text-xs capitalize text-muted-fg">{me.data?.role}</p>
-          <button onClick={signOut} className="mt-3 flex items-center gap-2 text-sm text-down hover:underline"><LogOut aria-hidden className="size-4" />{t("signOut")}</button>
+          <Link href="/app/settings/security" className="mt-3 flex items-center gap-2 text-sm hover:underline"><ShieldCheck aria-hidden className="size-4" />{t("security")}</Link>
+          <button onClick={signOut} className="mt-2 flex items-center gap-2 text-sm text-down hover:underline"><LogOut aria-hidden className="size-4" />{t("signOut")}</button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur lg:hidden">
           <Link href="/app"><Logo suffix={me.data?.country} /></Link>
-          <button onClick={signOut} aria-label={t("signOut")} className="rounded-lg p-2 hover:bg-muted"><LogOut className="size-5" /></button>
+          <span className="flex items-center gap-1"><Link href="/app/settings/security" aria-label={t("security")} className="rounded-lg p-2 hover:bg-muted"><ShieldCheck className="size-5" /></Link><button onClick={signOut} aria-label={t("signOut")} className="rounded-lg p-2 hover:bg-muted"><LogOut className="size-5" /></button></span>
         </header>
         <main id="main" className="mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8">{children}</main>
       </div>

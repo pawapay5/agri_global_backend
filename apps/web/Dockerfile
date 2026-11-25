@@ -14,11 +14,13 @@ COPY apps/web apps/web
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ARG NEXT_PUBLIC_APPLE_SERVICE_ID=
+ARG NEXT_PUBLIC_FACEBOOK_APP_ID=
 # Public host serving uploaded images (MinIO/S3), allowed in next/image.
 ARG IMAGES_HOST=
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID \
     NEXT_PUBLIC_APPLE_SERVICE_ID=$NEXT_PUBLIC_APPLE_SERVICE_ID \
+    NEXT_PUBLIC_FACEBOOK_APP_ID=$NEXT_PUBLIC_FACEBOOK_APP_ID \
     NEXT_TELEMETRY_DISABLED=1
 # Live data isn't needed at build: pages prerender from the country packs and fill prices at request time.
 RUN pnpm --filter @agriprice/web build

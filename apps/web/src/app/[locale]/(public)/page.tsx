@@ -32,7 +32,7 @@ async function Ticker({ cc, locale }: { cc: string; locale: string }) {
             <Link href={`/${countrySlug(cc)}/prices/${slugOf(codeById.get(i.commodityId)!)}`} className="font-semibold text-white hover:underline">{pick(i.commodityName, locale)}</Link>
           ) : <span className="font-semibold">{pick(i.commodityName, locale)}</span>}
           <span className="tabular text-white/90">{formatMoney(i.current, i.currency, locale)}/{i.unit}</span>
-          <Change pct={i.changePct} className="rounded bg-white/90 px-1" />
+          <Change pct={i.changePct} className="on-light rounded bg-white/90 px-1" />
         </li>
       ))}
     </ul>
@@ -72,18 +72,18 @@ async function LandingBody({ params }: Pick<PageProps<"/[locale]">, "params">) {
   ];
   return (
     <>
-      <section className="bg-brand text-white">
+      <section className="bg-hero text-hero-fg">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 md:grid-cols-2 md:py-24">
           <div className="space-y-6">
             <h1 className="text-4xl font-bold leading-tight md:text-5xl">{t("heroTitle", { country: pick(country?.name, locale) || "Ghana" })}</h1>
             <p className="max-w-xl text-lg text-white/85">{t("heroBody")}</p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "bg-white text-brand hover:bg-white/90")}>{t("ctaPrimary")}</Link>
+              <Link href="/signup" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "bg-white text-hero hover:bg-white/90")}>{t("ctaPrimary")}</Link>
               <Link href={`/${countrySlug(cc)}/prices`} className={cn(buttonVariants({ size: "lg", variant: "outline" }), "border-white text-white hover:bg-white/10")}>{t("ctaSecondary")}</Link>
             </div>
           </div>
           <div className="self-end rounded-2xl bg-white/10 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/70">{t("tickerTitle")}</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/80">{t("tickerTitle")}</p>
             <Suspense fallback={<Skeleton className="h-6 w-full bg-white/20" />}><Ticker cc={cc} locale={locale} /></Suspense>
           </div>
         </div>
@@ -107,7 +107,7 @@ async function LandingBody({ params }: Pick<PageProps<"/[locale]">, "params">) {
       <section className="mx-auto max-w-7xl px-4 pb-16">
         <Card className="flex flex-col items-start gap-4 bg-info p-8 md:flex-row md:items-center md:justify-between">
           <div><h2 className="text-xl font-bold">{t("forecastTeaserTitle")}</h2><p className="mt-1 text-muted-fg">{t("forecastTeaserBody")}</p></div>
-          <Link href="/signup" className={buttonVariants({ size: "lg" })}>{t("ctaPrimary")}</Link>
+          <Link href="/signup" prefetch={false} className={buttonVariants({ size: "lg" })}>{t("ctaPrimary")}</Link>
         </Card>
       </section>
     </>

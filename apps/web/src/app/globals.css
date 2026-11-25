@@ -8,8 +8,12 @@
   --brand-fg: #ffffff;
   --leaf: #3bb54a;           /* leaf green */
   --forecast: #f59e0b;       /* forecast orange */
-  --up: #16a34a;
+  /* Price direction (text + icons). #15803d instead of the brand #16a34a: 5.0:1 on white vs 3.3:1 (WCAG AA text). */
+  --up: #15803d;
   --down: #dc2626;
+  /* Direction text on its own 10% wash (pills, badges): 6.2:1 / 5.5:1 where --up/--down are 4.4:1 / 4.1:1. */
+  --up-ink: #166534;
+  --down-ink: #b91c1c;
   --surface: #f7f9f8;
   --background: #ffffff;
   --foreground: #13241b;
@@ -17,9 +21,37 @@
   --muted-fg: #5b6b62;
   --card: #ffffff;
   --border: #dfe7e2;
-  --ring: #3bb54a;
+  --ring: #15803d;           /* focus ring: 5.0:1 on white (WCAG 2.2 needs >= 3:1) */
   --info-bg: #eaf3ff;
+  /* Brand panels (landing hero, auth side panel): deep green with white text in BOTH themes, 9.4:1.
+     Not --brand, which turns leaf green in dark mode (white on it is 2.66:1). */
+  --hero-bg: #0f5132;
+  --hero-fg: #ffffff;
   --radius: 0.75rem;
+
+  /*
+   * Chart tokens, validated with the dataviz palette validator (docs/design-system.md has the runs):
+   * history/forecast pass CVD separation (ΔE 17.4 protan, light). Forecast orange is < 3:1 on white,
+   * so forecast lines always carry a direct label and every chart has a table view (relief rule).
+   */
+  --chart-history: #15803d;
+  --chart-forecast: #f59e0b;
+  --forecast-ink: #92400e;   /* forecast-coloured TEXT: 6.3:1 on its wash (the orange itself is 2.15:1) */
+  --chart-band: color-mix(in srgb, var(--chart-forecast) 16%, transparent);
+  --chart-grid: #e6ece8;     /* hairline, one step off the card */
+  --chart-axis: var(--muted-fg);
+  --chart-today: #8a9a91;
+  --chart-surface: var(--card);
+  /* SHAP drivers: diverging warm/cool pair (raises vs lowers the forecast), distinct from up/down status. */
+  --shap-up: #e34948;
+  --shap-down: #2a78d6;
+  /* Sequential ramp for heatmaps (low → high price), ordinal-validated; ink = label colour on each fill. */
+  --heat-1: #22c55e; --heat-ink-1: #0b1a12;
+  --heat-2: #16a34a; --heat-ink-2: #0b1a12;
+  --heat-3: #15803d; --heat-ink-3: #ffffff;
+  --heat-4: #166534; --heat-ink-4: #ffffff;
+  --heat-5: #0f3f22; --heat-ink-5: #ffffff;
+  --heat-empty: #eef3f0;
 }
 
 .dark {
@@ -35,6 +67,26 @@
   --info-bg: #0f1d2b;
   --up: #22c55e;
   --down: #f87171;
+  --up-ink: #22c55e;
+  --down-ink: #f87171;
+  --ring: #3bb54a;
+
+  /* Dark steps chosen for the dark band (OKLCH L 0.48–0.67); CVD ΔE 6.5, so the forecast keeps its
+     secondary encoding (dashed line, "Today" divider, direct label). */
+  --chart-history: #15803d;
+  --chart-forecast: #d97706;
+  --forecast-ink: #fbbf24;
+  --chart-grid: #1c2b23;
+  --chart-today: #5f7268;
+  --shap-up: #e66767;
+  --shap-down: #3987e5;
+  /* Dark anchor flips: low prices sit nearest the surface, high prices are lightest. */
+  --heat-1: #15803d; --heat-ink-1: #ffffff;
+  --heat-2: #16a34a; --heat-ink-2: #0b1a12;
+  --heat-3: #22c55e; --heat-ink-3: #0b1a12;
+  --heat-4: #4ade80; --heat-ink-4: #0b1a12;
+  --heat-5: #86efac; --heat-ink-5: #0b1a12;
+  --heat-empty: #13211a;
 }
 
 @theme inline {
@@ -44,6 +96,8 @@
   --color-forecast: var(--forecast);
   --color-up: var(--up);
   --color-down: var(--down);
+  --color-up-ink: var(--up-ink);
+  --color-down-ink: var(--down-ink);
   --color-surface: var(--surface);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -53,6 +107,14 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
   --color-info: var(--info-bg);
+  --color-hero: var(--hero-bg);
+  --color-hero-fg: var(--hero-fg);
+  --color-chart-history: var(--chart-history);
+  --color-chart-forecast: var(--chart-forecast);
+  --color-forecast-ink: var(--forecast-ink);
+  --color-chart-grid: var(--chart-grid);
+  --color-shap-up: var(--shap-up);
+  --color-shap-down: var(--shap-down);
   --radius-xl: var(--radius);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
@@ -61,6 +123,8 @@ html { -webkit-text-size-adjust: 100%; }
 body { background: var(--surface); color: var(--foreground); }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .tabular { font-variant-numeric: tabular-nums; }
+/* Always-white chips on dark surfaces (e.g. the hero ticker): use the light theme's text tokens in both themes. */
+.on-light { --up: #15803d; --down: #dc2626; --up-ink: #166534; --down-ink: #b91c1c; --muted-fg: #5b6b62; --foreground: #13241b; color: #13241b; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

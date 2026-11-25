@@ -3,7 +3,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, use
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 import { useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Change } from "@/components/price/change";
 import { Card } from "@/components/ui/primitives";
 import { useCommodities, useCompare, useMarkets, useMe } from "@/lib/api/queries";
@@ -75,19 +75,18 @@ export function MarketsCompare() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Card><p className="text-xs text-muted-fg">{t("cheapest")}</p><p className="font-semibold">{pick(d.markets.find((m) => m.marketId === d.cheapestMarketId)?.marketName, locale) || "—"}</p></Card>
               <Card><p className="text-xs text-muted-fg">{t("priciest")}</p><p className="font-semibold">{pick(d.markets.find((m) => m.marketId === d.priciestMarketId)?.marketName, locale) || "—"}</p></Card>
-              <Card><p className="text-xs text-muted-fg">{t("spread")}</p><p className="font-semibold text-forecast">{formatPct(d.spreadPct)}</p></Card>
+              <Card><p className="text-xs text-muted-fg">{t("spread")}</p><p className="font-semibold text-forecast-ink">{formatPct(d.spreadPct)}</p></Card>
             </div>
             {view === "chart" ? (
               <Card>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={d.markets.filter((m) => m.latest).map((m) => ({ name: pick(m.marketName, locale).split(" (")[0], v: Number(m.latest!.value.display.amount), id: m.marketId }))}>
-                    <CartesianGrid stroke="var(--border)" vertical={false} />
+                    <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                     <XAxis dataKey="name" fontSize={12} stroke="var(--muted-fg)" interval={0} angle={-20} textAnchor="end" height={60} />
                     <YAxis fontSize={12} stroke="var(--muted-fg)" width={48} />
                     <Tooltip formatter={(v) => formatMoney(v as number, d.currency, locale)} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                    <Bar dataKey="v" radius={[6, 6, 0, 0]}>
-                      {d.markets.filter((m) => m.latest).map((m) => <Cell key={m.marketId} fill={m.marketId === d.cheapestMarketId ? "var(--up)" : m.marketId === d.priciestMarketId ? "var(--down)" : "var(--leaf)"} />)}
-                    </Bar>
+                    {/* One series → one colour; cheapest/priciest are named in the cards above, not by status colours. */}
+                    <Bar dataKey="v" radius={[4, 4, 0, 0]} maxBarSize={24} fill="var(--chart-history)" />
                   </BarChart>
                 </ResponsiveContainer>
                 <p className="mt-2 text-xs text-muted-fg">{d.currency}/{d.unit}</p>

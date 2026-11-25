@@ -79,6 +79,8 @@ services:
         NEXT_PUBLIC_SITE_URL: ${SERVICE_URL_WEB}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
         NEXT_PUBLIC_APPLE_SERVICE_ID: ${NEXT_PUBLIC_APPLE_SERVICE_ID:-}
+        # The public Facebook app id (the same value the API verifies against); not the app secret.
+        NEXT_PUBLIC_FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
         IMAGES_HOST: ${SERVICE_FQDN_STORAGE}
     environment:
       - SERVICE_FQDN_WEB_3000

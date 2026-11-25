@@ -12,13 +12,13 @@ export async function SiteHeader({ locale, country = "gh" }: { locale: string; c
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:rounded focus:bg-card focus:p-2">{t("skip")}</a>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
-        <Link href="/" aria-label="AgriPrice home"><Logo suffix={country.toUpperCase()} /></Link>
+        <Link href="/"><Logo suffix={country.toUpperCase()} /></Link>
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Main">
           <Link href={`/${country}/prices`} className="hover:text-brand">{t("prices")}</Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>{t("signIn")}</Link>
-          <Link href="/signup" className={cn(buttonVariants({ size: "sm" }))}>{t("signUp")}</Link>
+          <Link href="/login" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>{t("signIn")}</Link>
+          <Link href="/signup" prefetch={false} className={cn(buttonVariants({ size: "sm" }))}>{t("signUp")}</Link>
         </div>
       </div>
     </header>
