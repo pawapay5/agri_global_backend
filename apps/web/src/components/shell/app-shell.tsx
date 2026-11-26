@@ -8,7 +8,7 @@ import { useSellerProfile } from "@/lib/api/market";
 import { useMe, useUnreadCount } from "@/lib/api/queries";
 import { bff } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
-import { isStaff, NAV, navFor, needsShopCheck, type NavContext } from "./app-nav";
+import { isStaff, NAV, navFor, needsShopCheck, sellerStatus, type NavContext } from "./app-nav";
 import { ThemeToggle } from "./theme-toggle";
 
 /** The signed-in person's menu context: role, organisation, and (only when the role doesn't decide) a shop. */
@@ -16,7 +16,7 @@ function useNavContext(): NavContext {
   const me = useMe();
   const role = me.data?.role;
   const shop = useSellerProfile(Boolean(me.data) && needsShopCheck(role));
-  return { role, inOrg: Boolean(me.data?.organisationId), hasShop: Boolean(shop.data) };
+  return { role, inOrg: Boolean(me.data?.organisationId), seller: sellerStatus(shop.data) };
 }
 
 /** Inbox link with the unread count in its accessible name (the badge alone is decorative). */
@@ -50,7 +50,7 @@ function MoreMenu({ onSignOut }: { onSignOut: () => void }) {
       <summary className="list-none rounded-lg p-2 hover:bg-muted [&::-webkit-details-marker]:hidden" aria-label={t("menu")}><Menu className="size-5" /></summary>
       <div className="absolute end-0 z-50 mt-1 max-h-[75vh] w-60 overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-lg">
         {isStaff(ctx.role) ? <><Link href="/admin" className={cn(item, "font-semibold text-brand dark:text-leaf")}><LayoutDashboard aria-hidden className="size-4" />{t("adminConsole")}</Link><hr className="my-1 border-border" /></> : null}
-        {extra.map((n) => <Link key={n.href} href={n.href} className={item}><n.icon aria-hidden className="size-4" />{t(n.key)}</Link>)}
+        {extra.map((n) => <Link key={n.key} href={n.href} className={item}><n.icon aria-hidden className="size-4" />{t(n.key)}</Link>)}
         <hr className="my-1 border-border" />
         <Link href="/app/billing" className={item}><CreditCard aria-hidden className="size-4" />{t("billing")}</Link>
         <Link href="/app/settings/security" className={item}><ShieldCheck aria-hidden className="size-4" />{t("security")}</Link>
@@ -72,7 +72,7 @@ function Links({ variant, path }: { variant: Variant; path: string | null }) {
   const s = styles[variant];
   const on = (n: (typeof NAV)[number]) => path != null && (n.exact ? path === n.href : path === n.href || path.startsWith(`${n.href}/`));
   const link = (n: (typeof NAV)[number]) => (
-    <Link key={n.href} href={n.href} aria-current={on(n) ? "page" : undefined} className={cn(s.base, on(n) ? s.on : s.off)}>
+    <Link key={n.key} href={n.href} aria-current={on(n) ? "page" : undefined} className={cn(s.base, on(n) ? s.on : s.off)}>
       <n.icon aria-hidden className="size-5" />{t(n.key)}
     </Link>
   );

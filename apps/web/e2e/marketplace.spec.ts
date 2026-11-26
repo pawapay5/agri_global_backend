@@ -11,7 +11,13 @@ async function signIn(page: Page) {
     { name: "ap_at", value: MOCK_AT, domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" },
     { name: "ap_rt", value: "mock-refresh-token", domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" },
   ]);
+  // An approved seller, so the seller centre is open (tests for applicants override this route).
+  await page.route("**/api/v1/marketplace/seller-profile", (r) => r.request().method() === "GET"
+    ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(VERIFIED_SELLER) }) : r.fallback());
 }
+
+const VERIFIED_SELLER = { userId: "00000000-0000-4000-8000-000000000001", displayName: "Kofi Farms", bio: null, country: "GH", regionId: null, verified: true,
+  kycStatus: "verified", kycSubmittedAt: "2026-11-01T09:00:00Z", kycRejectionReason: null, rating: 4.6, ratingCount: 12, responseTimeMins: 30, deliverySettings: {}, activeListings: 3 };
 
 async function axe(page: Page) {
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
@@ -95,4 +101,22 @@ test("new listing: validation blocks an empty form and focuses the first problem
   await page.getByRole("button", { name: "Save as draft" }).click();
   await expect(page.getByLabel("Title")).toBeFocused();
   await expect(page.getByText("Required.").first()).toBeVisible();
+});
+
+test("buyers apply to sell: the application shows instead of the seller centre, and listings wait for approval", async ({ page }) => {
+  await signIn(page);
+  const profile = { userId: "00000000-0000-4000-8000-000000000001", displayName: "Ama's Farm", country: "GH", regionId: null, verified: false, kycStatus: "rejected",
+    kycSubmittedAt: "2026-11-20T09:00:00Z", kycRejectionReason: "The ID photo is blurred.", rating: null, ratingCount: 0, responseTimeMins: null, activeListings: 0 };
+  await page.route("**/api/v1/marketplace/seller-profile", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(profile) }));
+  await page.goto("/en/app/sell");
+  await expect(page.getByRole("heading", { level: 1, name: "Become a seller" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("The ID photo is blurred.")).toBeVisible();
+  await expect(page.getByLabel("Photo of your ID document")).toBeVisible();
+  await page.getByRole("button", { name: "Submit again" }).click();
+  await expect(page.getByText("Add your ID number, a photo of your ID and a selfie.")).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+  await page.goto("/en/app/sell/listings/new");
+  await expect(page.getByText("Available once you're an approved seller")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("link", { name: "Become a seller" }).last()).toBeVisible();
+  expect(await axe(page)).toEqual([]);
 });

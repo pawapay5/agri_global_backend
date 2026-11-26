@@ -66,12 +66,25 @@ test("login and sign-up show their own photo in the brand panel", async ({ page 
   }
 });
 
-test("farmers see the seller centre but no admin console link", async ({ page }) => {
+test("approved sellers see the seller centre but no admin console link", async ({ page }) => {
   test.skip(test.info().project.name === "mobile", "sidebar is desktop-only; the phone menu shares the same rules (unit-tested)");
   const url = new URL(test.info().project.use.baseURL!);
   await page.context().addCookies([{ name: "ap_at", value: MOCK_AT, domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }, { name: "ap_rt", value: "r", domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.route("**/api/v1/marketplace/seller-profile", (r) => r.fulfill({ status: 200, contentType: "application/json",
+    body: JSON.stringify({ userId: "00000000-0000-4000-8000-000000000001", displayName: "Kofi Farms", country: "GH", verified: true, kycStatus: "verified", ratingCount: 0, activeListings: 0 }) }));
   await page.goto("/en/app");
   const nav = page.getByRole("navigation", { name: "App" }).first();
   await expect(nav.getByRole("link", { name: "Seller centre" })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("link", { name: "Admin console" })).toHaveCount(0);
+});
+
+test("people who haven't been approved see Become a seller instead", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "sidebar is desktop-only; the phone menu shares the same rules (unit-tested)");
+  const url = new URL(test.info().project.use.baseURL!);
+  await page.context().addCookies([{ name: "ap_at", value: MOCK_AT, domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }, { name: "ap_rt", value: "r", domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.route("**/api/v1/marketplace/seller-profile", (r) => r.fulfill({ status: 404, contentType: "application/problem+json", body: JSON.stringify({ code: "seller_profile_not_found", status: 404, title: "Not found" }) }));
+  await page.goto("/en/app");
+  const nav = page.getByRole("navigation", { name: "App" }).first();
+  await expect(nav.getByRole("link", { name: "Become a seller" })).toBeVisible({ timeout: 20_000 });
+  await expect(nav.getByRole("link", { name: "Seller centre" })).toHaveCount(0);
 });

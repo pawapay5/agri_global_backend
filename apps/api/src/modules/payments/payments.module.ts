@@ -176,19 +176,22 @@ export class CommerceScheduler implements OnApplicationBootstrap, OnModuleDestro
     this.log.log("commerce scheduler running");
   }
 
-  /** KYC is delegated to a provider (e.g. Smile ID / Youverify) configured via KYC_PROVIDER_URL; results return by webhook. */
-  private async kyc(j: { userId: string; reference: string; idType: string; idNumber: string; selfieKey: string; country: string }) {
+  /**
+   * Optional automated check by a KYC provider (e.g. Smile ID / Youverify) configured via KYC_PROVIDER_URL; results return by
+   * webhook. Without a provider, applications wait in the admin console's seller approvals queue instead.
+   */
+  private async kyc(j: { userId: string; reference: string; country: string }) {
     const url = process.env.KYC_PROVIDER_URL;
-    if (!url) {
-      // No provider: route to manual review in the moderation queue (the ID number is not stored).
-      await this.sql.exec(`INSERT INTO moderation_items (target_type, target_id, reason, signals) VALUES ('user', $1, 'kyc_manual_review', $2)`,
-        [j.userId, { idType: j.idType, selfieKey: j.selfieKey, reference: j.reference }]);
-      return;
-    }
-    const selfie = await this.storage.signedGetUrl(this.storage.cfg.s3.imagesBucket, j.selfieKey, 900);
+    if (!url) return;
+    const s = await this.sql.one<{ kyc_id_type: string; kyc_id_number_enc: string; kyc_id_photo_key: string; kyc_selfie_key: string }>(
+      `SELECT kyc_id_type, kyc_id_number_enc, kyc_id_photo_key, kyc_selfie_key FROM seller_profiles WHERE user_id = $1 AND kyc_provider_ref = $2 AND kyc_status = 'pending'`,
+      [j.userId, j.reference]);
+    if (!s) return; // withdrawn, already decided or resubmitted
+    const bucket = this.storage.cfg.s3.reportsBucket;
     const res = await fetch(url, {
       method: "POST", headers: { Authorization: `Bearer ${process.env.KYC_PROVIDER_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ reference: j.reference, country: j.country, id_type: j.idType, id_number: j.idNumber, selfie_url: selfie,
+      body: JSON.stringify({ reference: j.reference, country: j.country, id_type: s.kyc_id_type, id_number: this.cipher.decrypt(s.kyc_id_number_enc),
+        id_photo_url: await this.storage.signedGetUrl(bucket, s.kyc_id_photo_key, 900), selfie_url: await this.storage.signedGetUrl(bucket, s.kyc_selfie_key, 900),
         callback_url: `${process.env.API_PUBLIC_URL}/v1/webhooks/kyc?token=${process.env.WEBHOOK_SHARED_SECRET}` }),
       signal: AbortSignal.timeout(20_000),
     });

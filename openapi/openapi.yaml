@@ -1225,6 +1225,30 @@ paths:
         - { $ref: "#/components/parameters/Limit" }
       responses:
         "200": { description: Entries, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/kyc:
+    get:
+      tags: [admin]
+      operationId: admin_kyc_list
+      summary: Seller applications. Admins see every country, org admins their own. Document links expire after five minutes; every view is audited.
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, verified, rejected], default: pending } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        "200": { description: Applications, content: { application/json: { schema: { type: object, required: [data, nextCursor], properties: { data: { type: array, items: { $ref: "#/components/schemas/KycApplication" } }, nextCursor: { type: ["null", string] } } } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/admin/kyc/{userId}/decision:
+    post:
+      tags: [admin]
+      operationId: admin_kyc_decide
+      summary: Approve or reject a pending seller application. A rejection needs a reason, which is sent to the applicant.
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approve, reject] }, reason: { type: string, minLength: 5, maxLength: 500 } } } } } }
+      responses:
+        "204": { description: Decided }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
   /v1/admin/moderation:
     get:
       tags: [admin]
@@ -1533,10 +1557,12 @@ paths:
     post:
       tags: [marketplace]
       operationId: market_seller_kyc
-      summary: Submit KYC (Ghana Card / national ID number and selfie). Verification is delegated to the KYC provider and the result arrives by webhook.
-      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [idType, idNumber, selfie], properties: { idType: { type: string, enum: [national_id, passport, voter_id, drivers_licence] }, idNumber: { type: string, maxLength: 40 }, selfie: { type: string, contentMediaType: image/* } } } } } }
+      summary: Apply to sell. Sends an ID document photo, a selfie and the ID number for review. Allowed when no application is pending or the last one was rejected. The ID number is encrypted at rest; both photos are kept private.
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [idType, idNumber, idPhoto, selfie], properties: { idType: { type: string, enum: [national_id, passport, voter_id, drivers_licence] }, idNumber: { type: string, maxLength: 40 }, idPhoto: { type: string, contentMediaType: image/* }, selfie: { type: string, contentMediaType: image/* } } } } } }
       responses:
-        "202": { description: Pending, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+        "202": { description: Pending review, content: { application/json: { schema: { $ref: "#/components/schemas/SellerProfile" } } } }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
   /v1/webhooks/kyc:
     post:
       tags: [marketplace]
@@ -3471,6 +3497,27 @@ components:
         regionId: { type: string, format: uuid }
         location: { $ref: "#/components/schemas/GeoPoint" }
         deliverySettings: { type: object, additionalProperties: true }
+    KycApplication:
+      type: object
+      required: [userId, displayName, country, status, idType, idNumber, idNumberMasked, idPhotoUrl, selfieUrl, linksExpireInSeconds, submittedAt, reviewedAt, reviewedBy, rejectionReason, fullName, email, phone]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string, examples: ["Ama's Farm"] }
+        fullName: { type: ["null", string], examples: ["Ama Mensah"] }
+        email: { type: ["null", string], examples: ["ama@example.com"] }
+        phone: { type: ["null", string], examples: ["+233200000000"] }
+        country: { type: string, examples: [GH] }
+        status: { type: string, enum: [pending, verified, rejected] }
+        idType: { type: ["null", string], enum: [national_id, passport, voter_id, drivers_licence, null] }
+        idNumber: { type: ["null", string], examples: ["GHA-000000000-0"] }
+        idNumberMasked: { type: ["null", string], examples: ["••••••••00-0"] }
+        idPhotoUrl: { type: ["null", string], format: uri, examples: ["https://example.com/kyc/id.webp"] }
+        selfieUrl: { type: ["null", string], format: uri, examples: ["https://example.com/kyc/selfie.webp"] }
+        linksExpireInSeconds: { type: integer, examples: [300] }
+        submittedAt: { type: ["null", string], format: date-time }
+        reviewedAt: { type: ["null", string], format: date-time }
+        reviewedBy: { type: ["null", string] }
+        rejectionReason: { type: ["null", string] }
     SellerProfile:
       type: object
       properties:
@@ -3481,6 +3528,8 @@ components:
         regionId: { type: [string, "null"], format: uuid }
         verified: { type: boolean }
         kycStatus: { type: string, enum: [none, pending, verified, rejected], description: Only visible to the owner }
+        kycSubmittedAt: { type: ["null", string], format: date-time, description: Only visible to the owner }
+        kycRejectionReason: { type: ["null", string], description: Why the last application was rejected. Only visible to the owner. }
         rating: { type: ["null", number] }
         ratingCount: { type: integer }
         responseTimeMins: { type: ["null", integer] }

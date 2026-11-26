@@ -9,7 +9,7 @@ import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { SocialSignIn } from "@/components/auth/social";
 import { Button, FieldError, Input, Label } from "@/components/ui/primitives";
 import { Link } from "@/i18n/navigation";
-import { bff, safeNext } from "@/lib/auth/client";
+import { bff, landingAfterSignIn } from "@/lib/auth/client";
 
 const emailSchema = z.object({ email: z.email(), password: z.string().min(1).max(128) });
 const phoneSchema = z.object({ phone: z.string().regex(/^\+[1-9]\d{6,14}$/, "Use international format, e.g. +233241234567") });
@@ -20,15 +20,16 @@ type Step = "email" | "phone" | "phone-code" | "mfa";
 export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const next = safeNext(useSearchParams().get("next"), locale);
+  const nextParam = useSearchParams().get("next");
   const [step, setStep] = useState<Step>("email");
   const [phone, setPhone] = useState("");
   const feedback = useFeedback();
   const problem = useProblemMessage();
   const err = (p: { code: string; detail?: string }) => feedback.error(problem(p));
   // Phone or social sign-in can create the account: new users go through first-run setup.
-  const done = (status: string, isNewUser = false) =>
-    status === "mfa_required" ? setStep("mfa") : window.location.assign(isNewUser ? `/${locale}/app/onboarding` : next);
+  // Staff land in the admin console unless they were sent here from a specific page.
+  const done = (status: string, isNewUser = false, role?: string | null) =>
+    status === "mfa_required" ? setStep("mfa") : window.location.assign(landingAfterSignIn({ next: nextParam, locale, role, isNewUser }));
 
   const emailForm = useForm({ resolver: zodResolver(emailSchema) });
   const phoneForm = useForm({ resolver: zodResolver(phoneSchema) });
@@ -36,7 +37,7 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
 
   const onEmail = emailForm.handleSubmit(async (v) => {
     const r = await bff("login", v);
-    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem);
+    if (r.ok) done(r.data.status, r.data.isNewUser, r.data.user?.role); else err(r.problem);
   });
   const onPhone = phoneForm.handleSubmit(async (v) => {
     const r = await bff("otp-request", { channel: "sms", destination: v.phone, purpose: "login", locale });
@@ -46,7 +47,7 @@ export function LoginForm({ defaultCountry }: { defaultCountry: string }) {
     const r = step === "mfa"
       ? await bff("mfa", { code: v.code })
       : await bff("otp-verify", { channel: "sms", destination: phone, purpose: "login", code: v.code });
-    if (r.ok) done(r.data.status, r.data.isNewUser); else err(r.problem);
+    if (r.ok) done(r.data.status, r.data.isNewUser, r.data.user?.role); else err(r.problem);
   });
 
   return (

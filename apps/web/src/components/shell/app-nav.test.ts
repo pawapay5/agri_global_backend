@@ -1,17 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { isStaff, navFor, needsShopCheck } from "./app-nav";
+import { isStaff, navFor, needsShopCheck, sellerStatus, type SellerStatus } from "./app-nav";
 
-const keys = (role: string, extra: Partial<{ inOrg: boolean; hasShop: boolean }> = {}) =>
-  navFor({ role, inOrg: false, hasShop: false, ...extra }).flatMap((g) => g.items.map((i) => i.key));
+const keys = (role: string, extra: Partial<{ inOrg: boolean; seller: SellerStatus }> = {}) =>
+  navFor({ role, inOrg: false, seller: "none", ...extra }).flatMap((g) => g.items.map((i) => i.key));
 
 describe("app sidebar by role", () => {
-  it("farmers and traders always get the seller centre", () => {
-    expect(keys("farmer")).toContain("sell");
-    expect(keys("trader")).toContain("sell");
+  it("everyone starts as a buyer: Become a seller, not the Seller centre", () => {
+    for (const r of ["farmer", "trader", "consumer"]) {
+      expect(keys(r)).toContain("becomeSeller");
+      expect(keys(r)).not.toContain("sell");
+    }
   });
-  it("other roles get the seller centre once they have a shop", () => {
-    expect(keys("consumer")).not.toContain("sell");
-    expect(keys("consumer", { hasShop: true })).toContain("sell");
+  it("the Seller centre only appears once the application is approved", () => {
+    expect(keys("consumer", { seller: "pending" })).not.toContain("sell");
+    expect(keys("consumer", { seller: "rejected" })).toContain("becomeSeller");
+    expect(keys("consumer", { seller: "verified" })).toContain("sell");
+    expect(keys("consumer", { seller: "verified" })).not.toContain("becomeSeller");
+  });
+  it("staff aren't offered the seller application", () => {
+    expect(keys("admin")).not.toContain("becomeSeller");
   });
   it("consumers don't see reports, data or developer tools", () => {
     expect(keys("consumer")).not.toEqual(expect.arrayContaining(["reports"]));
@@ -38,8 +45,13 @@ describe("helpers", () => {
     expect(isStaff("farmer")).toBe(false);
     expect(isStaff(undefined)).toBe(false);
   });
-  it("only checks for a shop when the role doesn't decide", () => {
-    expect(needsShopCheck("farmer")).toBe(false);
-    expect(needsShopCheck("consumer")).toBe(true);
+  it("looks up the seller profile for everyone but staff", () => {
+    expect(needsShopCheck("farmer")).toBe(true);
+    expect(needsShopCheck("admin")).toBe(false);
+  });
+  it("reads the seller status from the profile", () => {
+    expect(sellerStatus(undefined)).toBe("none");
+    expect(sellerStatus({ kycStatus: "pending" })).toBe("pending");
+    expect(sellerStatus({ kycStatus: "weird" })).toBe("none");
   });
 });

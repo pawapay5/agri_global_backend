@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Module, Param, ParseUUIDPipe, Patch, Post, Put, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { Body, Controller, Delete, Get, Headers, HttpCode, Module, Param, ParseUUIDPipe, Patch, Post, Put, Query, UploadedFile, UploadedFiles, UseInterceptors } from "@nestjs/common";
+import { FileFieldsInterceptor, FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import {
@@ -9,6 +9,7 @@ import { AuthUser, CurrentUser, OptionalUser, Public } from "../../common/auth/a
 import { Req } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
 import { AuditService } from "../../common/audit/audit.service";
+import { FieldCipher } from "../../common/crypto/crypto";
 import { Sql } from "../../common/db/database.module";
 import { AppError } from "../../common/http/problem";
 import { RawRequest, verifyWebhook } from "../../common/http/webhooks";
@@ -118,8 +119,10 @@ export class MarketplaceController {
   putSeller(@CurrentUser() u: AuthUser, @Body() d: SellerDto) { return this.m.putSeller(u, d as never); }
 
   @Post("seller-profile/kyc") @HttpCode(202) @ApiOperation({ operationId: "market_seller_kyc" }) @ApiConsumes("multipart/form-data")
-  @UseInterceptors(FileInterceptor("selfie", MAX_IMG))
-  kyc(@CurrentUser() u: AuthUser, @Body() d: KycDto, @UploadedFile() f?: Express.Multer.File) { return this.m.submitKyc(u, d, f); }
+  @UseInterceptors(FileFieldsInterceptor([{ name: "idPhoto", maxCount: 1 }, { name: "selfie", maxCount: 1 }], MAX_IMG))
+  kyc(@CurrentUser() u: AuthUser, @Body() d: KycDto, @UploadedFiles() f: { idPhoto?: Express.Multer.File[]; selfie?: Express.Multer.File[] } = {}) {
+    return this.m.submitKyc(u, d, { idPhoto: f.idPhoto?.[0], selfie: f.selfie?.[0] });
+  }
 
   @Public() @Get("sellers/:id") @ApiOperation({ operationId: "market_seller_get" })
   seller(@Param("id", ParseUUIDPipe) id: string) { return this.m.seller(id); }
@@ -206,11 +209,12 @@ export class KycWebhookController {
     const b = req.body as { reference?: string; status?: string; reason?: string };
     if (!b.reference || !["verified", "rejected"].includes(String(b.status))) throw AppError.badRequest("payload_invalid");
     const r = await this.sql.one<{ user_id: string }>(
-      `UPDATE seller_profiles SET kyc_status = $2, verified_at = CASE WHEN $2 = 'verified' THEN now() ELSE NULL END
-       WHERE kyc_provider_ref = $1 AND kyc_status = 'pending' RETURNING user_id`, [b.reference, b.status]);
+      `UPDATE seller_profiles SET kyc_status = $2, verified_at = CASE WHEN $2 = 'verified' THEN now() ELSE NULL END, kyc_reviewed_at = now(),
+         kyc_rejection_reason = CASE WHEN $2 = 'rejected' THEN left(coalesce($3, 'The automatic ID check did not pass'), 500) ELSE NULL END
+       WHERE kyc_provider_ref = $1 AND kyc_status = 'pending' RETURNING user_id`, [b.reference, b.status, b.reason ?? null]);
     if (r) await this.audit.record({ actorId: null, action: `seller.kyc.${b.status}`, entity: "user", entityId: r.user_id, data: { reason: b.reason } });
   }
 }
 
-@Module({ controllers: [MarketplaceController, KycWebhookController], providers: [MarketplaceService, OrdersService], exports: [MarketplaceService, OrdersService] })
+@Module({ controllers: [MarketplaceController, KycWebhookController], providers: [MarketplaceService, OrdersService, FieldCipher], exports: [MarketplaceService, OrdersService] })
 export class MarketplaceModule {}

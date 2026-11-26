@@ -20,7 +20,7 @@ async function axe(page: Page) {
 }
 
 const PAGES = ["/en/admin", "/en/admin/prices/review", "/en/admin/prices/import", "/en/admin/catalogue", "/en/admin/countries", "/en/admin/users",
-  "/en/admin/moderation", "/en/admin/disputes", "/en/admin/payouts", "/en/admin/reconciliation", "/en/admin/broadcasts", "/en/admin/models", "/en/admin/audit"];
+  "/en/admin/moderation", "/en/admin/disputes", "/en/admin/payouts", "/en/admin/reconciliation", "/en/admin/broadcasts", "/en/admin/models", "/en/admin/audit", "/en/admin/kyc"];
 
 for (const path of PAGES) {
   test(`${path} renders from the API and is axe-clean`, async ({ page }) => {
@@ -74,4 +74,21 @@ test("staff get an Admin console link in the app sidebar", async ({ page }) => {
   await expect(link).toBeVisible({ timeout: 20_000 });
   await link.click();
   await expect(page).toHaveURL(/\/en\/admin$/);
+});
+
+test("seller approvals: rejecting needs a reason, approving asks first", async ({ page }) => {
+  await signIn(page);
+  await page.route("https://example.com/**", (r) => r.fulfill({ status: 200, contentType: "image/svg+xml", body: "<svg xmlns='http://www.w3.org/2000/svg'/>" }));
+  const decisions: unknown[] = [];
+  await page.route("**/api/v1/admin/kyc/*/decision", async (r) => { decisions.push(r.request().postDataJSON()); await r.fulfill({ status: 204 }); });
+  await page.goto("/en/admin/kyc");
+  await expect(page.getByRole("heading", { name: "Seller approvals", level: 1 })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("button", { name: "Reject" }).first().click();
+  await page.getByRole("button", { name: "Reject" }).first().click();
+  await expect(page.getByText(/Write a reason of at least 5 characters/)).toBeVisible();
+  expect(decisions).toEqual([]);
+  await page.getByRole("button", { name: "Cancel" }).first().click();
+  await page.getByRole("button", { name: "Approve" }).first().click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Approve" }).click();
+  await expect.poll(() => decisions).toEqual([{ decision: "approve" }]);
 });
