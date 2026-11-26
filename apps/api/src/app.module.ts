@@ -20,6 +20,7 @@ import { ForecastsModule } from "./modules/forecasts/forecasts.module";
 import { GeoModule } from "./modules/geo/geo.module";
 import { HealthModule } from "./modules/health/health.controller";
 import { InsightsModule } from "./modules/insights/insights.module";
+import { AssistantModule } from "./modules/assistant/assistant.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PricesModule } from "./modules/prices/prices.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -55,7 +56,7 @@ class ConfigModule {}
     MediaModule, LedgerModule, BillingModule,
     HealthModule, AuthModule, UsersModule, GeoModule, CatalogueModule, PricesModule, ForecastsModule, InsightsModule, AlertsModule, NotificationsModule,
     ReportsModule, ContentModule, AdminModule, PublicDataModule, SmsModule, MessagingModule, MarketplaceModule, PaymentsModule, CommunityModule,
-    KnowledgeModule, SellerAnalyticsModule,
+    KnowledgeModule, SellerAnalyticsModule, AssistantModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

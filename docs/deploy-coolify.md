@@ -43,6 +43,8 @@ Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` valu
 | `BILLING_PROVIDERS` | no | Build-time. Comma-separated checkout options on `/app/billing` (`paystack`, `flutterwave`, `stripe`); default `paystack`. List only providers with keys above, or checkout fails with "not configured". |
 | `ADMIN_IP_ALLOWLIST` | no | CIDRs, e.g. `203.0.113.0/24, 2001:db8::/32`. When set, `/admin` and `/api/v1/admin/*` return 404 to every other IP. |
 | `CLIENT_IP_HEADER` | no | Set to `cf-connecting-ip` **only** if Cloudflare proxies your domain (see §5) |
+| `ANTHROPIC_API_KEY` | no | Turns on **Ask AgriPrice**, the farm assistant at `/app/assistant`. Create a key at console.anthropic.com. It's billed per question, so `ASSISTANT_DAILY_LIMIT` (default `20` questions per person per day) caps the spend. `ASSISTANT_MODEL` defaults to `claude-opus-5-5`. |
+| `KHAYA_API_KEY` | no | GhanaNLP Khaya key (khaya.ai) for Twi, Fante, Ewe, Ga and Dagbani: translation, voice questions and spoken answers. Without it, the assistant answers in English only. `KHAYA_BASE_URL` defaults to `https://api.khaya.ai`. If your key comes from the older GhanaNLP developer portal, set `KHAYA_AUTH=apim` and `KHAYA_BASE_URL` to the host shown in your portal. |
 
 ## 3. First deploy
 

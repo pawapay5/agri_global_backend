@@ -902,6 +902,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/assistant/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the assistant is on, which languages it speaks, and today's usage. */
+        get: operations["assistant_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/assistant/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest conversation (or a given one), oldest first, up to 50 messages. */
+        get: operations["assistant_history"];
+        put?: never;
+        /** Ask a question by text or a voice recording (local languages only). The answer uses only AgriPrice data; every price or forecast it quotes is returned in facts. Counts towards the daily limit. */
+        post: operations["assistant_ask"];
+        /** Delete all of my assistant conversations and their audio. */
+        delete: operations["assistant_clear"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/assistant/messages/{id}/audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The answer read aloud in the farmer's language (generated on first play). */
+        get: operations["assistant_audio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/assistant/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Translate text between English and Twi, Fante, Ewe, Ga or Dagbani (two local languages go through English). */
+        post: operations["assistant_translate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/insights/seasonal": {
         parameters: {
             query?: never;
@@ -4521,6 +4591,87 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * @description Khaya language codes: Twi, Fante, Ewe, Ga, Dagbani; eng = English
+         * @enum {string}
+         */
+        AssistantLanguage: "twi" | "fat" | "ewe" | "gaa" | "dag" | "eng";
+        AssistantStatus: {
+            enabled: boolean;
+            /** @description Whether local languages are available */
+            translation: boolean;
+            languages: {
+                code: components["schemas"]["AssistantLanguage"];
+                /** @example Twi */
+                name: string;
+                voice: boolean;
+            }[];
+            /** @example 20 */
+            dailyLimit: number;
+            /** @example 3 */
+            usedToday: number;
+            /** @example 90 */
+            retentionDays: number;
+        };
+        AssistantAsk: {
+            language: components["schemas"]["AssistantLanguage"];
+            /** @example Aburow boɔ yɛ sɛn wɔ Techiman? */
+            text: string;
+            /** Format: uuid */
+            conversationId?: string;
+        };
+        /** @description A figure the answer used, exactly as AgriPrice holds it. kind=price has market, amount, observedAt; kind=forecast has place, horizonMonths, targetDate, low, mid, high. */
+        AssistantFact: {
+            /** @enum {string} */
+            kind: "price" | "forecast";
+            /** @example Maize */
+            commodity: string;
+            /** @example Techiman */
+            market?: string;
+            place?: string;
+            /** @example wholesale */
+            priceType?: string;
+            /** @example 4.20 */
+            amount?: string;
+            /** @example GHS */
+            currency?: string;
+            /** @example kg */
+            unit?: string;
+            /** Format: date */
+            observedAt?: string;
+            changePctWoW?: null | number;
+            horizonMonths?: number;
+            /** Format: date */
+            targetDate?: string;
+            low?: string;
+            mid?: string;
+            high?: string;
+            confidence?: null | string;
+        };
+        AssistantMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            conversationId: string;
+            language: components["schemas"]["AssistantLanguage"];
+            /** @enum {string} */
+            inputMode: "text" | "voice";
+            /** @example Aburow boɔ yɛ sɛn wɔ Techiman? */
+            question: string;
+            /** @example How much is maize in Techiman? */
+            questionEnglish: string;
+            /** @example Aburow yɛ GHS 4.20 kilo biara wɔ Techiman. */
+            answer: string;
+            /** @example Maize is GHS 4.20 per kg in Techiman, seen on 20 November. */
+            answerEnglish: string;
+            translated: boolean;
+            /** @description False when the translation lost or changed a figure; show the facts prominently. */
+            numbersPreserved: boolean;
+            facts: components["schemas"]["AssistantFact"][];
+            hasVoice: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
         KycApplication: {
             /** Format: uuid */
             userId: string;
@@ -6771,6 +6922,163 @@ export interface operations {
                 };
             };
             404: components["responses"]["Problem"];
+        };
+    };
+    assistant_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantStatus"];
+                };
+            };
+        };
+    };
+    assistant_history: {
+        parameters: {
+            query?: {
+                conversationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        conversationId: null | string;
+                        data: components["schemas"]["AssistantMessage"][];
+                    };
+                };
+            };
+        };
+    };
+    assistant_ask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssistantAsk"];
+                "multipart/form-data": {
+                    language: components["schemas"]["AssistantLanguage"];
+                    /** Format: uuid */
+                    conversationId?: string;
+                    audio: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Answer */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantMessage"];
+                };
+            };
+            422: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    assistant_clear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    assistant_audio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": string;
+                };
+            };
+            404: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    assistant_translate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    text: string;
+                    from: components["schemas"]["AssistantLanguage"];
+                    to: components["schemas"]["AssistantLanguage"];
+                };
+            };
+        };
+        responses: {
+            /** @description Translation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Aburow boɔ yɛ sɛn? */
+                        text: string;
+                        from: components["schemas"]["AssistantLanguage"];
+                        to: components["schemas"]["AssistantLanguage"];
+                        viaEnglish: boolean;
+                    };
+                };
+            };
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
         };
     };
     insights_seasonal: {

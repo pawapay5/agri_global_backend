@@ -22,7 +22,7 @@ describe("seller approvals", () => {
   it("approves, notifies the applicant and audits the decision", async () => {
     const { svc, sql, queue, audit } = setup();
     await svc.decide(admin, "u1", { decision: "approve" });
-    expect(sql.one.mock.calls[0][1]).toEqual(["u1", "verified", "a1", null, null]);
+    expect(sql.one.mock.calls[0]![1]).toEqual(["u1", "verified", "a1", null, null]);
     expect(queue.dispatch).toHaveBeenCalledWith(expect.objectContaining({ userId: "u1", templateKey: "seller.kyc_approved" }));
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "admin.kyc.approve", entityId: "u1" }));
   });
@@ -31,13 +31,13 @@ describe("seller approvals", () => {
     const { svc, queue } = setup();
     await expect(svc.decide(admin, "u1", { decision: "reject", reason: "  " })).rejects.toMatchObject({ code: "reason_required" });
     await svc.decide(admin, "u1", { decision: "reject", reason: "The ID photo is blurred." });
-    expect(String(queue.dispatch.mock.calls[0][0].params.body)).toContain("The ID photo is blurred.");
+    expect(String(queue.dispatch.mock.calls[0]![0].params.body)).toContain("The ID photo is blurred.");
   });
 
   it("keeps org admins to their own country and stops self-approval", async () => {
     const { svc, sql } = setup();
     await svc.decide(orgAdmin, "u1", { decision: "approve" });
-    expect(sql.one.mock.calls[0][1][4]).toBe("GH");
+    expect(sql.one.mock.calls[0]![1][4]).toBe("GH");
     await expect(svc.decide(admin, "a1", { decision: "approve" })).rejects.toMatchObject({ code: "own_application" });
   });
 
