@@ -35,7 +35,13 @@
     "community": "Communauté",
     "tools": "Outils",
     "org": "Organisation",
-    "developers": "Développeurs"
+    "developers": "Développeurs",
+    "adminConsole": "Console d’administration",
+    "group_prices": "Prix",
+    "group_trade": "Commerce",
+    "group_learn": "Apprendre",
+    "group_data": "Données",
+    "group_account": "Compte"
   },
   "landing": {
     "heroTitle": "Des marchés plus intelligents pour la sécurité alimentaire au {country}",

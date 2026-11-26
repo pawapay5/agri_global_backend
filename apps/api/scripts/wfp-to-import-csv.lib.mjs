@@ -13,6 +13,21 @@ export function buildLookups(markets, commodities) {
   return { markets: m, commodities: c };
 }
 
+/**
+ * WFP unit string → [our unit code, divisor for the price]. Explicit unitMap entries win. Otherwise a stated weight
+ * ("93 KG") becomes a per-kg price and a stated count ("100 Tubers", "30 pcs") a per-tuber/per-piece price: exact
+ * conversions from what WFP states, never an assumed bag size. Same as unit_and_divisor() in wfp_prices.py.
+ */
+export function unitAndDivisor(raw, unitMap) {
+  const s = String(raw ?? "").trim();
+  if (Object.hasOwn(unitMap, s)) return [unitMap[s], 1];
+  let m = /^(\d+(?:\.\d+)?)\s*kg$/i.exec(s);
+  if (m && Number(m[1]) > 0) return ["kg", Number(m[1])];
+  m = /^(\d+)\s*(pcs|pieces?|units?|tubers?)$/i.exec(s);
+  if (m && Number(m[1]) > 0) return [/^tuber/i.test(m[2]) ? "tuber" : "piece", Number(m[1])];
+  return [null, 1];
+}
+
 export function transform(rows, { markets, commodities }, unitMap, priceTypeMap, since) {
   const out = [], skipped = {};
   const skip = (k) => { skipped[k] = (skipped[k] ?? 0) + 1; };
@@ -21,12 +36,12 @@ export function transform(rows, { markets, commodities }, unitMap, priceTypeMap,
     if (since && r.date < since) { skip("before_since"); continue; }
     if (!["actual", "aggregate"].includes(String(r.priceflag || "actual").toLowerCase())) { skip("not_actual"); continue; }
     const m = markets.get(norm(r.market)), c = commodities.get(norm(r.commodity));
-    const u = unitMap[String(r.unit ?? "").trim()], pt = priceTypeMap[String(r.pricetype ?? "").trim()];
+    const [u, per] = unitAndDivisor(r.unit, unitMap), pt = priceTypeMap[String(r.pricetype ?? "").trim()];
     if (!m) { skip("unmapped_market"); continue; }
     if (!c) { skip("unmapped_commodity"); continue; }
     if (!u) { skip("unmapped_unit"); continue; }
     if (!pt) { skip("unmapped_price_type"); continue; }
-    const price = Number(r.price);
+    const price = Number(r.price) / per;
     if (!Number.isFinite(price) || price <= 0 || String(r.price ?? "").trim() === "") { skip("bad_price"); continue; }
     out.push({
       observed_at: `${r.date}T12:00:00Z`, market_code: m, commodity_code: c, price_type: pt, amount: price.toFixed(4),

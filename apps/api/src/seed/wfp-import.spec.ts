@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error plain ESM script without types
-import { buildLookups, toCsv, transform } from "../../scripts/wfp-to-import-csv.lib.mjs";
+import { buildLookups, toCsv, transform, unitAndDivisor } from "../../scripts/wfp-to-import-csv.lib.mjs";
 
 // Same cases as pipelines/tests for transform(): the Node converter must map exactly like the Python flow.
 const lookups = buildLookups(
@@ -23,6 +23,15 @@ describe("WFP → import CSV", () => {
     ], lookups, unitMap, ptMap, "2015-01-01");
     expect(rows).toEqual([]);
     expect(skipped).toEqual({ unmapped_market: 1, unmapped_commodity: 1, unmapped_unit: 1, unmapped_price_type: 1, bad_price: 1, not_actual: 1, before_since: 1 });
+  });
+  it("converts stated weights and counts exactly; unknown units stay skipped", () => {
+    expect(unitAndDivisor("93 KG", unitMap)).toEqual(["kg", 93]);
+    expect(unitAndDivisor("100 KG", unitMap)).toEqual(["bag_100kg", 1]); // explicit map wins
+    expect(unitAndDivisor("100 Tubers", unitMap)).toEqual(["tuber", 100]);
+    expect(unitAndDivisor("30 pcs", unitMap)).toEqual(["piece", 30]);
+    expect(unitAndDivisor("Sack", unitMap)).toEqual([null, 1]);
+    const { rows } = transform([row({ unit: "93 KG", price: "930" })], lookups, unitMap, ptMap);
+    expect(rows[0]).toMatchObject({ unit: "kg", amount: "10.0000" });
   });
   it("writes the importer's columns", () => {
     expect(toCsv([]).split("\r\n")[0]).toBe("observed_at,market_code,commodity_code,price_type,amount,currency,unit,source_ref");

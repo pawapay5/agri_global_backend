@@ -4,15 +4,16 @@
 //      half-migrated schema;
 //   2. load each country in SEED_COUNTRIES (default "gh") that isn't in the database yet. Countries already
 //      loaded are skipped, so edits made in the admin console are never overwritten by the pack;
-//   3. create or confirm the admin from ADMIN_EMAIL / ADMIN_PASSWORD (skipped when unset).
-// Problems in steps 2 and 3 are logged loudly but don't block the deploy: a mistyped admin password shouldn't
+//   3. create or confirm the admin from ADMIN_EMAIL / ADMIN_PASSWORD (skipped when unset);
+//   4. create or update the pipelines' enumerator login from PIPELINE_SERVICE_EMAIL / _PASSWORD (Coolify generates it).
+// Problems in steps 2-4 are logged loudly but don't block the deploy: a mistyped admin password shouldn't
 // take the whole site down. Fix the setting and redeploy.
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { seedAdmin } from "./seed-admin.mjs";
+import { seedAdmin, seedServiceAccount } from "./seed-admin.mjs";
 import { seedCountries } from "./seed-admin.lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,9 @@ try {
       const r = await db.query("SELECT 1 FROM countries WHERE iso2 = $1", [iso.toUpperCase()]);
       if (!r.rowCount) missing.push(iso);
     }
+    // SEED_REFRESH_COUNTRIES reloads packs that are already in the database (e.g. new markets were added).
+    const refresh = seedCountries({ SEED_COUNTRIES: process.env.SEED_REFRESH_COUNTRIES || "none" }).filter((c) => !missing.includes(c));
+    if (refresh.length) { console.log(`bootstrap: reloading countries ${refresh.join(", ")} (SEED_REFRESH_COUNTRIES)`); missing.push(...refresh); }
     if (missing.length) {
       const cli = join(here, "..", "dist", "seed", "seed.cli.js");
       if (!existsSync(cli)) throw new Error(`country seed not built (${cli}); run the API build first`);
@@ -45,6 +49,7 @@ try {
   } catch (e) { warn("country seed", e); }
 
   try { await seedAdmin(db); } catch (e) { warn("admin seed", e); }
+  try { await seedServiceAccount(db); } catch (e) { warn("service account", e); }
 } finally {
   await db.end();
 }

@@ -36,7 +36,13 @@
     "community": "Community",
     "tools": "Farmer tools",
     "org": "Organisation",
-    "developers": "Developers"
+    "developers": "Developers",
+    "adminConsole": "Admin console",
+    "group_prices": "Prices",
+    "group_trade": "Trade",
+    "group_learn": "Learn",
+    "group_data": "Data",
+    "group_account": "Account"
   },
   "landing": {
     "heroTitle": "Smarter markets for a food-secure {country}",

@@ -75,6 +75,25 @@ Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` valu
    ADMIN_EMAIL=ops@example.org ADMIN_PASSWORD='…' node scripts/seed-admin.mjs
    ```
 
+### Price data and forecasts (the `pipelines` service)
+
+The `pipelines` service runs the data jobs on a daily schedule. It needs no setup: the bootstrap creates its sign-in (an enumerator, `pipelines@agriprice.internal`, with a password Coolify generates as `SERVICE_PASSWORD_64_PIPELINE`).
+
+| When | What |
+|---|---|
+| Every day at `PIPELINES_DAILY_AT` (UTC, default `01:30`) | FX rates → clean → refresh aggregates → retrain in the `ml` service (forecasts and explanations are written, alerts re-checked) |
+| Mondays | also pulls new WFP prices for each active country that has a `wfp_hdx_<cc>` source |
+| 2nd of the month | also pulls monthly weather |
+| First start on an empty database | a **full backfill**: all WFP history, weather, aggregates over all history, then training. Expect it to take a while. |
+
+Check it in the **pipelines** container logs (`next nightly run at …`, `nightly … finished`), and in **Admin → Overview → Data pipelines**. Settings: `PIPELINES_RUN_ON_START` = `auto` (default: backfill only when there are no WFP prices yet), `true` (full pass on every start), or `false`.
+
+**Forecasts need recent prices.** The model only publishes a forecast when a series has at least 26 weeks of history and its newest price is no older than 21 days. WFP's public Ghana series currently ends in July 2023, so on WFP data alone you get price history and seasonal patterns, but forecasts stay "not enough recent data". Add current prices (enumerators uploading in **Admin → Price import**, or community reports) and the next nightly run publishes forecasts.
+
+**After editing a country pack** (new markets, aliases or crops), reload it into the existing database once: set `SEED_REFRESH_COUNTRIES=gh`, redeploy, then clear the variable. The reload upserts, so pack values overwrite admin-console edits to the same rows.
+
+**Loading WFP history by hand** (optional, e.g. before the pipelines service has run): on your computer run `node apps/api/scripts/wfp-to-import-csv.mjs` (or `--file <downloaded csv>`), then upload the files in **Admin → Price import** with the `wfp_hdx_gh` source id from **Admin → Catalogue → data_sources**. Rows already imported are skipped later by the pipelines (same source and reference).
+
 ## 4. How the web app behaves in production
 
 - **Build without the API.** The web image builds without contacting the API; it isn't on the build network. Public pages prerender from the country packs. Live prices stream in at request time and are cached by tag. When new prices land, the workers call `http://web:3000/api/revalidate`.

@@ -37,6 +37,7 @@ categories:
 # Global catalogue. hs_code = HS 6-digit subheading. Country packs choose which to track.
 commodities:
   - { code: maize_white, category: cereals, hs_code: "100590", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: White maize, fr: Maïs blanc } }
+  - { code: maize_yellow, category: cereals, hs_code: "100590", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Yellow maize, fr: Maïs jaune } }
   - { code: rice_local, category: cereals, hs_code: "100630", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Rice (local), fr: Riz (local) } }
   - { code: rice_imported, category: cereals, hs_code: "100630", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Rice (imported), fr: Riz (importé) } }
   - { code: sorghum, category: cereals, hs_code: "100790", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Sorghum, fr: Sorgho } }
@@ -47,6 +48,8 @@ commodities:
   - { code: plantain, category: fruits, hs_code: "080310", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Plantain, fr: Banane plantain } }
   - { code: tomato, category: vegetables, hs_code: "070200", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Tomato, fr: Tomate } }
   - { code: onion, category: vegetables, hs_code: "070310", perishability: medium, shelf_life_days: 60, default_unit: kg, name: { en: Onion, fr: Oignon } }
+  - { code: eggplant, category: vegetables, hs_code: "070930", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Garden eggs (eggplant), fr: Aubergine africaine } }
+  - { code: pepper_dried, category: vegetables, hs_code: "090421", perishability: low, shelf_life_days: 180, default_unit: kg, name: { en: Dried chilli pepper, fr: Piment séché } }
   - { code: pepper_fresh, category: vegetables, hs_code: "070960", perishability: high, shelf_life_days: 7, default_unit: kg, name: { en: Chilli pepper (fresh), fr: Piment (frais) } }
   - { code: groundnut, category: legumes, hs_code: "120242", perishability: low, shelf_life_days: 240, default_unit: kg, name: { en: Groundnut (shelled), fr: Arachide (décortiquée) } }
   - { code: cowpea, category: legumes, hs_code: "071335", perishability: low, shelf_life_days: 365, default_unit: kg, name: { en: Cowpea, fr: Niébé } }

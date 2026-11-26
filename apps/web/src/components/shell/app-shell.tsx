@@ -1,31 +1,23 @@
 "use client";
-import { Bell, Building2, ChartSpline, Code2, CreditCard, FileText, HandCoins, House, Inbox, Lightbulb, LogOut, Menu, MessageSquare, ShieldCheck, ShoppingBasket, Store, Table2, Users, Wheat, Wrench } from "lucide-react";
+import { CreditCard, Inbox, LayoutDashboard, LogOut, Menu, ShieldCheck } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
 import { Link, usePathname } from "@/i18n/navigation";
+import { useSellerProfile } from "@/lib/api/market";
 import { useMe, useUnreadCount } from "@/lib/api/queries";
 import { bff } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
+import { isStaff, NAV, navFor, needsShopCheck, type NavContext } from "./app-nav";
 import { ThemeToggle } from "./theme-toggle";
 
-const NAV = [
-  { href: "/app", key: "home", icon: House, exact: true },
-  { href: "/app/commodities", key: "commodities", icon: Wheat, exact: false },
-  { href: "/app/markets", key: "markets", icon: Store, exact: false },
-  { href: "/app/forecast", key: "forecast", icon: ChartSpline, exact: false },
-  { href: "/app/alerts", key: "alerts", icon: Bell, exact: false },
-  { href: "/app/messages", key: "messages", icon: MessageSquare, exact: false, sideOnly: true },
-  { href: "/app/marketplace", key: "marketplace", icon: ShoppingBasket, exact: false, sideOnly: true },
-  { href: "/app/sell", key: "sell", icon: HandCoins, exact: false, sideOnly: true },
-  { href: "/app/community", key: "community", icon: Users, exact: false, sideOnly: true },
-  { href: "/app/tools", key: "tools", icon: Wrench, exact: false, sideOnly: true },
-  { href: "/app/insights", key: "insights", icon: Lightbulb, exact: false, sideOnly: true },
-  { href: "/app/reports", key: "reports", icon: FileText, exact: false, sideOnly: true },
-  { href: "/app/data", key: "data", icon: Table2, exact: false, sideOnly: true },
-  { href: "/app/org", key: "org", icon: Building2, exact: false, sideOnly: true },
-  { href: "/app/developers", key: "developers", icon: Code2, exact: false, sideOnly: true },
-] as const;
+/** The signed-in person's menu context: role, organisation, and (only when the role doesn't decide) a shop. */
+function useNavContext(): NavContext {
+  const me = useMe();
+  const role = me.data?.role;
+  const shop = useSellerProfile(Boolean(me.data) && needsShopCheck(role));
+  return { role, inOrg: Boolean(me.data?.organisationId), hasShop: Boolean(shop.data) };
+}
 
 /** Inbox link with the unread count in its accessible name (the badge alone is decorative). */
 function InboxLink({ compact = false }: { compact?: boolean }) {
@@ -50,12 +42,14 @@ function InboxLink({ compact = false }: { compact?: boolean }) {
  */
 function MoreMenu({ onSignOut }: { onSignOut: () => void }) {
   const t = useTranslations("nav");
-  const extra = NAV.filter((n) => "sideOnly" in n && n.sideOnly);
+  const ctx = useNavContext();
+  const extra = navFor(ctx).flatMap((g) => g.items).filter((n) => !n.bottom);
   const item = "flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted";
   return (
     <details className="relative">
       <summary className="list-none rounded-lg p-2 hover:bg-muted [&::-webkit-details-marker]:hidden" aria-label={t("menu")}><Menu className="size-5" /></summary>
-      <div className="absolute end-0 z-50 mt-1 w-56 rounded-xl border border-border bg-card p-1.5 shadow-lg">
+      <div className="absolute end-0 z-50 mt-1 max-h-[75vh] w-60 overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-lg">
+        {isStaff(ctx.role) ? <><Link href="/admin" className={cn(item, "font-semibold text-brand dark:text-leaf")}><LayoutDashboard aria-hidden className="size-4" />{t("adminConsole")}</Link><hr className="my-1 border-border" /></> : null}
         {extra.map((n) => <Link key={n.href} href={n.href} className={item}><n.icon aria-hidden className="size-4" />{t(n.key)}</Link>)}
         <hr className="my-1 border-border" />
         <Link href="/app/billing" className={item}><CreditCard aria-hidden className="size-4" />{t("billing")}</Link>
@@ -74,15 +68,30 @@ const styles: Record<Variant, { base: string; on: string; off: string }> = {
 
 function Links({ variant, path }: { variant: Variant; path: string | null }) {
   const t = useTranslations("nav");
+  const ctx = useNavContext();
   const s = styles[variant];
-  return NAV.filter((n) => variant === "side" || !("sideOnly" in n && n.sideOnly)).map((n) => {
-    const on = path != null && (n.exact ? path === n.href : path === n.href || path.startsWith(`${n.href}/`));
-    return (
-      <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined} className={cn(s.base, on ? s.on : s.off)}>
-        <n.icon aria-hidden className="size-5" />{t(n.key)}
-      </Link>
-    );
-  });
+  const on = (n: (typeof NAV)[number]) => path != null && (n.exact ? path === n.href : path === n.href || path.startsWith(`${n.href}/`));
+  const link = (n: (typeof NAV)[number]) => (
+    <Link key={n.href} href={n.href} aria-current={on(n) ? "page" : undefined} className={cn(s.base, on(n) ? s.on : s.off)}>
+      <n.icon aria-hidden className="size-5" />{t(n.key)}
+    </Link>
+  );
+  if (variant === "bottom") return NAV.filter((n) => n.bottom).map(link);
+  return (
+    <>
+      {isStaff(ctx.role) ? (
+        <Link href="/admin" className="mb-3 flex items-center gap-3 rounded-xl border border-brand/30 bg-brand/5 px-3 py-2 text-sm font-semibold text-brand hover:bg-brand/10 dark:border-leaf/30 dark:text-leaf">
+          <LayoutDashboard aria-hidden className="size-5" />{t("adminConsole")}
+        </Link>
+      ) : null}
+      {navFor(ctx).map((g) => (
+        <div key={g.group} className="mb-2">
+          <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-fg">{t(`group_${g.group}`)}</p>
+          <div className="flex flex-col gap-0.5">{g.items.map(link)}</div>
+        </div>
+      ))}
+    </>
+  );
 }
 
 /** Reads the pathname, so it streams in; the fallback renders the same links without the active state. */

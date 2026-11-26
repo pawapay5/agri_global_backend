@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 import pg from "pg";
-import { readAdminConfig } from "./seed-admin.lib.mjs";
+import { readAdminConfig, readServiceConfig } from "./seed-admin.lib.mjs";
 
 // Same parameters as src/modules/auth/credentials.ts (OWASP 2024 argon2id baseline).
 const ARGON = { type: argon2.argon2id, memoryCost: 19_456, timeCost: 2, parallelism: 1 };
@@ -32,6 +32,31 @@ export async function seedAdmin(db, env = process.env, log = console.log) {
     [cfg.email, hash, cfg.name, cfg.country]);
   await audit(db, rows[0].id, "admin.seed.created", { country: cfg.country });
   log(`admin seed: created admin ${cfg.email}`);
+  return "created";
+}
+
+/**
+ * Creates or updates the pipelines' enumerator account. Its password comes from Coolify (a generated secret), so
+ * it's re-synced on every deploy; nobody signs in with it by hand.
+ */
+export async function seedServiceAccount(db, env = process.env, log = console.log) {
+  const cfg = readServiceConfig(env, String(env.SEED_COUNTRIES || "gh").split(/[\s,]+/)[0]);
+  if ("skip" in cfg) { log(`service account: skipped (${cfg.skip})`); return "skipped"; }
+  if ("error" in cfg) throw new Error(`service account: ${cfg.error}`);
+  const country = await db.query("SELECT 1 FROM countries WHERE iso2 = $1", [cfg.country]);
+  if (!country.rowCount) throw new Error(`service account: country ${cfg.country} isn't loaded yet`);
+  const hash = await argon2.hash(cfg.password, ARGON);
+  const existing = await db.query("SELECT id FROM users WHERE email = $1", [cfg.email]);
+  if (existing.rowCount) {
+    await db.query(`UPDATE users SET password_hash = $2, role = 'enumerator', country_iso2 = $3, email_verified_at = coalesce(email_verified_at, now()) WHERE id = $1`, [existing.rows[0].id, hash, cfg.country]);
+    log(`service account: ${cfg.email} up to date`);
+    return "updated";
+  }
+  const { rows } = await db.query(
+    `INSERT INTO users (email, email_verified_at, password_hash, password_changed_at, full_name, role, country_iso2)
+     VALUES ($1, now(), $2, now(), 'Data pipelines', 'enumerator', $3) RETURNING id`, [cfg.email, hash, cfg.country]);
+  await audit(db, rows[0].id, "service.seed.created", { country: cfg.country });
+  log(`service account: created ${cfg.email}`);
   return "created";
 }
 

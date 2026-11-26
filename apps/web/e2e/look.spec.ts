@@ -65,3 +65,13 @@ test("login and sign-up show their own photo in the brand panel", async ({ page 
     expect(await axe(page)).toEqual([]);
   }
 });
+
+test("farmers see the seller centre but no admin console link", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "sidebar is desktop-only; the phone menu shares the same rules (unit-tested)");
+  const url = new URL(test.info().project.use.baseURL!);
+  await page.context().addCookies([{ name: "ap_at", value: MOCK_AT, domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }, { name: "ap_rt", value: "r", domain: url.hostname, path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.goto("/en/app");
+  const nav = page.getByRole("navigation", { name: "App" }).first();
+  await expect(nav.getByRole("link", { name: "Seller centre" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("link", { name: "Admin console" })).toHaveCount(0);
+});

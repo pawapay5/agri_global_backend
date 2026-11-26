@@ -193,8 +193,8 @@ export function useAddEvidence(id: string) {
 }
 
 // ── Seller centre ──
-export const useSellerProfile = () =>
-  useQuery({ queryKey: ["seller-profile"] as const, queryFn: () => unwrap(api.GET("/v1/marketplace/seller-profile")), retry: (n, e) => !(e && typeof e === "object" && "status" in e && (e as { status: number }).status === 404) && n < 2 });
+export const useSellerProfile = (enabled = true) =>
+  useQuery({ queryKey: ["seller-profile"] as const, queryFn: () => unwrap(api.GET("/v1/marketplace/seller-profile")), enabled, staleTime: 300_000, retry: (n, e) => !(e && typeof e === "object" && "status" in e && (e as { status: number }).status === 404) && n < 2 });
 
 export function useSaveSellerProfile() {
   const qc = useQueryClient();

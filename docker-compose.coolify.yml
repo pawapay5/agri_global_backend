@@ -135,6 +135,12 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-}
       ADMIN_COUNTRY: ${ADMIN_COUNTRY:-}
       ADMIN_PASSWORD_RESET: ${ADMIN_PASSWORD_RESET:-false}
+      # Countries to reload from their pack even though they're already in the database (e.g. after adding markets
+      # to a pack). Upserts: rows from the pack overwrite admin-console edits to the same rows. Unset it afterwards.
+      SEED_REFRESH_COUNTRIES: ${SEED_REFRESH_COUNTRIES:-}
+      # Login the pipelines use to post imports (an enumerator; Coolify generates the password).
+      PIPELINE_SERVICE_EMAIL: ${PIPELINE_SERVICE_EMAIL:-pipelines@agriprice.internal}
+      PIPELINE_SERVICE_PASSWORD: ${SERVICE_PASSWORD_64_PIPELINE}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
@@ -145,6 +151,26 @@ services:
     environment: *backend-env
     depends_on:
       api: { condition: service_healthy }
+    restart: unless-stopped
+    exclude_from_hc: true
+
+  # Data pipelines on a daily schedule (pipelines/scheduler.py): FX daily, WFP prices weekly, weather monthly,
+  # then clean → refresh aggregates → ask the ml service to retrain. On a fresh database it runs a full backfill
+  # straight away. Training itself happens in `ml` (its /models volume holds the models).
+  pipelines:
+    build: { context: pipelines, dockerfile: Dockerfile }
+    environment:
+      DATABASE_URL: postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/agriprice
+      API_INTERNAL_URL: http://api:3001
+      ML_SERVICE_URL: http://ml:8001
+      ML_SERVICE_TOKEN: ${SERVICE_PASSWORD_64_ML}
+      PIPELINE_SERVICE_EMAIL: ${PIPELINE_SERVICE_EMAIL:-pipelines@agriprice.internal}
+      PIPELINE_SERVICE_PASSWORD: ${SERVICE_PASSWORD_64_PIPELINE}
+      PIPELINES_DAILY_AT: ${PIPELINES_DAILY_AT:-01:30}
+      PIPELINES_RUN_ON_START: ${PIPELINES_RUN_ON_START:-auto}
+    depends_on:
+      api: { condition: service_healthy }
+      ml: { condition: service_healthy }
     restart: unless-stopped
     exclude_from_hc: true
 
