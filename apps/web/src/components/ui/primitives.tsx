@@ -4,11 +4,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4",
   {
     variants: {
       variant: {
-        primary: "bg-brand text-brand-fg hover:opacity-90",
+        primary: "bg-brand text-brand-fg shadow-sm hover:opacity-90 hover:shadow-md",
         outline: "border border-brand text-brand bg-transparent hover:bg-muted",
         ghost: "text-foreground hover:bg-muted",
         subtle: "bg-muted text-foreground hover:bg-border",
@@ -26,7 +26,7 @@ export function Button({ className, variant, size, asChild, ...props }: React.Co
 }
 
 export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm", className)} {...props} />;
+  return <div className={cn("rounded-2xl border border-border/80 bg-card p-5 shadow-elev-1", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {

@@ -1,5 +1,5 @@
 "use client";
-import { Bell, ChartSpline, CreditCard, FileText, HandCoins, House, Inbox, Lightbulb, LogOut, Menu, MessageSquare, ShieldCheck, ShoppingBasket, Store, Table2, Wheat } from "lucide-react";
+import { Bell, Building2, ChartSpline, Code2, CreditCard, FileText, HandCoins, House, Inbox, Lightbulb, LogOut, Menu, MessageSquare, ShieldCheck, ShoppingBasket, Store, Table2, Users, Wheat, Wrench } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -7,6 +7,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { useMe, useUnreadCount } from "@/lib/api/queries";
 import { bff } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 const NAV = [
   { href: "/app", key: "home", icon: House, exact: true },
@@ -17,9 +18,13 @@ const NAV = [
   { href: "/app/messages", key: "messages", icon: MessageSquare, exact: false, sideOnly: true },
   { href: "/app/marketplace", key: "marketplace", icon: ShoppingBasket, exact: false, sideOnly: true },
   { href: "/app/sell", key: "sell", icon: HandCoins, exact: false, sideOnly: true },
+  { href: "/app/community", key: "community", icon: Users, exact: false, sideOnly: true },
+  { href: "/app/tools", key: "tools", icon: Wrench, exact: false, sideOnly: true },
   { href: "/app/insights", key: "insights", icon: Lightbulb, exact: false, sideOnly: true },
   { href: "/app/reports", key: "reports", icon: FileText, exact: false, sideOnly: true },
   { href: "/app/data", key: "data", icon: Table2, exact: false, sideOnly: true },
+  { href: "/app/org", key: "org", icon: Building2, exact: false, sideOnly: true },
+  { href: "/app/developers", key: "developers", icon: Code2, exact: false, sideOnly: true },
 ] as const;
 
 /** Inbox link with the unread count in its accessible name (the badge alone is decorative). */
@@ -30,7 +35,7 @@ function InboxLink({ compact = false }: { compact?: boolean }) {
   const label = n ? `${t("notifications")}, ${td("unread", { n })}` : t("notifications");
   return (
     <Link href="/app/notifications" aria-label={compact ? label : undefined}
-      className={compact ? "relative rounded-lg p-2 hover:bg-muted" : "mt-3 flex items-center gap-2 text-sm hover:underline"}>
+      className={compact ? "relative rounded-lg p-2 hover:bg-muted" : "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted"}>
       <span className="relative"><Inbox aria-hidden className={compact ? "size-5" : "size-4"} />
         {n ? <span aria-hidden className="absolute -end-1.5 -top-1.5 min-w-4 rounded-full bg-down px-1 text-center text-[10px] font-semibold leading-4 text-white">{n > 99 ? "99+" : n}</span> : null}
       </span>
@@ -63,7 +68,7 @@ function MoreMenu({ onSignOut }: { onSignOut: () => void }) {
 
 type Variant = "side" | "bottom";
 const styles: Record<Variant, { base: string; on: string; off: string }> = {
-  side: { base: "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium", on: "bg-brand text-brand-fg", off: "hover:bg-muted" },
+  side: { base: "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors", on: "bg-brand text-brand-fg shadow-sm", off: "text-foreground/80 hover:bg-muted hover:text-foreground" },
   bottom: { base: "flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", on: "text-brand", off: "text-muted-fg" },
 };
 
@@ -97,29 +102,39 @@ export function AppShell({ children }: { children: ReactNode }) {
   const signOut = async () => { await bff("logout"); window.location.assign(`/${locale}/login`); };
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-border bg-card p-4 lg:flex">
-        <Link href="/app" className="mb-8"><Logo suffix={me.data?.country} /></Link>
-        <nav aria-label="App" className="flex flex-1 flex-col gap-1"><NavLinks variant="side" /></nav>
-        <div className="border-t border-border pt-4">
-          <p className="truncate text-sm font-semibold">{me.data?.fullName ?? me.data?.email ?? me.data?.phone ?? "…"}</p>
-          <p className="text-xs capitalize text-muted-fg">{me.data?.role}</p>
-          <InboxLink />
-          <Link href="/app/billing" className="mt-3 flex items-center gap-2 text-sm hover:underline"><CreditCard aria-hidden className="size-4" />{t("billing")}</Link>
-          <Link href="/app/settings/security" className="mt-3 flex items-center gap-2 text-sm hover:underline"><ShieldCheck aria-hidden className="size-4" />{t("security")}</Link>
-          <button onClick={signOut} className="mt-2 flex items-center gap-2 text-sm text-down hover:underline"><LogOut aria-hidden className="size-4" />{t("signOut")}</button>
+    <div className="page-backdrop flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-border bg-card/80 backdrop-blur-xl lg:flex">
+        <Link href="/app" className="mx-4 mb-4 mt-5 w-fit rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"><Logo suffix={me.data?.country} /></Link>
+        <nav aria-label="App" className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3 [scrollbar-width:thin]"><NavLinks variant="side" /></nav>
+        <div className="m-3 space-y-3 rounded-2xl border border-border bg-background/60 p-3">
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-leaf to-brand text-sm font-semibold text-white">
+              {(me.data?.fullName ?? me.data?.email ?? "?").trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{me.data?.fullName ?? me.data?.email ?? me.data?.phone ?? "…"}</span>
+              <span className="block text-xs capitalize text-muted-fg">{me.data?.role?.replace("_", " ")}</span>
+            </span>
+            <ThemeToggle />
+          </div>
+          <div className="grid gap-0.5 text-sm">
+            <InboxLink />
+            <Link href="/app/billing" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted"><CreditCard aria-hidden className="size-4" />{t("billing")}</Link>
+            <Link href="/app/settings/security" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted"><ShieldCheck aria-hidden className="size-4" />{t("security")}</Link>
+            <button onClick={signOut} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-start text-down hover:bg-down/10"><LogOut aria-hidden className="size-4" />{t("signOut")}</button>
+          </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/70 bg-background/80 px-4 backdrop-blur-xl lg:hidden">
           <Link href="/app"><Logo suffix={me.data?.country} /></Link>
-          <span className="flex items-center gap-1"><InboxLink compact /><MoreMenu onSignOut={signOut} /></span>
+          <span className="flex items-center gap-0.5"><ThemeToggle /><InboxLink compact /><MoreMenu onSignOut={signOut} /></span>
         </header>
         <main id="main" className="mx-auto w-full max-w-7xl flex-1 p-4 lg:p-8">{children}</main>
       </div>
 
-      <nav aria-label="App" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card lg:hidden"><NavLinks variant="bottom" /></nav>
+      <nav aria-label="App" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"><NavLinks variant="bottom" /></nav>
     </div>
   );
 }

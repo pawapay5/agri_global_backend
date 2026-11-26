@@ -1,7 +1,3 @@
-#!/usr/bin/env node
-// Starts the Prism mock (from openapi/openapi.yaml) and the production web server pointed at it, then prints
-// "Ready" once the site answers. Used by Lighthouse CI (lighthouserc.cjs) and handy for demoing without a backend.
-//   node scripts/serve-with-mock.mjs [port=3100]
 import { spawn } from "node:child_process";
 
 const PORT = Number(process.argv[2] ?? 3100), PRISM = 4010;

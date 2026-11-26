@@ -6,11 +6,12 @@ import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/primitives";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 /**
- * Public header. Server component with no session read, so public pages stay fully static. Navigation links
- * don't prefetch: on a 4G phone, prefetching every linked route's code costs more than it saves.
- * The mobile menu is a <details> element: it works without JavaScript.
+ * Public header. Server component with no session read, so public pages stay fully static (the theme button is a
+ * tiny client island). Navigation links don't prefetch: on a 4G phone, prefetching every linked route's code costs
+ * more than it saves. The mobile menu is a <details> element: it works without JavaScript.
  */
 export async function SiteHeader({ locale, country = "gh" }: { locale: string; country?: string }) {
   const t = await getTranslations({ locale, namespace: "nav" });
@@ -23,21 +24,24 @@ export async function SiteHeader({ locale, country = "gh" }: { locale: string; c
     { href: "/pricing", label: t("pricing") },
   ];
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:rounded focus:bg-card focus:p-2">{t("skip")}</a>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
-        <Link href="/" prefetch={false}><Logo suffix={country.toUpperCase()} /></Link>
-        <nav className="hidden items-center gap-6 text-sm font-medium lg:flex" aria-label="Main">
-          {links.map((l) => <Link key={l.href} href={l.href} prefetch={false} className="hover:text-brand">{l.label}</Link>)}
+        <Link href="/" prefetch={false} className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"><Logo suffix={country.toUpperCase()} /></Link>
+        <nav className="hidden items-center gap-1 text-sm font-medium lg:flex" aria-label="Main">
+          {links.map((l) => (
+            <Link key={l.href} href={l.href} prefetch={false} className="relative rounded-lg px-3 py-2 text-foreground/80 transition-colors hover:bg-muted hover:text-foreground">{l.label}</Link>
+          ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
           <Link href="/login" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>{t("signIn")}</Link>
-          <Link href="/signup" prefetch={false} className={cn(buttonVariants({ size: "sm" }))}>{t("signUp")}</Link>
+          <Link href="/signup" prefetch={false} className={cn(buttonVariants({ size: "sm" }), "px-4")}>{t("signUp")}</Link>
           <details className="group relative lg:hidden">
             <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-muted [&::-webkit-details-marker]:hidden" aria-label={t("menu")}>
               <Menu aria-hidden className="size-5" />
             </summary>
-            <nav aria-label="Main" className="absolute end-0 top-12 w-56 rounded-2xl border border-border bg-card p-2 shadow-lg">
+            <nav aria-label="Main" className="absolute end-0 top-12 w-60 rounded-2xl border border-border bg-card p-2 shadow-elev-2">
               <ul>
                 {links.map((l) => <li key={l.href}><Link href={l.href} prefetch={false} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted">{l.label}</Link></li>)}
                 <li className="sm:hidden"><Link href="/login" prefetch={false} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted">{t("signIn")}</Link></li>
@@ -55,6 +59,7 @@ export async function SiteFooter({ locale, country = "gh" }: { locale: string; c
   cacheLife("days"); // the copyright year is read from the clock, so cache it rather than render per request
   const t = await getTranslations({ locale, namespace: "footer" });
   const tn = await getTranslations({ locale, namespace: "nav" });
+  const tl = await getTranslations({ locale, namespace: "landing" });
   const groups: { title: string; links: { href: string; label: string }[] }[] = [
     { title: t("product"), links: [
       { href: `/${country}/prices`, label: tn("prices") }, { href: `/${country}/markets`, label: tn("markets") },
@@ -69,21 +74,28 @@ export async function SiteFooter({ locale, country = "gh" }: { locale: string; c
     { title: t("legal"), links: [{ href: "/legal/privacy", label: t("privacy") }, { href: "/legal/terms", label: t("terms") }] },
   ];
   return (
-    <footer className="mt-auto border-t border-border bg-background">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 text-sm sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="relative mt-auto border-t border-border bg-card">
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-leaf/60 to-transparent" />
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 text-sm md:grid-cols-[1.4fr_repeat(4,1fr)]">
+        <div className="space-y-3">
+          <Logo />
+          <p className="max-w-xs text-muted-fg">{tl("heroBody")}</p>
+        </div>
         {groups.map((g) => (
           <nav key={g.title} aria-label={g.title}>
             <p className="mb-3 font-semibold">{g.title}</p>
             <ul className="space-y-2 text-muted-fg">
               {/* Plain next/link with the locale in the URL: next-intl's server Link reads request headers, which a
                   cached component can't. */}
-              {g.links.map((l) => <li key={l.href}><NextLink href={`/${locale}${l.href}`} prefetch={false} className="hover:text-brand hover:underline">{l.label}</NextLink></li>)}
+              {g.links.map((l) => <li key={l.href}><NextLink href={`/${locale}${l.href}`} prefetch={false} className="transition-colors hover:text-brand dark:hover:text-leaf">{l.label}</NextLink></li>)}
             </ul>
           </nav>
         ))}
       </div>
-      <div className="mx-auto flex max-w-7xl items-center gap-3 border-t border-border px-4 py-6 text-sm text-muted-fg">
-        <Logo compact /><span>{t("rights", { year: new Date().getUTCFullYear() })}</span>
+      <div className="border-t border-border">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-6 text-sm text-muted-fg">
+          <Logo compact /><span>{t("rights", { year: new Date().getUTCFullYear() })}</span>
+        </div>
       </div>
     </footer>
   );

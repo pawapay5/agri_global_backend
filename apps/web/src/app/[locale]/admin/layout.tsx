@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { ACCESS_COOKIE, STAFF_ROLES, upstreamSignal } from "@/lib/auth/tokens";
 import { AppProviders } from "@/components/app-providers";
-import { AdminNav } from "@/features/admin-moderation";
+import { AdminShell } from "@/components/shell/admin-shell";
 import { env } from "@/lib/env";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -27,5 +27,5 @@ export default async function AdminLayout({ children, params }: LayoutProps<"/[l
   if (!res.ok) throw new Error(`Admin check failed: API returned ${res.status}`);
   const me = (await res.json()) as { role?: string };
   if (!STAFF_ROLES.includes(me.role as (typeof STAFF_ROLES)[number])) redirect(`/${locale}/app`);
-  return <AppProviders><div className="min-h-screen bg-surface"><AdminNav />{children}</div></AppProviders>;
+  return <AppProviders><AdminShell role={me.role!} host={new URL(env.siteUrl).host}>{children}</AdminShell></AppProviders>;
 }

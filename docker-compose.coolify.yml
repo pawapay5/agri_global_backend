@@ -83,6 +83,10 @@ services:
         NEXT_PUBLIC_FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
         NEXT_PUBLIC_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
         NEXT_PUBLIC_SUPPORT_WHATSAPP: ${SUPPORT_WHATSAPP:-}
+        # Checkout providers shown on /app/billing; list only those whose secret keys are set for the api service.
+        NEXT_PUBLIC_BILLING_PROVIDERS: ${BILLING_PROVIDERS:-paystack}
+        # Public API address for developers (the api service's Coolify domain).
+        NEXT_PUBLIC_API_PUBLIC_URL: ${SERVICE_URL_API}
         IMAGES_HOST: ${SERVICE_FQDN_STORAGE}
     environment:
       - SERVICE_FQDN_WEB_3000
@@ -117,12 +121,20 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  # One-shot: applies pending migrations before the API starts. Seeding a country is a manual step (see docs).
+  # One-shot on every deploy (scripts/bootstrap.mjs): applies pending migrations, loads any country in
+  # SEED_COUNTRIES that isn't in the database yet (loaded ones are never overwritten), then creates or confirms
+  # the admin from ADMIN_EMAIL / ADMIN_PASSWORD. Without ADMIN_* it only migrates and seeds countries.
   migrate:
     build: { context: ., dockerfile: apps/api/Dockerfile }
-    command: ["node", "scripts/migrate.mjs", "up"]
+    command: ["node", "scripts/bootstrap.mjs"]
     environment:
       DATABASE_URL: postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/agriprice
+      SEED_COUNTRIES: ${SEED_COUNTRIES:-gh}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_COUNTRY: ${ADMIN_COUNTRY:-}
+      ADMIN_PASSWORD_RESET: ${ADMIN_PASSWORD_RESET:-false}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
