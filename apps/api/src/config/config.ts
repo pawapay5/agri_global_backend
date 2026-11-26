@@ -14,6 +14,11 @@ export interface AppConfig {
   search: { provider: "postgres" | "meilisearch"; meiliUrl?: string; meiliKey?: string };
   openMeteoUrl: string;
   mlServiceUrl: string;
+  /** Farmer assistant: Claude answers from AgriPrice data; Khaya (GhanaNLP) translates and does speech. Off unless both keys are set. */
+  assistant: {
+    anthropicApiKey?: string; model: string; dailyLimitPerUser: number;
+    khayaApiKey?: string; khayaBaseUrl: string; khayaAuth: "bearer" | "apim";
+  };
 }
 
 const list = (v?: string) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -62,6 +67,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       imagesBucket: env.S3_BUCKET_IMAGES ?? "agriprice-images",
     },
     search: { provider: searchProvider, meiliUrl: env.MEILI_URL, meiliKey: env.MEILI_KEY },
+    assistant: {
+      anthropicApiKey: env.ANTHROPIC_API_KEY || undefined,
+      model: env.ASSISTANT_MODEL || "claude-opus-5-5",
+      dailyLimitPerUser: Math.max(0, Number(env.ASSISTANT_DAILY_LIMIT || 20)),
+      khayaApiKey: env.KHAYA_API_KEY || undefined,
+      khayaBaseUrl: (env.KHAYA_BASE_URL || "https://api.khaya.ai").replace(/\/+$/, ""),
+      khayaAuth: env.KHAYA_AUTH === "apim" ? "apim" : "bearer",
+    },
     openMeteoUrl: env.OPEN_METEO_URL ?? "https://api.open-meteo.com/v1/forecast",
     mlServiceUrl: env.ML_SERVICE_URL ?? "http://localhost:8001",
   };

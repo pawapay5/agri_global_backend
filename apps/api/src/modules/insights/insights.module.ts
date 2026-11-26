@@ -70,5 +70,5 @@ export class InsightsController {
   exportInsights(@Query() q: ExportQuery, @Display() d: DisplayHints, @CurrentUser() u: AuthUser) { return this.insights.exportInsights(q, d, u); }
 }
 
-@Module({ imports: [PricesModule, ForecastsModule, GeoModule], controllers: [InsightsController], providers: [InsightsService] })
+@Module({ imports: [PricesModule, ForecastsModule, GeoModule], controllers: [InsightsController], providers: [InsightsService], exports: [InsightsService] })
 export class InsightsModule {}

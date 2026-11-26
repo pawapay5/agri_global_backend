@@ -1,4 +1,4 @@
-import { BadgeCheck, Bell, Building2, ChartSpline, Code2, FileText, HandCoins, House, Lightbulb, MessageSquare, ShoppingBasket, Store, Table2, Users, Wheat, Wrench, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, Building2, ChartSpline, Code2, FileText, HandCoins, House, Lightbulb, MessageSquare, Sparkles, ShoppingBasket, Store, Table2, Users, Wheat, Wrench, type LucideIcon } from "lucide-react";
 
 /**
  * Which app sections each person sees. This only shapes the menu: the API authorises every request, and pages
@@ -33,6 +33,7 @@ export const NAV: NavItem[] = [
   { href: "/app/markets", key: "markets", icon: Store, bottom: true, group: "prices" },
   { href: "/app/forecast", key: "forecast", icon: ChartSpline, bottom: true, group: "prices" },
   { href: "/app/alerts", key: "alerts", icon: Bell, bottom: true, group: "prices" },
+  { href: "/app/assistant", key: "assistant", icon: Sparkles, group: "prices" },
   { href: "/app/marketplace", key: "marketplace", icon: ShoppingBasket, group: "trade" },
   { href: "/app/sell", key: "sell", icon: HandCoins, group: "trade", show: (c) => c.seller === "verified" },
   { href: "/app/sell", key: "becomeSeller", icon: BadgeCheck, group: "trade", show: (c) => c.seller !== "verified" && !isStaff(c.role) },

@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@agriprice/contracts": "workspace:*",
+    "@anthropic-ai/sdk": "1.8.0",
     "@aws-sdk/client-s3": "^3.1175.0",
     "@aws-sdk/s3-request-presigner": "^3.1175.0",
     "@nestjs/common": "11.2.11",

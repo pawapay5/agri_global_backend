@@ -43,6 +43,8 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: assistant
+    description: Farm assistant that answers in Ghanaian languages from AgriPrice data, plus translation
   - name: health
     description: Liveness and readiness probes
   - name: auth
@@ -756,6 +758,61 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
 
   # ───────────────────────────── insights ─────────────────────────────
+  /v1/assistant/status:
+    get:
+      tags: [assistant]
+      operationId: assistant_status
+      summary: Whether the assistant is on, which languages it speaks, and today's usage.
+      responses:
+        "200": { description: Status, content: { application/json: { schema: { $ref: "#/components/schemas/AssistantStatus" } } } }
+  /v1/assistant/messages:
+    get:
+      tags: [assistant]
+      operationId: assistant_history
+      summary: The latest conversation (or a given one), oldest first, up to 50 messages.
+      parameters: [{ name: conversationId, in: query, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { description: Messages, content: { application/json: { schema: { type: object, required: [conversationId, data], properties: { conversationId: { type: ["null", string], format: uuid }, data: { type: array, items: { $ref: "#/components/schemas/AssistantMessage" } } } } } } }
+    delete:
+      tags: [assistant]
+      operationId: assistant_clear
+      summary: Delete all of my assistant conversations and their audio.
+      responses:
+        "204": { description: Deleted }
+    post:
+      tags: [assistant]
+      operationId: assistant_ask
+      summary: Ask a question by text or a voice recording (local languages only). The answer uses only AgriPrice data; every price or forecast it quotes is returned in facts. Counts towards the daily limit.
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/AssistantAsk" } }
+          multipart/form-data: { schema: { type: object, required: [language, audio], properties: { language: { $ref: "#/components/schemas/AssistantLanguage" }, conversationId: { type: string, format: uuid }, audio: { type: string, contentMediaType: audio/* } } } }
+      responses:
+        "201": { description: Answer, content: { application/json: { schema: { $ref: "#/components/schemas/AssistantMessage" } } } }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+  /v1/assistant/messages/{id}/audio:
+    get:
+      tags: [assistant]
+      operationId: assistant_audio
+      summary: The answer read aloud in the farmer's language (generated on first play).
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "200": { description: Audio, content: { audio/wav: { schema: { type: string, format: binary } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+  /v1/assistant/translate:
+    post:
+      tags: [assistant]
+      operationId: assistant_translate
+      summary: Translate text between English and Twi, Fante, Ewe, Ga or Dagbani (two local languages go through English).
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [text, from, to], properties: { text: { type: string, minLength: 1, maxLength: 2000 }, from: { $ref: "#/components/schemas/AssistantLanguage" }, to: { $ref: "#/components/schemas/AssistantLanguage" } } } } } }
+      responses:
+        "200": { description: Translation, content: { application/json: { schema: { type: object, required: [text, from, to, viaEnglish], properties: { text: { type: string, examples: ["Aburow boɔ yɛ sɛn?"] }, from: { $ref: "#/components/schemas/AssistantLanguage" }, to: { $ref: "#/components/schemas/AssistantLanguage" }, viaEnglish: { type: boolean } } } } } }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
   /v1/insights/seasonal:
     get:
       tags: [insights]
@@ -3497,6 +3554,62 @@ components:
         regionId: { type: string, format: uuid }
         location: { $ref: "#/components/schemas/GeoPoint" }
         deliverySettings: { type: object, additionalProperties: true }
+    AssistantLanguage: { type: string, enum: [twi, fat, ewe, gaa, dag, eng], description: "Khaya language codes: Twi, Fante, Ewe, Ga, Dagbani; eng = English" }
+    AssistantStatus:
+      type: object
+      required: [enabled, languages, translation, dailyLimit, usedToday, retentionDays]
+      properties:
+        enabled: { type: boolean }
+        translation: { type: boolean, description: Whether local languages are available }
+        languages: { type: array, items: { type: object, required: [code, name, voice], properties: { code: { $ref: "#/components/schemas/AssistantLanguage" }, name: { type: string, examples: [Twi] }, voice: { type: boolean } } } }
+        dailyLimit: { type: integer, examples: [20] }
+        usedToday: { type: integer, examples: [3] }
+        retentionDays: { type: integer, examples: [90] }
+    AssistantAsk:
+      type: object
+      required: [language, text]
+      properties:
+        language: { $ref: "#/components/schemas/AssistantLanguage" }
+        text: { type: string, maxLength: 500, examples: ["Aburow boɔ yɛ sɛn wɔ Techiman?"] }
+        conversationId: { type: string, format: uuid }
+    AssistantFact:
+      type: object
+      required: [kind, commodity]
+      description: A figure the answer used, exactly as AgriPrice holds it. kind=price has market, amount, observedAt; kind=forecast has place, horizonMonths, targetDate, low, mid, high.
+      properties:
+        kind: { type: string, enum: [price, forecast] }
+        commodity: { type: string, examples: [Maize] }
+        market: { type: string, examples: [Techiman] }
+        place: { type: string }
+        priceType: { type: string, examples: [wholesale] }
+        amount: { type: string, examples: ["4.20"] }
+        currency: { type: string, examples: [GHS] }
+        unit: { type: string, examples: [kg] }
+        observedAt: { type: string, format: date }
+        changePctWoW: { type: ["null", number] }
+        horizonMonths: { type: integer }
+        targetDate: { type: string, format: date }
+        low: { type: string }
+        mid: { type: string }
+        high: { type: string }
+        confidence: { type: ["null", string] }
+    AssistantMessage:
+      type: object
+      required: [id, conversationId, language, inputMode, question, questionEnglish, answer, answerEnglish, translated, numbersPreserved, facts, hasVoice, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        conversationId: { type: string, format: uuid }
+        language: { $ref: "#/components/schemas/AssistantLanguage" }
+        inputMode: { type: string, enum: [text, voice] }
+        question: { type: string, examples: ["Aburow boɔ yɛ sɛn wɔ Techiman?"] }
+        questionEnglish: { type: string, examples: ["How much is maize in Techiman?"] }
+        answer: { type: string, examples: ["Aburow yɛ GHS 4.20 kilo biara wɔ Techiman."] }
+        answerEnglish: { type: string, examples: ["Maize is GHS 4.20 per kg in Techiman, seen on 20 November."] }
+        translated: { type: boolean }
+        numbersPreserved: { type: boolean, description: False when the translation lost or changed a figure; show the facts prominently. }
+        facts: { type: array, items: { $ref: "#/components/schemas/AssistantFact" } }
+        hasVoice: { type: boolean }
+        createdAt: { type: string, format: date-time }
     KycApplication:
       type: object
       required: [userId, displayName, country, status, idType, idNumber, idNumberMasked, idPhotoUrl, selfieUrl, linksExpireInSeconds, submittedAt, reviewedAt, reviewedBy, rejectionReason, fullName, email, phone]
