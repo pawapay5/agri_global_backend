@@ -15,6 +15,12 @@ describe("admin seed config", () => {
     expect(readAdminConfig({ ADMIN_EMAIL: " Ops@Example.org ", ADMIN_PASSWORD: "Strong-pass-2026!", ADMIN_COUNTRY: "gh", ADMIN_PASSWORD_RESET: "true" }))
       .toEqual({ email: "ops@example.org", password: "Strong-pass-2026!", country: "GH", name: "Administrator", reset: true });
   });
+  it("treats blank values (Coolify's ${VAR:-}) as unset", () => {
+    expect(readAdminConfig({ ADMIN_EMAIL: "", ADMIN_PASSWORD: "", ADMIN_COUNTRY: "", ADMIN_NAME: "" })).toEqual({ skip: "ADMIN_EMAIL and ADMIN_PASSWORD are not set" });
+    expect(readAdminConfig({ ADMIN_EMAIL: "ops@example.org", ADMIN_PASSWORD: "Strong-pass-2026!", ADMIN_COUNTRY: "", ADMIN_NAME: " ", ADMIN_PASSWORD_RESET: "" }, "gh"))
+      .toEqual({ email: "ops@example.org", password: "Strong-pass-2026!", country: "GH", name: "Administrator", reset: false });
+    expect(seedCountries({ SEED_COUNTRIES: "" })).toEqual(["gh"]);
+  });
   it("uses the same password rules as the API", () => {
     for (const [pw, email] of [["short", null], ["aaaaaaaaaaaa", null], ["MyPassword2026", null], ["kwame-secret-99", "kwame@example.org"], ["Strong-pass-2026!", "ops@example.org"]] as const) {
       expect(scriptRule(pw, email) === null).toBe(apiRule(pw, email) === null);

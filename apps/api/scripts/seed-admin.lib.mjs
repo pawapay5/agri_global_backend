@@ -10,24 +10,27 @@ export function passwordProblem(pw, email) {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Coolify passes ${VAR:-} as an empty string when a variable is left blank: treat blank exactly like unset.
+const val = (v) => (typeof v === "string" && v.trim() !== "" ? v : undefined);
+
 export function readAdminConfig(env, fallbackCountry = "GH") {
-  const email = (env.ADMIN_EMAIL ?? "").trim().toLowerCase();
-  const password = env.ADMIN_PASSWORD ?? "";
+  const email = (val(env.ADMIN_EMAIL) ?? "").trim().toLowerCase();
+  const password = val(env.ADMIN_PASSWORD) ?? "";
   if (!email && !password) return { skip: "ADMIN_EMAIL and ADMIN_PASSWORD are not set" };
   if (!EMAIL.test(email) || email.length > 254) return { error: "ADMIN_EMAIL is not a valid email address" };
   if (!password) return { error: "ADMIN_PASSWORD is required with ADMIN_EMAIL" };
   const problem = passwordProblem(password, email);
   if (problem) return { error: `ADMIN_PASSWORD ${problem}` };
-  const country = (env.ADMIN_COUNTRY ?? fallbackCountry).trim().toUpperCase();
+  const country = (val(env.ADMIN_COUNTRY) ?? val(fallbackCountry) ?? "GH").trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(country)) return { error: "ADMIN_COUNTRY must be a two-letter country code, e.g. GH" };
-  const name = (env.ADMIN_NAME ?? "").trim().slice(0, 120) || "Administrator";
+  const name = (val(env.ADMIN_NAME) ?? "").trim().slice(0, 120) || "Administrator";
   const reset = /^(1|true|yes)$/i.test(env.ADMIN_PASSWORD_RESET ?? "");
   return { email, password, country, name, reset };
 }
 
 /** Country codes to load on first deploy (SEED_COUNTRIES="gh,ng"); defaults to Ghana. */
 export function seedCountries(env) {
-  const raw = (env.SEED_COUNTRIES ?? "gh").trim();
+  const raw = (val(env.SEED_COUNTRIES) ?? "gh").trim();
   if (/^(none|off|false|0)$/i.test(raw)) return [];
   return [...new Set(raw.split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z]{2}$/.test(s)))];
 }
