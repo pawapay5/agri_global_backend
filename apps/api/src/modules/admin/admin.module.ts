@@ -15,6 +15,8 @@ import { GeoModule } from "../geo/geo.module";
 import { SessionService } from "../auth/session.service";
 import { AuthModule } from "../auth/auth.module";
 import { toUserDto, UsersRepository } from "../users/users.repository";
+import { FieldCipher } from "../../common/crypto/crypto";
+import { KycReviewController, KycReviewService } from "./kyc-review";
 
 /**
  * Allow-list for generic admin CRUD. Column names are validated against this list and
@@ -311,9 +313,6 @@ export class AdminService {
       await this.updateUser(actor, owner, { suspended: true, reason: d.note ?? m.reason });
     } else if (d.action === "warn_user" && owner) {
       await this.queue.dispatch({ userId: owner, category: "system", templateKey: "moderation.warning", params: { title: "Community guidelines", body: d.note ?? "Some of your content broke our community guidelines." }, dedupeKey: `warn:${id}` });
-    } else if (d.action === "none" && m.reason === "kyc_manual_review") {
-      // Manual KYC approval path when no KYC provider is configured.
-      await this.sql.exec(`UPDATE seller_profiles SET kyc_status = 'verified', verified_at = now() WHERE user_id = $1`, [m.target_id]);
     }
     if (m.target_type === "post" && d.action === "none") await this.sql.exec(`UPDATE posts SET status = 'visible' WHERE id = $1 AND status = 'pending_review'`, [m.target_id]);
     // Close every open report for the same target in one decision.
@@ -373,5 +372,5 @@ export class AdminController {
   async decide(@CurrentUser() u: AuthUser, @Param("id", ParseUUIDPipe) id: string, @Body() d: ModDecisionDto) { await this.a.decide(u, id, d); }
 }
 
-@Module({ imports: [AuthModule, GeoModule], controllers: [AdminController], providers: [AdminService] })
+@Module({ imports: [AuthModule, GeoModule], controllers: [AdminController, KycReviewController], providers: [AdminService, KycReviewService, FieldCipher] })
 export class AdminModule {}

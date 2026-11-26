@@ -35,8 +35,7 @@ export async function SiteHeader({ locale, country = "gh" }: { locale: string; c
         </nav>
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          <Link href="/login" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden sm:inline-flex")}>{t("signIn")}</Link>
-          <Link href="/signup" prefetch={false} className={cn(buttonVariants({ size: "sm" }), "px-4")}>{t("signUp")}</Link>
+          <Link href="/login" prefetch={false} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>{t("signIn")}</Link>
           <details className="group relative lg:hidden">
             <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-muted [&::-webkit-details-marker]:hidden" aria-label={t("menu")}>
               <Menu aria-hidden className="size-5" />
@@ -44,7 +43,6 @@ export async function SiteHeader({ locale, country = "gh" }: { locale: string; c
             <nav aria-label="Main" className="absolute end-0 top-12 w-60 rounded-2xl border border-border bg-card p-2 shadow-elev-2">
               <ul>
                 {links.map((l) => <li key={l.href}><Link href={l.href} prefetch={false} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted">{l.label}</Link></li>)}
-                <li className="sm:hidden"><Link href="/login" prefetch={false} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted">{t("signIn")}</Link></li>
               </ul>
             </nav>
           </details>

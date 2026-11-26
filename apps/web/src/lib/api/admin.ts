@@ -145,3 +145,22 @@ export function useReviewPayout() {
 
 export const useReconciliation = (provider?: string) =>
   useQuery({ queryKey: ["admin", "recon", provider ?? ""] as const, queryFn: () => unwrap(api.GET("/v1/admin/reconciliation", { params: { query: { provider: provider || undefined, limit: 60 } } })) });
+
+// ── Seller approvals (KYC) ──
+export type KycStatus = "pending" | "verified" | "rejected";
+/** Document links expire after five minutes, so the queue refetches before they go stale and never caches for long. */
+export const useKycQueue = (status: KycStatus) =>
+  useInfiniteQuery({
+    queryKey: ["admin", "kyc", status] as const,
+    queryFn: ({ pageParam }) => unwrap(api.GET("/v1/admin/kyc", { params: { query: { status, cursor: pageParam || undefined, limit: 20 } } })),
+    initialPageParam: "", getNextPageParam: (p) => p.nextCursor ?? undefined, staleTime: 0, gcTime: 60_000, refetchInterval: 240_000,
+  });
+
+export function useKycDecision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, decision, reason }: { userId: string; decision: "approve" | "reject"; reason?: string }) =>
+      unwrap(api.POST("/v1/admin/kyc/{userId}/decision", { params: { path: { userId } }, body: { decision, ...(reason ? { reason } : {}) } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "kyc"] }),
+  });
+}

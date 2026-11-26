@@ -11,6 +11,7 @@ import { MoneyService } from "../../common/money/money.service";
 import { QueueService } from "../../common/queue/queues";
 import { StorageService } from "../../common/storage/storage.service";
 import { MediaService } from "../uploads/media.service";
+import { FieldCipher } from "../../common/crypto/crypto";
 import { deliveryFee, DeliverySettings, priceFlag, stockStatus } from "./marketplace.logic";
 
 const OFFER_TTL_HOURS = 48;
@@ -30,6 +31,7 @@ export class MarketplaceService {
   constructor(
     private readonly sql: Sql, private readonly money: MoneyService, private readonly media: MediaService, private readonly storage: StorageService,
     private readonly queue: QueueService, private readonly audit: AuditService, @Inject(REDIS) private readonly redis: Redis,
+    private readonly cipher: FieldCipher,
   ) {}
 
   /** Marketplace activity feed for seller analytics and the demand index. Views are deduplicated per viewer per day. */
@@ -48,7 +50,7 @@ export class MarketplaceService {
   private sellerDto(s: Record<string, any>, owner: boolean, activeListings = 0) {
     return {
       userId: s.user_id, displayName: s.display_name, bio: s.bio, country: s.country_iso2, regionId: s.region_id, verified: s.kyc_status === "verified",
-      ...(owner ? { kycStatus: s.kyc_status } : {}), rating: s.rating_avg != null ? Number(s.rating_avg) : null, ratingCount: s.rating_count,
+      ...(owner ? { kycStatus: s.kyc_status, kycSubmittedAt: s.kyc_submitted_at?.toISOString?.() ?? null, kycRejectionReason: s.kyc_status === "rejected" ? s.kyc_rejection_reason ?? null : null } : {}), rating: s.rating_avg != null ? Number(s.rating_avg) : null, ratingCount: s.rating_count,
       responseTimeMins: s.response_time_mins, deliverySettings: s.delivery_settings, activeListings,
     };
   }
@@ -80,14 +82,30 @@ export class MarketplaceService {
     return this.mySeller(user);
   }
 
-  /** KYC: the selfie is stored privately; the ID number is passed to the KYC provider and never stored by us. */
-  async submitKyc(user: AuthUser, d: { idType: string; idNumber: string }, selfie: Express.Multer.File | undefined) {
-    await this.mySeller(user);
-    if (!/^[A-Z0-9-]{5,40}$/i.test(d.idNumber)) throw AppError.unprocessable("id_number_invalid", "Check the ID number");
-    const img = await this.media.processImage(selfie, `kyc/${user.id}`);
+  /**
+   * Seller application. Everyone signs up able to buy; selling needs an approved application. The ID number is encrypted
+   * at rest and both photos go to the private bucket, so they're only ever shown to reviewers through short-lived links.
+   */
+  async submitKyc(user: AuthUser, d: { idType: string; idNumber: string }, files: { idPhoto?: Express.Multer.File; selfie?: Express.Multer.File }) {
+    const s = await this.sql.one<{ kyc_status: string }>(`SELECT kyc_status FROM seller_profiles WHERE user_id = $1`, [user.id]);
+    if (!s) throw AppError.unprocessable("seller_profile_required", "Create a seller profile first");
+    if (s.kyc_status === "pending") throw AppError.conflict("kyc_pending", "Your application is already being reviewed");
+    if (s.kyc_status === "verified") throw AppError.conflict("kyc_verified", "You're already an approved seller");
+    const idNumber = d.idNumber.trim();
+    if (!/^[A-Z0-9-]{5,40}$/i.test(idNumber)) throw AppError.unprocessable("id_number_invalid", "Check the ID number");
+    if (!files.idPhoto) throw AppError.unprocessable("id_photo_required", "Add a photo of your ID document");
+    if (!files.selfie) throw AppError.unprocessable("selfie_required", "Add a selfie");
+    const bucket = this.storage.cfg.s3.reportsBucket;
+    const idImg = await this.media.processImage(files.idPhoto, `kyc/${user.id}`, { bucket, field: "idPhoto" });
+    const selfie = await this.media.processImage(files.selfie, `kyc/${user.id}`, { bucket, field: "selfie" });
     const ref = `kyc_${user.id}_${Date.now()}`;
-    await this.sql.exec(`UPDATE seller_profiles SET kyc_status = 'pending', kyc_provider_ref = $2 WHERE user_id = $1`, [user.id, ref]);
-    await this.queue.raw("commerce", "kyc-submit", { userId: user.id, reference: ref, idType: d.idType, idNumber: d.idNumber, selfieKey: img.variants.large, country: user.country }, ref);
+    await this.sql.exec(
+      `UPDATE seller_profiles SET kyc_status = 'pending', kyc_provider_ref = $2, kyc_id_type = $3, kyc_id_number_enc = $4, kyc_id_photo_key = $5,
+         kyc_selfie_key = $6, kyc_submitted_at = now(), kyc_reviewed_by = NULL, kyc_reviewed_at = NULL, kyc_rejection_reason = NULL, verified_at = NULL
+       WHERE user_id = $1`,
+      [user.id, ref, d.idType, this.cipher.encrypt(idNumber), idImg.variants.large, selfie.variants.large]);
+    // A KYC provider, when configured, checks the documents automatically; otherwise an admin reviews them in the console.
+    if (process.env.KYC_PROVIDER_URL) await this.queue.raw("commerce", "kyc-submit", { userId: user.id, reference: ref, country: user.country }, ref);
     await this.audit.record({ actorId: user.id, action: "seller.kyc.submitted", data: { idType: d.idType } });
     return this.mySeller(user);
   }
@@ -145,8 +163,9 @@ export class MarketplaceService {
   }
 
   async create(user: AuthUser, d: Record<string, any>) {
-    const seller = await this.sql.one<{ country_iso2: string; region_id: string | null }>(`SELECT country_iso2, region_id FROM seller_profiles WHERE user_id = $1`, [user.id]);
+    const seller = await this.sql.one<{ country_iso2: string; region_id: string | null; kyc_status: string }>(`SELECT country_iso2, region_id, kyc_status FROM seller_profiles WHERE user_id = $1`, [user.id]);
     if (!seller) throw AppError.unprocessable("seller_profile_required", "Create a seller profile first");
+    if (seller.kyc_status !== "verified") throw AppError.forbidden("seller_not_verified", "Your seller application must be approved before you can list");
     if (d.type === "service" && !d.serviceKind) throw AppError.unprocessable("service_kind_required", "Choose transport, storage or input supply");
     if (d.type === "product" && !d.commodityId && !d.categoryId) throw AppError.unprocessable("category_required", "Choose a commodity or category");
     if (!(await this.sql.one(`SELECT 1 FROM units WHERE code = $1`, [d.unit]))) throw AppError.unprocessable("unit_unknown", d.unit);
@@ -181,8 +200,10 @@ export class MarketplaceService {
     if (d.status === "active") {
       const photos = (await this.sql.one<{ n: number }>(`SELECT count(*)::int AS n FROM listing_photos WHERE listing_id = $1`, [id]))?.n ?? 0;
       if (l.type === "product" && photos === 0) throw AppError.unprocessable("photo_required", "Add at least one photo before publishing");
-      const s = await this.sql.one<{ suspended_at: Date | null }>(`SELECT suspended_at FROM users WHERE id = $1`, [user.id]);
+      const s = await this.sql.one<{ suspended_at: Date | null; kyc_status: string | null }>(
+        `SELECT u.suspended_at, sp.kyc_status FROM users u LEFT JOIN seller_profiles sp ON sp.user_id = u.id WHERE u.id = $1`, [user.id]);
       if (s?.suspended_at) throw AppError.forbidden("account_suspended");
+      if (s?.kyc_status !== "verified") throw AppError.forbidden("seller_not_verified", "Your seller application must be approved before you can list");
     }
     const price = d.pricePerUnit ?? l.price_per_unit;
     const pc = d.pricePerUnit ? await this.priceCheck(l.commodity_id, price, l.currency, l.unit_code, l.country_iso2, l.region_id) : null;

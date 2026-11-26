@@ -207,7 +207,7 @@ export function useSaveSellerProfile() {
 export function useSubmitKyc() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (f: { idType: string; idNumber: string; selfie: File }) => unwrap(api.POST("/v1/marketplace/seller-profile/kyc", { body: form(f) as never, ...asForm })),
+    mutationFn: (f: { idType: string; idNumber: string; idPhoto: File; selfie: File }) => unwrap(api.POST("/v1/marketplace/seller-profile/kyc", { body: form(f) as never, ...asForm })),
     onSuccess: (v) => { if (v) qc.setQueryData(["seller-profile"], v); },
   });
 }

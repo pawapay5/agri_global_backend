@@ -65,7 +65,7 @@ export async function refreshTokens(apiUrl: string, refreshToken: string): Promi
   }
 }
 
-export const STAFF_ROLES = ["admin", "org_admin", "enumerator", "agronomist"] as const;
+export { STAFF_ROLES } from "./roles";
 
 /**
  * Abort signal for server→API calls made on behalf of a browser request (BFF, proxy refresh, admin gate).

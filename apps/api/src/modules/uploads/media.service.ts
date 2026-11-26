@@ -47,8 +47,8 @@ export class MediaService {
   private readonly log = new Logger(MediaService.name);
   constructor(private readonly storage: StorageService, @Inject(APP_CONFIG) private readonly cfg: AppConfig) {}
 
-  async processImage(file: Express.Multer.File | undefined, prefix: string): Promise<StoredImage> {
-    if (!file) throw AppError.unprocessable("file_required", "Attach an image in the 'file' field");
+  async processImage(file: Express.Multer.File | undefined, prefix: string, opts: { bucket?: string; field?: string } = {}): Promise<StoredImage> {
+    if (!file) throw AppError.unprocessable("file_required", `Attach an image in the '${opts.field ?? "file"}' field`);
     if (file.size > MAX_IMAGE_BYTES) throw AppError.unprocessable("file_too_large", "Images must be 10 MB or smaller");
 
     const host = process.env.CLAMAV_HOST;
@@ -79,7 +79,7 @@ export class MediaService {
       const { data, info } = await sharp(file.buffer).rotate().resize({ width: max, height: max, fit: "inside", withoutEnlargement: true })
         .webp({ quality: name === "thumb" ? 70 : 80 }).toBuffer({ resolveWithObject: true });
       const key = `${prefix}/${id}/${name}.webp`;
-      await this.storage.put(this.cfg.s3.imagesBucket, key, data, "image/webp");
+      await this.storage.put(opts.bucket ?? this.cfg.s3.imagesBucket, key, data, "image/webp");
       variants[name] = key;
       if (name === "large") ({ width, height } = info);
     }

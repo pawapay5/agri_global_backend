@@ -1620,6 +1620,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seller applications. Admins see every country, org admins their own. Document links expire after five minutes; every view is audited. */
+        get: operations["admin_kyc_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/kyc/{userId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject a pending seller application. A rejection needs a reason, which is sent to the applicant. */
+        post: operations["admin_kyc_decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/moderation": {
         parameters: {
             query?: never;
@@ -2091,7 +2125,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Submit KYC (Ghana Card / national ID number and selfie). Verification is delegated to the KYC provider and the result arrives by webhook. */
+        /** Apply to sell. Sends an ID document photo, a selfie and the ID number for review. Allowed when no application is pending or the last one was rejected. The ID number is encrypted at rest; both photos are kept private. */
         post: operations["market_seller_kyc"];
         delete?: never;
         options?: never;
@@ -4487,6 +4521,46 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        KycApplication: {
+            /** Format: uuid */
+            userId: string;
+            /** @example Ama's Farm */
+            displayName: string;
+            /** @example Ama Mensah */
+            fullName: null | string;
+            /** @example ama@example.com */
+            email: null | string;
+            /** @example +233200000000 */
+            phone: null | string;
+            /** @example GH */
+            country: string;
+            /** @enum {string} */
+            status: "pending" | "verified" | "rejected";
+            /** @enum {null|string} */
+            idType: "national_id" | "passport" | "voter_id" | "drivers_licence" | null;
+            /** @example GHA-000000000-0 */
+            idNumber: null | string;
+            /** @example ••••••••00-0 */
+            idNumberMasked: null | string;
+            /**
+             * Format: uri
+             * @example https://example.com/kyc/id.webp
+             */
+            idPhotoUrl: null | string;
+            /**
+             * Format: uri
+             * @example https://example.com/kyc/selfie.webp
+             */
+            selfieUrl: null | string;
+            /** @example 300 */
+            linksExpireInSeconds: number;
+            /** Format: date-time */
+            submittedAt: null | string;
+            /** Format: date-time */
+            reviewedAt: null | string;
+            reviewedBy: null | string;
+            rejectionReason: null | string;
+        };
         SellerProfile: {
             /** Format: uuid */
             userId?: string;
@@ -4501,6 +4575,13 @@ export interface components {
              * @enum {string}
              */
             kycStatus?: "none" | "pending" | "verified" | "rejected";
+            /**
+             * Format: date-time
+             * @description Only visible to the owner
+             */
+            kycSubmittedAt?: null | string;
+            /** @description Why the last application was rejected. Only visible to the owner. */
+            kycRejectionReason?: null | string;
             rating?: null | number;
             ratingCount?: number;
             responseTimeMins?: null | number;
@@ -7961,6 +8042,65 @@ export interface operations {
             };
         };
     };
+    admin_kyc_list: {
+        parameters: {
+            query?: {
+                status?: "pending" | "verified" | "rejected";
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Applications */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["KycApplication"][];
+                        nextCursor: null | string;
+                    };
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    admin_kyc_decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approve" | "reject";
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Decided */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
     admin_moderation_queue: {
         parameters: {
             query?: {
@@ -8850,12 +8990,13 @@ export interface operations {
                     /** @enum {string} */
                     idType: "national_id" | "passport" | "voter_id" | "drivers_licence";
                     idNumber: string;
+                    idPhoto: string;
                     selfie: string;
                 };
             };
         };
         responses: {
-            /** @description Pending */
+            /** @description Pending review */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -8864,6 +9005,8 @@ export interface operations {
                     "application/json": components["schemas"]["SellerProfile"];
                 };
             };
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
         };
     };
     kyc_webhook: {

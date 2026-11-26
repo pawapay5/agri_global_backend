@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, Banknote, BarChart3, BookOpenCheck, ClipboardCheck, FileUp, Gavel, Globe2, LayoutDashboard, Megaphone, Menu, Scale, ScrollText, ShieldAlert, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Banknote, BarChart3, BookOpenCheck, ClipboardCheck, FileUp, Gavel, Globe2, LayoutDashboard, Megaphone, Menu, Scale, ScrollText, ShieldAlert, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -23,6 +23,7 @@ export const ADMIN_SECTIONS = [
   ] },
   { group: "g_people", items: [
     { href: "/admin/users", key: "users", icon: Users, roles: ["admin", "org_admin"] as Role[] },
+    { href: "/admin/kyc", key: "sellerApprovals", icon: BadgeCheck, roles: ["admin", "org_admin"] as Role[] },
     { href: "/admin/moderation", key: "moderation", icon: ShieldAlert, roles: ["admin"] as Role[] },
     { href: "/admin/disputes", key: "disputes", icon: Gavel, roles: ["admin"] as Role[] },
   ] },

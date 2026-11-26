@@ -1,8 +1,9 @@
 "use client";
 import { CSRF_HEADER, readCsrfCookie } from "@/lib/security/csrf";
+import { isStaffRole } from "./roles";
 
 export interface Problem { status: number; code: string; detail?: string; attemptsRemaining?: number; retryAfterSeconds?: number }
-export type AuthResponse = { status: "authenticated" | "mfa_required" | "verification_required"; isNewUser?: boolean };
+export type AuthResponse = { status: "authenticated" | "mfa_required" | "verification_required"; isNewUser?: boolean; user?: { role?: string | null } | null };
 
 /** POST to our own BFF (/api/auth/*). Tokens never come back to the browser; only status. */
 export async function bff<T = AuthResponse>(path: string, body?: unknown): Promise<{ ok: true; data: T } | { ok: false; problem: Problem }> {
@@ -21,6 +22,16 @@ export async function bff<T = AuthResponse>(path: string, body?: unknown): Promi
 }
 
 /** Only allow same-site relative redirects after login (prevents open redirects). */
+/**
+ * Where to go after signing in: first-run setup for new accounts, then the page they were sent from, then the admin
+ * console for staff or the app home for everyone else.
+ */
+export function landingAfterSignIn(o: { next: string | null; locale: string; role?: string | null; isNewUser?: boolean }): string {
+  if (o.isNewUser) return `/${o.locale}/app/onboarding`;
+  if (o.next && safeNext(o.next, o.locale) === o.next) return o.next;
+  return isStaffRole(o.role) ? `/${o.locale}/admin` : `/${o.locale}/app`;
+}
+
 export function safeNext(next: string | null, locale: string): string {
   if (next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")) return next;
   return `/${locale}/app`;
