@@ -1732,6 +1732,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/org": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's organisation, with seat usage and the caller's role in it. */
+        get: operations["org_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename the organisation (organisation admins only). */
+        patch: operations["org_update"];
+        trace?: never;
+    };
+    "/v1/org/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["org_members_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/org/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a member (admins only), or leave when userId is the caller. The last admin can't leave. */
+        delete: operations["org_members_remove"];
+        options?: never;
+        head?: never;
+        /** Change a member's role (admins only). The last admin can't be demoted. */
+        patch: operations["org_members_update"];
+        trace?: never;
+    };
+    "/v1/org/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending invitations (admins only). */
+        get: operations["org_invites_list"];
+        put?: never;
+        /** Invite by email (admins only). Uses a seat when accepted; 409 seats_full when none are left. */
+        post: operations["org_invites_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/org/invites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["org_invites_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/org/invites/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept an invitation with the token from the email. The caller's email must match the invitation. */
+        post: operations["org_invites_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/api-keys": {
         parameters: {
             query?: never;
@@ -4203,10 +4306,72 @@ export interface components {
             refundAmount?: components["schemas"]["Decimal"];
             note?: string;
         };
+        /**
+         * @description admin = the org_admin user role within this organisation
+         * @enum {string}
+         */
+        OrgRole: "admin" | "member";
+        Organisation: {
+            /** Format: uuid */
+            id: string;
+            /** @example Ashanti Growers Cooperative */
+            name: string;
+            /** @enum {string} */
+            type: "agency" | "ngo" | "cooperative" | "research" | "company" | "government";
+            /** @example GH */
+            country?: string | null;
+            myRole: components["schemas"]["OrgRole"];
+            seats: {
+                /** @example 4 */
+                used: number;
+                /** @example 10 */
+                max: number;
+                pendingInvites?: number;
+            };
+            /** @enum {string} */
+            plan?: "free" | "premium" | "organisation";
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        OrganisationUpdate: {
+            name: string;
+        };
+        OrgMember: {
+            /** Format: uuid */
+            userId: string;
+            /** @example Ama Mensah */
+            name?: string | null;
+            /** Format: email */
+            email?: string | null;
+            role: components["schemas"]["OrgRole"];
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            lastActiveAt?: string | null;
+        };
+        OrgInvite: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            role: components["schemas"]["OrgRole"];
+            invitedBy?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        OrgInviteCreate: {
+            /** Format: email */
+            email: string;
+            role: components["schemas"]["OrgRole"];
+        };
         ApiKey: {
             /** Format: uuid */
             id?: string;
+            /** @example Reporting dashboard */
             name?: string;
+            /** @example apk_live_7Qm2 */
             prefix?: string;
             scopes?: string[];
             /** Format: date-time */
@@ -4217,7 +4382,10 @@ export interface components {
             usedToday?: number;
         };
         ApiKeyCreated: components["schemas"]["ApiKey"] & {
-            /** @description Shown once. Send as the X-API-Key header. */
+            /**
+             * @description Shown once. Send as the X-API-Key header.
+             * @example apk_live_7Qm2pX9vT4rL8sN1cB6dF0hJwE5kY3uA
+             */
             secret: string;
         };
         PublicPricePage: {
@@ -7964,6 +8132,220 @@ export interface operations {
                     }[];
                 };
             };
+        };
+    };
+    org_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organisation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organisation"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    org_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganisationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organisation"];
+                };
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    org_members_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMember"][];
+                };
+            };
+        };
+    };
+    org_members_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    org_members_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    role: components["schemas"]["OrgRole"];
+                };
+            };
+        };
+        responses: {
+            /** @description Member */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMember"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    org_invites_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgInvite"][];
+                };
+            };
+        };
+    };
+    org_invites_create: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgInviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Invitation sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgInvite"];
+                };
+            };
+            409: components["responses"]["Problem"];
+            422: components["responses"]["ValidationProblem"];
+        };
+    };
+    org_invites_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    org_invites_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Joined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organisation"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
         };
     };
     api_keys_list: {

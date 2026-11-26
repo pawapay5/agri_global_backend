@@ -154,6 +154,21 @@ body { background: var(--surface); color: var(--foreground); }
 .dialog-overlay[data-state="open"] { animation: dialog-fade 180ms ease-out; }
 .dialog-content[data-state="open"] { animation: dialog-pop 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 
+/* ── Polish: hero carousel progress, gentle entrance, soft elevation, page backdrop ── */
+@keyframes carousel-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.animate-rise { animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-rise-2 { animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both; }
+.animate-rise-3 { animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both; }
+/* Two-layer shadow: crisp edge + soft lift. Dark mode leans on borders, so the lift is subtler there. */
+:root { --elev-1: 0 1px 2px rgb(16 40 28 / 0.05), 0 4px 16px -6px rgb(16 40 28 / 0.08); --elev-2: 0 2px 4px rgb(16 40 28 / 0.06), 0 12px 32px -12px rgb(16 40 28 / 0.18); }
+.dark { --elev-1: 0 1px 2px rgb(0 0 0 / 0.4); --elev-2: 0 8px 28px -10px rgb(0 0 0 / 0.6); }
+.shadow-elev-1 { box-shadow: var(--elev-1); }
+.shadow-elev-2 { box-shadow: var(--elev-2); }
+/* A faint brand-tinted glow at the top of app and admin pages. */
+.page-backdrop { background: radial-gradient(1200px 400px at 10% -10%, color-mix(in oklab, var(--leaf) 10%, transparent), transparent 70%), var(--surface); }
+.text-balance { text-wrap: balance; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

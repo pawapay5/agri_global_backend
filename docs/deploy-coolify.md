@@ -39,24 +39,40 @@ Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` valu
 | `SMS_PROVIDER` | no | Unset or `log`: **no SMS is sent in production** (the log provider only exists in development), so phone sign-in and SMS alerts won't work. Use `africastalking` with `AT_USERNAME`, `AT_API_KEY` and `AT_SENDER_ID`, or `twilio`. Email is the only channel that must work on day one, since sign-up verification codes go by email. |
 | `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS` | no | Backend audiences for social sign-in |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_APPLE_SERVICE_ID` | no | Show the sign-in buttons on the web; build-time values |
+| `PAYSTACK_SECRET_KEY`, `FLUTTERWAVE_SECRET_KEY` + `FLUTTERWAVE_WEBHOOK_HASH`, `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | no | Web subscriptions. Set the ones you use, then list the same providers in `BILLING_PROVIDERS`. Webhook URL: `https://<api-domain>/v1/webhooks/billing/<provider>` |
+| `BILLING_PROVIDERS` | no | Build-time. Comma-separated checkout options on `/app/billing` (`paystack`, `flutterwave`, `stripe`); default `paystack`. List only providers with keys above, or checkout fails with "not configured". |
 | `ADMIN_IP_ALLOWLIST` | no | CIDRs, e.g. `203.0.113.0/24, 2001:db8::/32`. When set, `/admin` and `/api/v1/admin/*` return 404 to every other IP. |
 | `CLIENT_IP_HEADER` | no | Set to `cf-connecting-ip` **only** if Cloudflare proxies your domain (see §5) |
 
 ## 3. First deploy
 
-1. Click **Deploy**. `migrate` runs, then `api` starts once its health check passes, then `web` and `workers`.
-2. Load the first country. In Coolify, open the **api** container's **Terminal** and run:
-   ```sh
-   node dist/seed/seed.cli.js gh
-   ```
-   This loads `country-packs/_global` and `gh`: commodities, markets, regions and units. Prices come from the ingest pipelines (`pipelines/`), which post to the API's import endpoint.
+1. Before the first deploy, add these to **Environment Variables** so the admin account is created automatically:
+
+   | Variable | Required | Notes |
+   |---|---|---|
+   | `ADMIN_EMAIL` | for the admin seed | The admin's sign-in email. |
+   | `ADMIN_PASSWORD` | for the admin seed | At least 10 characters, not common, not containing the email name (the API's own rules). The deploy fails with a clear message if it's too weak, rather than creating a weak admin. |
+   | `ADMIN_NAME` | no | Display name; default `Administrator`. |
+   | `ADMIN_COUNTRY` | no | Two-letter code; default the first of `SEED_COUNTRIES`. |
+   | `SEED_COUNTRIES` | no | Countries to load on first deploy, comma-separated; default `gh`. `none` turns it off. |
+   | `ADMIN_PASSWORD_RESET` | no | `true` to overwrite the existing admin's password with `ADMIN_PASSWORD` on the next deploy. Set it back to `false` afterwards. |
+
+2. Click **Deploy**. The one-shot `migrate` service runs `scripts/bootstrap.mjs`:
+   - applies pending migrations;
+   - loads each country in `SEED_COUNTRIES` that isn't in the database yet (`country-packs/_global` plus the country: commodities, markets, regions and units). Countries already loaded are skipped, so catalogue edits made in the admin console are never overwritten;
+   - creates the admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` with a verified email, or, if that account already exists, makes sure it's an admin without touching its password.
+
+   Then `api` starts once its health check passes, then `web` and `workers`. The bootstrap runs on every deploy and is safe to repeat. The password is never written to the logs. Prices come from the ingest pipelines (`pipelines/`), which post to the API's import endpoint.
 3. Check that it's up:
+   - the `migrate` logs end with `admin seed: created admin you@example.com` (or `already exists`);
    - `https://agriprice.example/api/health` should return `{"status":"ok"}`;
    - `https://api.agriprice.example/healthz` should return 200;
    - `https://agriprice.example/en/gh/prices` should list Ghana's commodities.
-4. Create the first admin. Sign up on the site, then set your role in Postgres from the **postgres** terminal:
+4. Sign in at `https://agriprice.example/en/login` with the admin email and password, then open `/en/admin`. Turn on two-step verification straight away (**Security** in the app). After that you can remove `ADMIN_PASSWORD` from Coolify: the account stays, and the seed skips itself when the variables are unset.
+
+   To run the seed by hand (for example to add a second admin), use the **api** container's terminal:
    ```sh
-   psql -U "$POSTGRES_USER" agriprice -c "update users set role='admin' where email='you@example.com';"
+   ADMIN_EMAIL=ops@example.org ADMIN_PASSWORD='…' node scripts/seed-admin.mjs
    ```
 
 ## 4. How the web app behaves in production

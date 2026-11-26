@@ -7,78 +7,66 @@ import { EmptyState } from "@/components/agri/empty-state";
 import { RangeTabs } from "@/components/agri/range-tabs";
 import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { Badge, Button, Card, FieldError, Input, Label, Skeleton } from "@/components/ui/primitives";
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import type { S } from "@/lib/api/browser";
+import { field, type Row } from "@/lib/api/admin";
 import { useAdminDisputes, useDisputeDecision, useModerationDecision, useModerationQueue } from "@/lib/api/market";
 import { money, relativeTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { orderRef } from "./market-common";
-
-/** Admin chrome for the sections built so far (the full console arrives with the admin step). */
-export function AdminNav() {
-  const t = useTranslations("mod");
-  const path = usePathname();
-  const items = [{ href: "/admin/moderation", label: t("title"), icon: ShieldAlert }, { href: "/admin/disputes", label: t("disputesTitle"), icon: Gavel }];
-  return (
-    <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-        <Link href="/admin" className="font-semibold">AgriPrice admin</Link>
-        <nav aria-label="Admin" className="flex gap-1">
-          {items.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} aria-current={path.startsWith(href) ? "page" : undefined} className={cn("inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium", path.startsWith(href) ? "bg-muted" : "text-muted-fg hover:text-foreground")}>
-              <Icon aria-hidden className="size-4" />{label}
-            </Link>
-          ))}
-        </nav>
-        <Link href="/app" className="ms-auto text-sm text-muted-fg hover:underline">AgriPrice →</Link>
-      </div>
-    </header>
-  );
-}
 
 const TARGETS = ["all", "listing", "message", "post", "comment", "user", "price"] as const;
 const ACTIONS = ["none", "hide", "remove", "warn_user", "suspend_user"] as const;
-type ModRow = { id: string; targetType?: string; targetId?: string; reportCount?: number; reasons?: string[]; preview?: string; title?: string; createdAt?: string; listingId?: string };
+const UUID = /^[0-9a-f-]{36}$/i;
 
 /** Where a reported item can be seen in context, when it has a page (exported for tests). */
-export function moderationHref(r: Pick<ModRow, "targetType" | "targetId" | "listingId">): string | null {
-  const id = /^[0-9a-f-]{36}$/i.test(r.targetId ?? "") ? r.targetId : null;
-  if (r.targetType === "listing" && id) return `/app/marketplace/${id}`;
+export function moderationHref(r: { targetType?: string; targetId?: string }): string | null {
+  const id = UUID.test(r.targetId ?? "") ? r.targetId : null;
+  if (!id) return null;
+  if (r.targetType === "listing") return `/app/marketplace/${id}`;
+  if (r.targetType === "post") return `/app/community/posts/${id}`;
+  if (r.targetType === "user") return `/app/community/users/${id}`;
   return null;
 }
 
-/** /admin/moderation: reports grouped per item, decide one at a time; every decision is audited server-side. */
+/** /admin/moderation: open reports, one decision per item; every decision is audited server-side. */
 export function ModerationQueue() {
   const t = useTranslations("mod");
-  const tm = useTranslations("mp");
+  const ta = useTranslations("adm");
   const tr = useTranslations("rpt");
   const locale = useLocale();
   const [type, setType] = useQueryState("type", parseAsStringLiteral(TARGETS).withDefault("all"));
   const queue = useModerationQueue(type === "all" ? undefined : type);
-  const rows = (queue.data?.pages.flatMap((p) => p.data) ?? []) as ModRow[];
+  const rows = (queue.data?.pages.flatMap((p) => p.data) ?? []) as Row[];
   return (
-    <main id="main" className="mx-auto max-w-6xl space-y-5 p-4 lg:p-8">
+    <div className="space-y-5">
       <h1 className="text-2xl font-bold">{t("queue")}</h1>
       <div className="overflow-x-auto"><RangeTabs size="sm" label={t("target")} value={type} onChange={(v) => setType(v === "all" ? null : v)} options={TARGETS.map((x) => ({ value: x, label: x === "all" ? t("all") : t(`t_${x}`) }))} /></div>
       {queue.isPending ? <Skeleton className="h-72" /> : !rows.length ? <EmptyState icon={ShieldAlert} title={t("empty")} /> : (
         <ul className="space-y-3">
-          {rows.map((r) => (
-            <li key={r.id}><Card className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge>{r.targetType && t.has(`t_${r.targetType}`) ? t(`t_${r.targetType}`) : r.targetType}</Badge>
-                {r.reportCount ? <Badge tone="down">{t("reports", { n: r.reportCount })}</Badge> : null}
-                {r.createdAt ? <span className="text-xs text-muted-fg">{relativeTime(r.createdAt, locale)}</span> : null}
-                {moderationHref(r) ? <Link href={moderationHref(r)!} className="ms-auto text-sm font-semibold text-brand hover:underline" target="_blank" rel="noopener">{r.title || r.targetId}</Link> : null}
-              </div>
-              {r.preview ? <blockquote className="whitespace-pre-wrap rounded-xl bg-muted p-3 text-sm">{r.preview}</blockquote> : null}
-              {r.reasons?.length ? <p className="text-sm"><span className="text-muted-fg">{t("reasons")}:</span> {r.reasons.map((x) => (tr.has(`reason_${x}`) ? tr(`reason_${x}`) : x)).join(", ")}</p> : null}
-              <Decision id={r.id} />
-            </Card></li>
-          ))}
+          {rows.map((r) => {
+            const id = String(field(r, "id"));
+            const targetType = field<string>(r, "targetType"), targetId = field<string>(r, "targetId");
+            const reason = field<string>(r, "reason"), details = field<string>(r, "details"), created = field<string>(r, "createdAt");
+            const count = field<number>(r, "openReports") ?? field<number>(r, "reportCount");
+            const href = moderationHref({ targetType, targetId });
+            return (
+              <li key={id}><Card className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{targetType && t.has(`t_${targetType}`) ? t(`t_${targetType}`) : targetType}</Badge>
+                  {count ? <Badge tone="down">{t("reports", { n: count })}</Badge> : null}
+                  {reason ? <Badge tone="forecast">{tr.has(`reason_${reason}`) ? tr(`reason_${reason}`) : reason}</Badge> : null}
+                  {created ? <span className="text-xs text-muted-fg">{relativeTime(created, locale)}</span> : null}
+                  {href ? <Link href={href} className="ms-auto text-sm font-semibold text-brand hover:underline" target="_blank" rel="noopener">{ta("open")}</Link> : null}
+                </div>
+                {details ? <blockquote className="whitespace-pre-wrap rounded-xl bg-muted p-3 text-sm">{details}</blockquote> : null}
+                <Decision id={id} />
+              </Card></li>
+            );
+          })}
         </ul>
       )}
-      {queue.hasNextPage ? <Button variant="outline" onClick={() => void queue.fetchNextPage()}>{tm("loadMore")}</Button> : null}
-    </main>
+      {queue.hasNextPage ? <Button variant="outline" onClick={() => void queue.fetchNextPage()}>{ta("loadMore")}</Button> : null}
+    </div>
   );
 }
 
@@ -108,7 +96,6 @@ function Decision({ id }: { id: string }) {
 }
 
 const D_STATUS = ["open", "under_review", "resolved"] as const;
-type DisputeRow = { id: string; orderId?: string; reason?: string; status?: string; total?: string; currency?: string; buyerName?: string; sellerName?: string; createdAt?: string; description?: string };
 
 /** Refund must be a positive amount no larger than the order total (exported for tests). */
 export function refundProblem(amount: string, total: number): boolean {
@@ -120,37 +107,41 @@ export function refundProblem(amount: string, total: number): boolean {
 export function AdminDisputes() {
   const t = useTranslations("mod");
   const tm = useTranslations("mp");
+  const ta = useTranslations("adm");
   const locale = useLocale();
   const [status, setStatus] = useQueryState("status", parseAsStringLiteral(D_STATUS).withDefault("open"));
   const list = useAdminDisputes(status);
-  const rows = (list.data?.pages.flatMap((p) => p.data) ?? []) as DisputeRow[];
+  const rows = (list.data?.pages.flatMap((p) => p.data) ?? []) as Row[];
   return (
-    <main id="main" className="mx-auto max-w-6xl space-y-5 p-4 lg:p-8">
+    <div className="space-y-5">
       <h1 className="text-2xl font-bold">{t("disputesTitle")}</h1>
       <RangeTabs size="sm" label={t("disputesTitle")} value={status} onChange={(v) => setStatus(v === "open" ? null : v)} options={[{ value: "open", label: t("open") }, { value: "under_review", label: t("underReview") }, { value: "resolved", label: t("resolved") }]} />
       {list.isPending ? <Skeleton className="h-72" /> : !rows.length ? <EmptyState icon={Gavel} title={t("noDisputes")} /> : (
         <ul className="space-y-3">
-          {rows.map((d) => (
-            <li key={d.id}><Card className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {d.orderId ? <Link href={`/app/marketplace/orders/${d.orderId}`} className="font-semibold text-brand hover:underline" target="_blank" rel="noopener">{tm("order", { ref: orderRef(d.orderId) })}</Link> : null}
-                {d.reason ? <Badge tone="down">{tm.has(`dr_${d.reason}`) ? tm(`dr_${d.reason}`) : d.reason}</Badge> : null}
-                {d.total ? <span className="text-sm tabular">{money(d.total, d.currency ?? "", locale)}</span> : null}
-                {d.createdAt ? <span className="ms-auto text-xs text-muted-fg">{relativeTime(d.createdAt, locale)}</span> : null}
-              </div>
-              {d.buyerName || d.sellerName ? <p className="text-sm text-muted-fg">{d.buyerName} → {d.sellerName}</p> : null}
-              {d.description ? <p className="whitespace-pre-wrap rounded-xl bg-muted p-3 text-sm">{d.description}</p> : null}
-              <Link href={`/app/disputes/${d.id}`} className="text-sm font-semibold text-brand hover:underline" target="_blank" rel="noopener">{tm("viewDispute")}</Link>
-              {status !== "resolved" ? <Resolve d={d} /> : null}
-            </Card></li>
-          ))}
+          {rows.map((r) => {
+            const d = { id: String(field(r, "id")), orderId: field<string>(r, "orderId"), reason: field<string>(r, "reason"), total: field<string>(r, "total"), currency: field<string>(r, "currency"), description: field<string>(r, "description"), createdAt: field<string>(r, "createdAt") };
+            return (
+              <li key={d.id}><Card className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {d.orderId ? <Link href={`/app/marketplace/orders/${d.orderId}`} className="font-semibold text-brand hover:underline" target="_blank" rel="noopener">{tm("order", { ref: orderRef(d.orderId) })}</Link> : null}
+                  {d.reason ? <Badge tone="down">{tm.has(`dr_${d.reason}`) ? tm(`dr_${d.reason}`) : d.reason}</Badge> : null}
+                  {d.total && d.currency ? <span className="text-sm tabular">{money(d.total, d.currency, locale)}</span> : null}
+                  {d.createdAt ? <span className="ms-auto text-xs text-muted-fg">{relativeTime(d.createdAt, locale)}</span> : null}
+                </div>
+                {d.description ? <p className="whitespace-pre-wrap rounded-xl bg-muted p-3 text-sm">{d.description}</p> : null}
+                <Link href={`/app/disputes/${d.id}`} className="text-sm font-semibold text-brand hover:underline" target="_blank" rel="noopener">{tm("viewDispute")}</Link>
+                {status !== "resolved" ? <Resolve d={d} /> : null}
+              </Card></li>
+            );
+          })}
         </ul>
       )}
-    </main>
+      {list.hasNextPage ? <Button variant="outline" onClick={() => void list.fetchNextPage()}>{ta("loadMore")}</Button> : null}
+    </div>
   );
 }
 
-function Resolve({ d }: { d: DisputeRow }) {
+function Resolve({ d }: { d: { id: string; total?: string; currency?: string } }) {
   const t = useTranslations("mod");
   const fb = useFeedback();
   const problem = useProblemMessage();

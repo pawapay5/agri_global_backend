@@ -47,7 +47,7 @@ export function UpgradePrompt({ detail }: { detail?: string }) {
 export function PageTitle({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div><h1 className="text-2xl font-bold">{title}</h1>{subtitle ? <p className="mt-1 text-sm text-muted-fg">{subtitle}</p> : null}</div>
+      <div className="min-w-0"><h1 className="text-balance text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>{subtitle ? <p className="mt-1.5 max-w-3xl text-sm text-muted-fg sm:text-base">{subtitle}</p> : null}</div>
       {actions}
     </div>
   );

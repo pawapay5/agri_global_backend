@@ -14,7 +14,7 @@ const REASONS = ["scam", "spam", "harassment", "inappropriate", "wrong_price", "
  * "Report" for a listing, message or user: a small dialog with a reason and optional details, sent to the
  * moderation queue. The trigger is passed in so it can be a menu item, an icon or a text link.
  */
-export function ReportDialog({ targetType, targetId, trigger }: { targetType: "listing" | "message" | "user"; targetId: string; trigger: ReactNode }) {
+export function ReportDialog({ targetType, targetId, trigger }: { targetType: "listing" | "message" | "user" | "post" | "comment"; targetId: string; trigger: ReactNode }) {
   const t = useTranslations("rpt");
   const fb = useFeedback();
   const problem = useProblemMessage();

@@ -69,6 +69,8 @@ tags:
     description: Async report generation (PDF/XLSX/CSV) with signed URLs and short links
   - name: billing
     description: Plans, subscriptions (RevenueCat, Paystack, Flutterwave, Stripe) and entitlements
+  - name: organisations
+    description: The caller's organisation (Organisation plan) - members, roles and invitations
   - name: content
     description: Stories, FAQs, help articles, impact stats and app config
   - name: support
@@ -1275,6 +1277,84 @@ paths:
       parameters: [{ name: provider, in: query, schema: { type: string } }, { $ref: "#/components/parameters/Limit" }]
       responses:
         "200": { description: Daily reconciliation runs, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+
+  # ───────────────────────────── organisations ─────────────────────────────
+  /v1/org:
+    get:
+      tags: [organisations]
+      operationId: org_get
+      summary: The caller's organisation, with seat usage and the caller's role in it.
+      responses:
+        "200": { description: Organisation, content: { application/json: { schema: { $ref: "#/components/schemas/Organisation" } } } }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [organisations]
+      operationId: org_update
+      summary: Rename the organisation (organisation admins only).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/OrganisationUpdate" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Organisation" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+  /v1/org/members:
+    get:
+      tags: [organisations]
+      operationId: org_members_list
+      responses:
+        "200": { description: Members, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/OrgMember" } } } } }
+  /v1/org/members/{userId}:
+    patch:
+      tags: [organisations]
+      operationId: org_members_update
+      summary: Change a member's role (admins only). The last admin can't be demoted.
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [role], properties: { role: { $ref: "#/components/schemas/OrgRole" } } } } } }
+      responses:
+        "200": { description: Member, content: { application/json: { schema: { $ref: "#/components/schemas/OrgMember" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [organisations]
+      operationId: org_members_remove
+      summary: Remove a member (admins only), or leave when userId is the caller. The last admin can't leave.
+      parameters: [{ name: userId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "204": { description: Removed }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /v1/org/invites:
+    get:
+      tags: [organisations]
+      operationId: org_invites_list
+      summary: Pending invitations (admins only).
+      responses:
+        "200": { description: Invitations, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/OrgInvite" } } } } }
+    post:
+      tags: [organisations]
+      operationId: org_invites_create
+      summary: Invite by email (admins only). Uses a seat when accepted; 409 seats_full when none are left.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/OrgInviteCreate" } } } }
+      responses:
+        "201": { description: Invitation sent, content: { application/json: { schema: { $ref: "#/components/schemas/OrgInvite" } } } }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/ValidationProblem" }
+  /v1/org/invites/{id}:
+    delete:
+      tags: [organisations]
+      operationId: org_invites_revoke
+      parameters: [{ $ref: "#/components/parameters/IdPath" }]
+      responses:
+        "204": { description: Revoked }
+  /v1/org/invites/accept:
+    post:
+      tags: [organisations]
+      operationId: org_invites_accept
+      summary: Accept an invitation with the token from the email. The caller's email must match the invitation.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string, minLength: 16, maxLength: 128 } } } } } }
+      responses:
+        "200": { description: Joined, content: { application/json: { schema: { $ref: "#/components/schemas/Organisation" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
 
   # ───────────────────────────── public data API ─────────────────────────────
   /v1/api-keys:
@@ -3256,15 +3336,56 @@ components:
         note: { type: string, maxLength: 2000 }
 
     # ── public data ──
+    OrgRole: { type: string, enum: [admin, member], description: "admin = the org_admin user role within this organisation" }
+    Organisation:
+      type: object
+      required: [id, name, type, myRole, seats]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, examples: [Ashanti Growers Cooperative] }
+        type: { type: string, enum: [agency, ngo, cooperative, research, company, government] }
+        country: { type: [string, "null"], examples: [GH] }
+        myRole: { $ref: "#/components/schemas/OrgRole" }
+        seats: { type: object, required: [used, max], properties: { used: { type: integer, examples: [4] }, max: { type: integer, examples: [10] }, pendingInvites: { type: integer } } }
+        plan: { type: string, enum: [free, premium, organisation] }
+        createdAt: { type: string, format: date-time }
+    OrganisationUpdate:
+      type: object
+      required: [name]
+      properties: { name: { type: string, minLength: 2, maxLength: 120 } }
+    OrgMember:
+      type: object
+      required: [userId, role, joinedAt]
+      properties:
+        userId: { type: string, format: uuid }
+        name: { type: [string, "null"], examples: [Ama Mensah] }
+        email: { type: [string, "null"], format: email }
+        role: { $ref: "#/components/schemas/OrgRole" }
+        joinedAt: { type: string, format: date-time }
+        lastActiveAt: { type: [string, "null"], format: date-time }
+    OrgInvite:
+      type: object
+      required: [id, email, role, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/OrgRole" }
+        invitedBy: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    OrgInviteCreate:
+      type: object
+      required: [email, role]
+      properties: { email: { type: string, format: email, maxLength: 254 }, role: { $ref: "#/components/schemas/OrgRole" } }
     ApiKey:
       type: object
-      properties: { id: { type: string, format: uuid }, name: { type: string }, prefix: { type: string }, scopes: { type: array, items: { type: string } }, lastUsedAt: { type: [string, "null"], format: date-time }, createdAt: { type: string, format: date-time }, dailyQuota: { type: integer }, usedToday: { type: integer } }
+      properties: { id: { type: string, format: uuid }, name: { type: string, examples: [Reporting dashboard] }, prefix: { type: string, examples: [apk_live_7Qm2] }, scopes: { type: array, items: { type: string } }, lastUsedAt: { type: [string, "null"], format: date-time }, createdAt: { type: string, format: date-time }, dailyQuota: { type: integer }, usedToday: { type: integer } }
     ApiKeyCreated:
       allOf:
         - $ref: "#/components/schemas/ApiKey"
         - type: object
           required: [secret]
-          properties: { secret: { type: string, description: Shown once. Send as the X-API-Key header. } }
+          properties: { secret: { type: string, description: Shown once. Send as the X-API-Key header., examples: [apk_live_7Qm2pX9vT4rL8sN1cB6dF0hJwE5kY3uA] } }
     PublicPricePage:
       type: object
       required: [data]
