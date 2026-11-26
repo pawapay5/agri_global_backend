@@ -51,7 +51,7 @@ Coolify generates and keeps every `SERVICE_PASSWORD_*` and `SERVICE_USER_*` valu
    | Variable | Required | Notes |
    |---|---|---|
    | `ADMIN_EMAIL` | for the admin seed | The admin's sign-in email. |
-   | `ADMIN_PASSWORD` | for the admin seed | At least 10 characters, not common, not containing the email name (the API's own rules). The deploy fails with a clear message if it's too weak, rather than creating a weak admin. |
+   | `ADMIN_PASSWORD` | for the admin seed | At least 10 characters, not common, not containing the email name (the API's own rules). If it's too weak, no admin is created and the `migrate` logs show `!!! bootstrap: admin seed FAILED: …`; the rest of the deploy carries on. Fix it and redeploy. |
    | `ADMIN_NAME` | no | Display name; default `Administrator`. |
    | `ADMIN_COUNTRY` | no | Two-letter code; default the first of `SEED_COUNTRIES`. |
    | `SEED_COUNTRIES` | no | Countries to load on first deploy, comma-separated; default `gh`. `none` turns it off. |

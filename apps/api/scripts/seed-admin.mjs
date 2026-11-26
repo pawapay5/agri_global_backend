@@ -6,7 +6,7 @@ import { readAdminConfig } from "./seed-admin.lib.mjs";
 const ARGON = { type: argon2.argon2id, memoryCost: 19_456, timeCost: 2, parallelism: 1 };
 
 export async function seedAdmin(db, env = process.env, log = console.log) {
-  const cfg = readAdminConfig(env, (env.SEED_COUNTRIES ?? "gh").split(",")[0]);
+  const cfg = readAdminConfig(env, String(env.SEED_COUNTRIES || "gh").split(/[s,]+/)[0]);
   if ("skip" in cfg) { log(`admin seed: skipped (${cfg.skip})`); return "skipped"; }
   if ("error" in cfg) throw new Error(`admin seed: ${cfg.error}`);
 
