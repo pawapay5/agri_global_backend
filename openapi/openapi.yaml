@@ -1612,6 +1612,7 @@ paths:
     delete:
       tags: [marketplace]
       operationId: market_cart_remove
+      summary: Remove a listing from the cart. The path id is the listing id (CartItem.listingId).
       parameters: [{ $ref: "#/components/parameters/IdPath" }]
       responses:
         "200": { description: Cart, content: { application/json: { schema: { $ref: "#/components/schemas/Cart" } } } }
@@ -3472,8 +3473,20 @@ components:
               currency: { type: string }
               subtotal: { $ref: "#/components/schemas/Decimal" }
               deliveryOptions: { type: array, items: { type: object, properties: { option: { type: string }, fee: { type: string }, days: { type: integer } } } }
-              items: { type: array, items: { type: object, additionalProperties: true } }
-        problems: { type: array, items: { type: object, properties: { listingId: { type: string }, code: { type: string } } } }
+              items: { type: array, items: { $ref: "#/components/schemas/CartItem" } }
+        problems: { type: array, items: { type: object, properties: { listingId: { type: string }, code: { type: string, enum: [unavailable, insufficient_stock, offer_expired] } } } }
+    CartItem:
+      type: object
+      description: One line in the cart. A listing appears at most once per cart, so the listing id identifies the line.
+      required: [listingId, title, quantity, unit, pricePerUnit, lineTotal]
+      properties:
+        listingId: { type: string, format: uuid }
+        title: { type: string, examples: [Fresh tomatoes] }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        unit: { type: string, examples: [kg] }
+        pricePerUnit: { $ref: "#/components/schemas/Decimal", description: The accepted offer's price when offerId is set }
+        lineTotal: { $ref: "#/components/schemas/Decimal" }
+        offerId: { type: [string, "null"], format: uuid }
     CheckoutRequest:
       type: object
       required: [paymentMethod, delivery]

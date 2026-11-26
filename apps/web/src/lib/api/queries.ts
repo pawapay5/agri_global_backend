@@ -1,5 +1,5 @@
 "use client";
-import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, idempotencyKey, unwrap, type S } from "./browser";
 
 type PriceType = S["PriceType"];
@@ -210,3 +210,135 @@ export const useNearby = (p: { lat: number | null; lng: number | null; radiusKm:
     queryFn: () => unwrap(api.GET("/v1/markets/nearby", { params: { query: { lat: p.lat!, lng: p.lng!, radius_km: p.radiusKm, commodity_id: p.commodityId, limit: 50 } } })),
     staleTime: 300_000, placeholderData: keepPreviousData, enabled: p.lat != null && p.lng != null,
   });
+
+// ── Alerts history & notifications inbox ──
+export const useAlertHistory = (alertId?: string) =>
+  useInfiniteQuery({
+    queryKey: ["alerts", "history", alertId ?? ""] as const,
+    queryFn: ({ pageParam }) => unwrap(api.GET("/v1/alerts/history", { params: { query: { alert_id: alertId, cursor: pageParam || undefined, limit: 20 } } })),
+    initialPageParam: "", getNextPageParam: (p) => p.nextCursor ?? undefined,
+  });
+
+type NotificationCategory = S["NotificationCategory"];
+export const useInbox = (opts: { category?: NotificationCategory; unread?: boolean }) =>
+  useInfiniteQuery({
+    queryKey: ["notifications", "inbox", opts.category ?? "", opts.unread ?? false] as const,
+    queryFn: ({ pageParam }) => unwrap(api.GET("/v1/notifications", { params: { query: { category: opts.category, unread: opts.unread || undefined, cursor: pageParam || undefined, limit: 20 } } })),
+    initialPageParam: "", getNextPageParam: (p) => p.nextCursor ?? undefined, staleTime: 30_000,
+  });
+
+export function useMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(api.POST("/v1/notifications/{id}/read", { params: { path: { id } } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (category?: NotificationCategory) => unwrap(api.POST("/v1/notifications/read-all", { params: { query: { category } } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
+export const useNotificationPrefs = () =>
+  useQuery({ queryKey: ["notifications", "preferences"] as const, queryFn: () => unwrap(api.GET("/v1/notifications/preferences")) });
+
+export function useSaveNotificationPrefs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["NotificationPreferences"]) => unwrap(api.PUT("/v1/notifications/preferences", { body })),
+    onSuccess: (v) => { if (v) qc.setQueryData(["notifications", "preferences"], v); },
+  });
+}
+
+// ── Insights ──
+export const useRecommendations = (commodityId: string, marketId: string) =>
+  useQuery({
+    queryKey: ["insights", "recommendations", commodityId, marketId] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/recommendations", { params: { query: { commodity_id: commodityId, market_id: marketId } } })),
+    staleTime: 600_000, enabled: Boolean(commodityId && marketId), retry: noRetryOn402,
+  });
+
+export const useAlternativeMarkets = (commodityId: string, marketId: string, radiusKm: number, transportCost?: number) =>
+  useQuery({
+    queryKey: ["insights", "alternatives", commodityId, marketId, radiusKm, transportCost ?? null] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/alternative-markets", { params: { query: { commodity_id: commodityId, market_id: marketId, radius_km: radiusKm, transport_cost_per_kg_km: transportCost } } })),
+    staleTime: 600_000, placeholderData: keepPreviousData, enabled: Boolean(commodityId && marketId), retry: noRetryOn402,
+  });
+
+export const usePlanting = (regionId: string, month: number) =>
+  useQuery({
+    queryKey: ["insights", "planting", regionId, month] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/planting", { params: { query: { region_id: regionId, month } } })),
+    staleTime: 3_600_000, enabled: Boolean(regionId), retry: noRetryOn402,
+  });
+
+export const useWeather = (lat: number | null, lng: number | null, commodityIds: string[]) =>
+  useQuery({
+    queryKey: ["insights", "weather", lat, lng, commodityIds.join(",")] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/weather", { params: { query: { lat: lat!, lng: lng!, commodity_ids: commodityIds.length ? commodityIds : undefined } } })),
+    staleTime: 1_800_000, enabled: lat != null && lng != null,
+  });
+
+export const useExportInsights = (commodityId: string, cc: string, destination?: string) =>
+  useQuery({
+    queryKey: ["insights", "export", commodityId, cc, destination ?? ""] as const,
+    queryFn: () => unwrap(api.GET("/v1/insights/export", { params: { query: { commodity_id: commodityId, country: cc, destination } } })),
+    staleTime: 3_600_000, placeholderData: keepPreviousData, enabled: Boolean(commodityId && cc), retry: noRetryOn402,
+  });
+
+/** A 402 (plan doesn't include this) won't change on retry; other failures get the default retries. */
+function noRetryOn402(count: number, err: unknown) {
+  return !(err && typeof err === "object" && "status" in err && (err as { status: number }).status === 402) && count < 3;
+}
+
+// ── Reports & data explorer ──
+const PENDING = new Set(["queued", "running"]);
+
+/** Report jobs, newest first. Re-polls every 4 s while any job on screen is still queued or running. */
+export const useReportJobs = () =>
+  useInfiniteQuery({
+    queryKey: ["reports"] as const,
+    queryFn: ({ pageParam }) => unwrap(api.GET("/v1/reports", { params: { query: { cursor: pageParam || undefined, limit: 20 } } })),
+    initialPageParam: "", getNextPageParam: (p) => p.nextCursor ?? undefined,
+    refetchInterval: (q) => (q.state.data?.pages.some((pg) => pg.data.some((j) => PENDING.has(j.status))) ? 4_000 : false),
+  });
+
+export function useCreateReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["ReportCreate"]) => unwrap(api.POST("/v1/reports", { body, headers: { "Idempotency-Key": idempotencyKey() } })),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["reports"] }),
+  });
+}
+
+export const useSubscription = () =>
+  useQuery({ queryKey: ["billing", "subscription"] as const, queryFn: () => unwrap(api.GET("/v1/billing/subscription")), staleTime: 300_000 });
+
+/** History for several commodities at once (explorer); each shares the cache with the commodity pages. */
+export function useHistoryMany(ids: string[], cc: string, range: Range, market?: string, interval: "day" | "week" = "day") {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: [...qk.history(id, cc, range, market), interval] as const,
+      queryFn: () => unwrap(api.GET("/v1/prices/history", { params: { query: { commodity_id: id, country: cc, range, market_id: market, interval } } })),
+      staleTime: 300_000, enabled: Boolean(id && cc),
+    })),
+  });
+}
+
+// ── Billing ──
+export const usePlans = (cc: string) =>
+  useQuery({ queryKey: ["billing", "plans", cc] as const, queryFn: () => unwrap(api.GET("/v1/billing/plans", { params: { query: { country: cc } } })), staleTime: 3_600_000, enabled: Boolean(cc) });
+
+export const useCheckout = () => useMutation({ mutationFn: (body: S["BillingCheckout"]) => unwrap(api.POST("/v1/billing/checkout", { body })) });
+
+export function useCancelSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(api.POST("/v1/billing/cancel")),
+    onSuccess: (v) => { if (v) qc.setQueryData(["billing", "subscription"], v); },
+  });
+}

@@ -20,7 +20,7 @@ import { useCommodity, useHistory, useInterests, useLatest, useMarkets, useMe, u
 // Same rules as lib/countries (server-only): ISO2 lower-cased; market code with dashes.
 const countrySlug = (iso2: string) => iso2.toLowerCase();
 const marketSlug = (code: string) => code.replace(/_/g, "-");
-import { absoluteTime, number, pct } from "@/lib/format";
+import { absoluteTime, number, pctPlain } from "@/lib/format";
 import { cn, pick } from "@/lib/utils";
 import { summarisePrices } from "./commodities";
 import { QueryState } from "./common";
@@ -149,7 +149,7 @@ function Overview({ id, cc, commodity }: { id: string; cc: string; commodity: S[
                 <>
                   <SeasonalBars monthlyAverage={a.monthlyAverage} peakMonths={a.peakMonths} lowMonths={a.lowMonths} currency={a.currency} unit={a.unit} title={tc("seasonalTitle")} />
                   {!hasSeries ? null : a.insight ? <p className="text-sm">{a.insight}</p> : move ? (
-                    <p className="text-sm">{tc("biggestMove", { dir: move.pct >= 0 ? tc("rise") : tc("fall"), pct: pct(Math.abs(move.pct), locale), month: monthName(move.month, locale, "long") })}</p>
+                    <p className="text-sm">{tc("biggestMove", { dir: move.pct >= 0 ? tc("rise") : tc("fall"), pct: pctPlain(move.pct, locale), month: monthName(move.month, locale, "long") })}</p>
                   ) : null}
                   {hasSeries && a.years.length ? <p className="text-xs text-muted-fg">{a.years.map((y) => y.year).join(" · ")}</p> : null}
                 </>
@@ -170,6 +170,7 @@ function Overview({ id, cc, commodity }: { id: string; cc: string; commodity: S[
 }
 
 function History({ id, cc, name }: { id: string; cc: string; name: string }) {
+  const locale = useLocale();
   const tc = useTranslations("cmd");
   const [range, setRange] = useQueryState("range", parseAsStringLiteral(RANGES).withDefault("3M"));
   const [market] = useQueryState("market", parseAsString);
@@ -193,7 +194,7 @@ function History({ id, cc, name }: { id: string; cc: string; name: string }) {
                     <div key={k} className="rounded-xl bg-muted/60 p-3"><dt className="text-xs text-muted-fg">{k}</dt><dd className="mt-0.5 font-semibold"><PriceCell amount={v} currency={h.currency} unit={h.unit} size="sm" /></dd></div>
                   ))}
                   <div className="rounded-xl bg-muted/60 p-3"><dt className="text-xs text-muted-fg">{tc("volatility")}</dt>
-                    <dd className="mt-0.5 font-semibold">{vol ? tc(`vol_${vol}`) : "—"}{h.stats.volatility?.cv != null ? <span className="ms-1 text-xs font-normal text-muted-fg">CV {pct(h.stats.volatility.cv * 100)}</span> : null}</dd></div>
+                    <dd className="mt-0.5 font-semibold">{vol ? tc(`vol_${vol}`) : "—"}{h.stats.volatility?.cv != null ? <span className="ms-1 text-xs font-normal text-muted-fg">CV {pctPlain(h.stats.volatility.cv * 100, locale)}</span> : null}</dd></div>
                 </dl>
               </section>
               {last ? <DataFreshness at={last.t} /> : null}

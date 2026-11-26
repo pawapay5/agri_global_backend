@@ -11,6 +11,9 @@ export interface SlugIndex { countries: Set<string>; crops: Map<string, Set<stri
 
 let index: SlugIndex | null = null;
 
+/** First path segments that are app areas, never a country slug. */
+const PRIVATE_ROOTS = new Set(["app", "admin", "api"]);
+
 export function slugIndex(): SlugIndex {
   if (index) return index;
   const root = join(process.cwd(), "..", "..", "country-packs");
@@ -40,6 +43,8 @@ export function slugIndex(): SlugIndex {
 export function isUnknownPublicPath(seg: string[], idx: SlugIndex = slugIndex()): boolean {
   if (!idx.countries.size) return false;
   const [first, section, slug] = seg;
+  // Signed-in and admin areas share the shape /{x}/markets/... but aren't country pages (e.g. /app/markets/map).
+  if (first && PRIVATE_ROOTS.has(first)) return false;
   if (first === "guides" && section) {
     const any = [...idx.crops.values()].some((s) => s.has(section));
     return !any;

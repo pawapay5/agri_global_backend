@@ -18,6 +18,8 @@ ARG NEXT_PUBLIC_FACEBOOK_APP_ID=
 # Public support channels shown on /contact (optional).
 ARG NEXT_PUBLIC_SUPPORT_EMAIL=
 ARG NEXT_PUBLIC_SUPPORT_WHATSAPP=
+# Payment providers offered at checkout, comma-separated (paystack, flutterwave, stripe); must match what the API has keys for.
+ARG NEXT_PUBLIC_BILLING_PROVIDERS=paystack
 # Public host serving uploaded images (MinIO/S3), allowed in next/image.
 ARG IMAGES_HOST=
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \

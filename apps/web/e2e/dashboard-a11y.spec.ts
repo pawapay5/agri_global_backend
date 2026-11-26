@@ -29,7 +29,7 @@ test("dashboard renders every panel from the API", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/Good (morning|afternoon|evening)/);
   for (const title of ["Your crops", "Trending commodities", "Your alerts", "Notifications", "Shortcuts"]) {
-    await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("main").getByText(title, { exact: true }).first()).toBeVisible();
   }
   await expect(page.getByText("Price records")).toBeVisible();
   expect(failed, "API calls that failed").toEqual([]);

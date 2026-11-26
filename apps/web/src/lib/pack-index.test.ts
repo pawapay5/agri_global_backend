@@ -12,6 +12,11 @@ describe("public path validation (real 404s)", () => {
       expect(isUnknownPublicPath(p, idx), p.join("/")).toBe(false);
     }
   });
+  it("never treats app or admin areas as a country (regression: /app/markets/* returned 404)", () => {
+    for (const p of [["app", "markets"], ["app", "markets", "map"], ["app", "markets", "nearby"], ["admin", "markets", "x"], ["api", "prices"]]) {
+      expect(isUnknownPublicPath(p, idx), p.join("/")).toBe(false);
+    }
+  });
   it("rejects unknown countries, crops, markets, regions and guide crops", () => {
     for (const p of [["zz", "prices"], ["gh", "prices", "not-a-crop"], ["gh", "markets", "nowhere"], ["gh", "regions", "xx"], ["guides", "not-a-crop"]]) {
       expect(isUnknownPublicPath(p, idx), p.join("/")).toBe(true);
