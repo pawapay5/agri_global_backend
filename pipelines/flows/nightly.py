@@ -1,16 +1,20 @@
 """Nightly per-country flow:
 ingest → clean → aggregate → features/train → rolling-origin backtest → promote if it beats seasonal naive
 → batch predict (with guardrails) → SHAP → write forecasts + explanations → notify the API (cache warm + alert sweep).
+
+Training runs inside the `ml` service when ML_SERVICE_URL is set (production): models live on that service's
+/models volume, and the next run loads the current production model from there. Without ML_SERVICE_URL (local
+development) it trains in-process.
 """
 
 from __future__ import annotations
 
+import os
 from datetime import date, timedelta
 
+import httpx
 import psycopg
 from prefect import flow, get_run_logger, task
-
-from agriprice_ml import train
 
 from .common import DSN, db, run_log
 from .fx import fx_daily
@@ -44,9 +48,15 @@ def clean(country: str) -> dict:
 
 
 @task(retries=2, retry_delay_seconds=120)
-def aggregate(days: int = 120) -> None:
+def aggregate(days: int | None = 120) -> None:
+    """Refreshes the daily/weekly continuous aggregates. days=None refreshes all history: needed after a backfill,
+    because the automatic policies only cover the last 120 (daily) / 180 (weekly) days."""
     # CALL refresh_continuous_aggregate can't run inside a transaction block.
     with psycopg.connect(DSN, autocommit=True) as conn:
+        if days is None:
+            conn.execute("CALL refresh_continuous_aggregate('price_daily', NULL, NULL)")
+            conn.execute("CALL refresh_continuous_aggregate('price_weekly', NULL, NULL)")
+            return
         start, end = date.today() - timedelta(days=days), date.today() + timedelta(days=1)
         conn.execute("CALL refresh_continuous_aggregate('price_daily', %s, %s)", (start, end))
         conn.execute("CALL refresh_continuous_aggregate('price_weekly', %s, %s)", (start - timedelta(days=7), end + timedelta(days=7)))
@@ -54,32 +64,51 @@ def aggregate(days: int = 120) -> None:
 
 @task(timeout_seconds=4 * 3600)
 def train_predict(country: str, promote: str) -> dict:
+    url = os.environ.get("ML_SERVICE_URL")
+    if url:
+        # The ml service holds the model volume and a training lock (409 if a run is already going).
+        r = httpx.post(f"{url.rstrip('/')}/train/{country}", params={"promote": promote},
+                       headers={"Authorization": f"Bearer {os.environ['ML_SERVICE_TOKEN']}"}, timeout=4 * 3600)
+        if r.status_code == 409:
+            return {"skipped": "training already running"}
+        r.raise_for_status()
+        return r.json()
+    from agriprice_ml import train  # local development only: heavy ML deps aren't in the pipelines image
     return train.run(country, promote)  # writes forecasts + explanations and notifies the API
 
 
+def _has_source(country: str, code: str) -> bool:
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM data_sources WHERE code = %s AND active", (code,))
+        return cur.fetchone() is not None
+
+
 @flow(name="nightly-country")
-def nightly(country: str = "GH", promote: str = "auto") -> dict:
+def nightly(country: str = "GH", promote: str = "auto", full: bool = False) -> dict:
+    """full=True (first run after deploy, or by hand) pulls WFP and weather regardless of the day and refreshes the
+    aggregates over all history, so a historical backfill reaches the model in the same run."""
     log = get_run_logger()
     today = date.today()
+    wfp_source = f"wfp_hdx_{country.lower()}"
     with run_log("nightly-country", country) as stats:
         fx_daily()
-        if today.weekday() == 0:  # WFP publishes monthly; a weekly pull is plenty
-            stats["wfp"] = wfp_prices(country)
-        if today.day == 2:
+        if (full or today.weekday() == 0) and _has_source(country, wfp_source):  # WFP publishes monthly; weekly is plenty
+            stats["wfp"] = wfp_prices(country, source_code=wfp_source)
+        if full or today.day == 2:
             stats["weather"] = weather_monthly(country)
         stats["dq"] = clean(country)
-        aggregate()
+        aggregate(None if full else 120)
         stats["train"] = train_predict(country, promote)
         log.info("%s nightly: %s", country, stats["train"])
         return stats
 
 
 @flow(name="nightly-all")
-def nightly_all(promote: str = "auto") -> list[dict]:
+def nightly_all(promote: str = "auto", full: bool = False) -> list[dict]:
     with db() as conn, conn.cursor() as cur:
         cur.execute("SELECT iso2 FROM countries WHERE active ORDER BY iso2")
         countries = [r[0] for r in cur.fetchall()]
-    return [nightly(c, promote) for c in countries]
+    return [nightly(c, promote, full) for c in countries]
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from collections import Counter
 
 from prefect import flow, get_run_logger, task
@@ -22,6 +23,26 @@ OUT_COLUMNS = ["observed_at", "market_code", "commodity_code", "price_type", "am
 
 def _norm(s: str) -> str:
     return " ".join(s.strip().lower().split())
+
+
+_N_KG = re.compile(r"(\d+(?:\.\d+)?)\s*kg", re.I)
+_N_COUNT = re.compile(r"(\d+)\s*(pcs|pieces?|units?|tubers?)", re.I)
+
+
+def unit_and_divisor(raw: str, unit_map: dict[str, str]) -> tuple[str | None, float]:
+    """WFP unit string → (our unit code, divisor for the price). Explicit unit_map entries win. Otherwise a stated
+    weight ("93 KG") becomes a per-kg price and a stated count ("100 Tubers", "30 pcs") a per-tuber/per-piece price:
+    exact conversions from what WFP states, never an assumed bag size."""
+    raw = raw.strip()
+    if raw in unit_map:
+        return unit_map[raw], 1.0
+    m = _N_KG.fullmatch(raw)
+    if m and float(m.group(1)) > 0:
+        return "kg", float(m.group(1))
+    m = _N_COUNT.fullmatch(raw)
+    if m and int(m.group(1)) > 0:
+        return ("tuber" if m.group(2).lower().startswith("tuber") else "piece"), float(m.group(1))
+    return None, 1.0
 
 
 def transform(rows: list[dict], markets: dict[str, str], commodities: dict[str, str], unit_map: dict[str, str],
@@ -39,14 +60,14 @@ def transform(rows: list[dict], markets: dict[str, str], commodities: dict[str, 
             continue
         m = markets.get(_norm(r.get("market", "")))
         c = commodities.get(_norm(r.get("commodity", "")))
-        u = unit_map.get(r.get("unit", "").strip())
+        u, per = unit_and_divisor(r.get("unit", ""), unit_map)
         pt = price_type_map.get(r.get("pricetype", "").strip())
         if not m: skipped["unmapped_market"] += 1; continue
         if not c: skipped["unmapped_commodity"] += 1; continue
         if not u: skipped["unmapped_unit"] += 1; continue
         if not pt: skipped["unmapped_price_type"] += 1; continue
         try:
-            price = float(r["price"])
+            price = float(r["price"]) / per
         except (KeyError, ValueError):
             skipped["bad_price"] += 1; continue
         if price <= 0:

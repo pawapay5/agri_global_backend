@@ -34,3 +34,19 @@ export function seedCountries(env) {
   if (/^(none|off|false|0)$/i.test(raw)) return [];
   return [...new Set(raw.split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z]{2}$/.test(s)))];
 }
+
+/**
+ * The pipelines' login (used to post imports to the API). Created as an enumerator: the least privilege that can
+ * import prices, limited to its own country. Skipped when either variable is blank.
+ */
+export function readServiceConfig(env, fallbackCountry = "GH") {
+  const email = (val(env.PIPELINE_SERVICE_EMAIL) ?? "").trim().toLowerCase();
+  const password = val(env.PIPELINE_SERVICE_PASSWORD) ?? "";
+  if (!email || !password) return { skip: "PIPELINE_SERVICE_EMAIL / PIPELINE_SERVICE_PASSWORD are not set" };
+  if (!EMAIL.test(email)) return { error: "PIPELINE_SERVICE_EMAIL is not a valid email address" };
+  const problem = passwordProblem(password, email);
+  if (problem) return { error: `PIPELINE_SERVICE_PASSWORD ${problem}` };
+  const country = (val(env.ADMIN_COUNTRY) ?? val(fallbackCountry) ?? "GH").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(country)) return { error: "ADMIN_COUNTRY must be a two-letter country code, e.g. GH" };
+  return { email, password, country };
+}

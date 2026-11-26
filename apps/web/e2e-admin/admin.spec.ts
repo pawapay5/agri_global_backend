@@ -65,3 +65,13 @@ test("anonymous visitors are sent to sign in", async ({ page, context }) => {
   await page.goto("/en/admin/users");
   await expect(page).toHaveURL(/\/en\/login/);
 });
+
+test("staff get an Admin console link in the app sidebar", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/en/app");
+  const link = page.getByRole("link", { name: "Admin console" }).first();
+  if (test.info().project.name === "mobile") await page.getByLabel("Menu").click();
+  await expect(link).toBeVisible({ timeout: 20_000 });
+  await link.click();
+  await expect(page).toHaveURL(/\/en\/admin$/);
+});

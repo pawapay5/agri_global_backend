@@ -29,15 +29,28 @@ const commodities = pack("commodities.yaml").tracked;
 const source = pack("sources.yaml").find((s) => s.code === `wfp_hdx_${cc}`);
 if (!source) throw new Error(`country-packs/${cc}/sources.yaml has no wfp_hdx_${cc} source`);
 
+/** HDX sometimes answers with an empty or error body: retry a few times before giving up with a clear message. */
+async function fetchRetry(url, as) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return as === "json" ? await r.json() : await r.text();
+    } catch (e) {
+      if (attempt >= 3) throw new Error(`HDX request failed after 3 tries (${e.message}). Try again later, or download the CSV yourself and pass --file.`);
+      console.log(`HDX request failed (${e.message}); retrying in ${attempt * 5}s…`);
+      await new Promise((res) => setTimeout(res, attempt * 5000));
+    }
+  }
+}
+
 async function download(packageId) {
-  const meta = await (await fetch(`https://data.humdata.org/api/3/action/package_show?id=${encodeURIComponent(packageId)}`)).json();
+  const meta = await fetchRetry(`https://data.humdata.org/api/3/action/package_show?id=${encodeURIComponent(packageId)}`, "json");
   const resources = meta?.result?.resources ?? [];
   const res = resources.find((x) => String(x.format).toUpperCase() === "CSV" && /food_prices/i.test(x.name ?? "")) ?? resources.find((x) => String(x.format).toUpperCase() === "CSV");
   if (!res) throw new Error(`No CSV resource found on HDX for ${packageId}`);
   console.log(`Downloading ${res.url}`);
-  const r = await fetch(res.url);
-  if (!r.ok) throw new Error(`HDX download failed: HTTP ${r.status}`);
-  return r.text();
+  return fetchRetry(res.url, "text");
 }
 
 const text = opt("file") ? readFileSync(resolve(opt("file")), "utf8") : await download(source.config.hdx_package_id);

@@ -1,5 +1,5 @@
 from flows.fx import to_local_usd
-from flows.wfp_prices import transform
+from flows.wfp_prices import transform, unit_and_divisor
 from flows.weather import monthly
 
 
@@ -32,3 +32,16 @@ def test_weather_monthly_aggregates_and_skips_partial_months():
     m = monthly({"time": days, "precipitation_sum": [1.0] * len(days), "temperature_2m_mean": [27.0] * len(days)})
     assert len(m) == 1
     assert m.iloc[0]["precip_mm"] == 31.0 and m.iloc[0]["temp_mean_c"] == 27.0
+
+
+def test_wfp_units_convert_stated_weights_and_counts_exactly():
+    m = {"100 KG": "bag_100kg", "KG": "kg"}
+    assert unit_and_divisor("93 KG", m) == ("kg", 93.0)
+    assert unit_and_divisor("100 KG", m) == ("bag_100kg", 1.0)  # explicit map wins
+    assert unit_and_divisor("100 Tubers", m) == ("tuber", 100.0)
+    assert unit_and_divisor("30 pcs", m) == ("piece", 30.0)
+    assert unit_and_divisor("Sack", m) == (None, 1.0)
+    out, _ = transform([{"date": "2025-03-15", "market": "Techiman", "commodity": "Maize", "unit": "93 KG", "pricetype": "Retail",
+                         "currency": "GHS", "price": "930", "priceflag": "actual"}],
+                       {"techiman": "techiman"}, {"maize": "maize_white"}, m, {"Retail": "retail"})
+    assert out[0]["unit"] == "kg" and out[0]["amount"] == "10.0000"
