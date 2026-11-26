@@ -1,3 +1,5 @@
+import { THEME_SCRIPT_HASH } from "@/lib/theme";
+
 const PROVIDERS = {
   google: { script: ["https://accounts.google.com/gsi/client"], frame: ["https://accounts.google.com"], connect: ["https://accounts.google.com"] },
   apple: { script: ["https://appleid.cdn-apple.com"], frame: ["https://appleid.apple.com"], connect: [] },
@@ -22,7 +24,7 @@ export function buildCsp({ nonce, dev = process.env.NODE_ENV !== "production", h
   const SIGN_IN = signInHosts(providers);
   const extraConnect = (process.env.CSP_CONNECT_SRC ?? "").split(/[\s,]+/).filter(Boolean);
   const script = nonce
-    ? [`'nonce-${nonce}'`, "'strict-dynamic'", "'self'", ...SIGN_IN.script]
+    ? [`'nonce-${nonce}'`, `'${THEME_SCRIPT_HASH}'`, "'strict-dynamic'", "'self'", ...SIGN_IN.script]
     : ["'self'", "'unsafe-inline'", ...SIGN_IN.script];
   if (dev) script.push("'unsafe-eval'"); // React dev tooling / Fast Refresh
 

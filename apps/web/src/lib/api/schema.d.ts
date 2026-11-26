@@ -2249,6 +2249,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** Remove a listing from the cart. The path id is the listing id (CartItem.listingId). */
         delete: operations["market_cart_remove"];
         options?: never;
         head?: never;
@@ -3817,7 +3818,10 @@ export interface components {
             priceType?: components["schemas"]["PriceType"];
             condition: components["schemas"]["AlertCondition"];
             threshold: components["schemas"]["Decimal"];
-            /** @description Required for above/below; defaults to user preference */
+            /**
+             * @description Required for above/below; defaults to user preference
+             * @example GHS
+             */
             thresholdCurrency?: string;
             /** @description Required for above/below; defaults to user preference */
             thresholdUnit?: string;
@@ -4480,14 +4484,28 @@ export interface components {
                     fee?: string;
                     days?: number;
                 }[];
-                items?: {
-                    [key: string]: unknown;
-                }[];
+                items?: components["schemas"]["CartItem"][];
             }[];
             problems?: {
                 listingId?: string;
-                code?: string;
+                /** @enum {string} */
+                code?: "unavailable" | "insufficient_stock" | "offer_expired";
             }[];
+        };
+        /** @description One line in the cart. A listing appears at most once per cart, so the listing id identifies the line. */
+        CartItem: {
+            /** Format: uuid */
+            listingId: string;
+            /** @example Fresh tomatoes */
+            title: string;
+            quantity: components["schemas"]["Decimal"];
+            /** @example kg */
+            unit: string;
+            /** @description The accepted offer's price when offerId is set */
+            pricePerUnit: components["schemas"]["Decimal"];
+            lineTotal: components["schemas"]["Decimal"];
+            /** Format: uuid */
+            offerId?: string | null;
         };
         CheckoutRequest: {
             /** @enum {string} */

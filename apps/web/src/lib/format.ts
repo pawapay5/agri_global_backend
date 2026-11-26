@@ -43,6 +43,12 @@ export function pct(v: number | null | undefined, locale = "en", digits = 1) {
   return nf(locale, { style: "percent", signDisplay: "exceptZero", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v / 100);
 }
 
+/** Unsigned percentage for magnitudes (a gap, a coefficient of variation, "rise 12%"): 12 → "12.0%". */
+export function pctPlain(v: number | null | undefined, locale = "en", digits = 1) {
+  if (v == null || !Number.isFinite(v)) return DASH;
+  return nf(locale, { style: "percent", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Math.abs(v) / 100);
+}
+
 /** Unit codes from the catalogue → short labels. Unknown codes fall back to the code with underscores spaced. */
 const UNIT_LABELS: Record<string, string> = { kg: "kg", g: "g", t: "t", l: "L", ml: "mL", each: "each", dozen: "dozen", crate: "crate" };
 export function unitLabel(code: string | null | undefined) {

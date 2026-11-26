@@ -2,6 +2,7 @@
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
+import { THEME_PROPS } from "@/lib/theme";
 
 /**
  * Root providers, on every page (public included): translations and theme only. Kept minimal because public
@@ -13,7 +14,7 @@ import type { ReactNode } from "react";
 export function Providers({ children, locale, messages }: { children: ReactNode; locale: string; messages: AbstractIntlMessages }) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <ThemeProvider {...THEME_PROPS}>
         {children}
       </ThemeProvider>
     </NextIntlClientProvider>

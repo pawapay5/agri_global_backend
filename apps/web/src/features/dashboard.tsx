@@ -249,6 +249,7 @@ function NotificationsCard() {
           {td("notifications")}
           {unread.data?.total ? <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-brand-fg">{td("unread", { n: unread.data.total })}</span> : null}
         </CardTitle>
+        <Link href="/app/notifications" className="text-sm font-semibold text-brand hover:underline">{td("viewAll")}</Link>
       </div>
       <QueryState q={list} skeleton={<Skeleton className="mt-3 h-32" />}>
         {(page) => !page.data.length ? <p className="mt-3 text-sm text-muted-fg">{td("noNotifications")}</p> : (
