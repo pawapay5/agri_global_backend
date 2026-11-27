@@ -169,3 +169,11 @@ export function useKycDecision() {
 export const useAdminStats = (days: 7 | 30 | 90) =>
   useQuery({ queryKey: ["admin", "stats", days] as const, queryFn: () => unwrap(api.GET("/v1/admin/stats", { params: { query: { days } } })),
     staleTime: 60_000, placeholderData: keepPreviousData });
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: S["AdminUserCreate"]) => unwrap(api.POST("/v1/admin/users", { body })),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["admin", "users"] }); void qc.invalidateQueries({ queryKey: ["admin", "stats"] }); },
+  });
+}

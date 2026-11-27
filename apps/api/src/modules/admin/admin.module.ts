@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsISO8601, IsOptional, IsString, IsUUID, Length, Matches, MaxLength, ValidateIf } from "class-validator";
+import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsISO8601, IsOptional, IsString, IsUUID, Length, Matches, MaxLength, ValidateIf } from "class-validator";
 import { AuthUser, CurrentUser, RoleName, Roles } from "../../common/auth/auth.common";
 import { AuditService } from "../../common/audit/audit.service";
 import { Sql } from "../../common/db/database.module";
@@ -56,17 +56,33 @@ const KNOWLEDGE = new Set(["crop_guides", "pest_diseases", "fertiliser_products"
 const REVIEWABLE = new Set(["crop_guides", "pest_diseases", "fertiliser_rules"]);
 const ADMIN_ONLY = new Set(["plans", "commission_rules", "units", "notification_templates", "export_requirements"]);
 
+export const ALL_ROLES = ["farmer", "trader", "consumer", "researcher", "student", "policymaker", "enumerator", "agronomist", "org_admin", "admin"] as const;
+/** What an org admin may hand out: everyday roles plus field enumerators. Staff above that are granted by an admin. */
+export const ORG_ADMIN_ASSIGNABLE = ["farmer", "trader", "consumer", "researcher", "student", "policymaker", "enumerator"] as const;
+
+/** Who may give which role (exported for tests). Admins can grant any role; org admins only everyday roles and enumerators. */
+export function canAssign(actorRole: string, role: string) {
+  return actorRole === "admin" ? (ALL_ROLES as readonly string[]).includes(role) : actorRole === "org_admin" && (ORG_ADMIN_ASSIGNABLE as readonly string[]).includes(role);
+}
+
 class TableQuery extends PagedQuery { @IsOptional() @IsString() @MaxLength(100) q?: string }
 class UsersQuery extends PagedQuery {
   @IsOptional() @Transform(upperIso) @Matches(/^[A-Z]{2}$/) country?: string;
-  @IsOptional() @IsIn(["farmer", "trader", "consumer", "researcher", "student", "policymaker", "enumerator", "admin", "org_admin"]) role?: string;
+  @IsOptional() @IsIn(ALL_ROLES) role?: string;
   @IsOptional() @IsString() @MaxLength(100) q?: string;
 }
 class AdminUserUpdateDto {
-  @IsOptional() @IsIn(["farmer", "trader", "consumer", "researcher", "student", "policymaker", "enumerator", "admin", "org_admin"]) role?: RoleName;
+  @IsOptional() @IsIn(ALL_ROLES) role?: RoleName;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() organisationId?: string | null;
   @IsOptional() @IsBoolean() suspended?: boolean;
   @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}
+class AdminUserCreateDto {
+  @IsString() @Length(2, 120) fullName: string;
+  @IsEmail() @MaxLength(254) email: string;
+  @IsOptional() @Matches(/^\+[1-9]\d{7,14}$/) phone?: string;
+  @IsIn(ALL_ROLES) role: RoleName;
+  @IsOptional() @Transform(upperIso) @Matches(/^[A-Z]{2}$/) country?: string;
 }
 class BroadcastDto {
   @Matches(/^[A-Z]{2}$/) country: string;
@@ -225,9 +241,10 @@ export class AdminService {
     const u = await this.users.mustGet(id);
     if (id === actor.id) throw AppError.forbidden("self_edit", "Use another admin account to change your own role or status");
     if (actor.role === "org_admin") {
-      if (u.countryIso2 !== actor.country || u.organisationId !== actor.orgId) throw AppError.forbidden("scope");
-      if (d.role && !["enumerator", "farmer", "trader", "researcher"].includes(d.role)) throw AppError.forbidden("role_not_assignable");
+      if (u.countryIso2 !== actor.country || (actor.orgId && u.organisationId !== actor.orgId)) throw AppError.forbidden("scope", "You can only manage people in your own country");
+      if (!canAssign("org_admin", u.role)) throw AppError.forbidden("scope", "Only an admin can change staff accounts");
     }
+    if (d.role && !canAssign(actor.role, d.role)) throw AppError.forbidden("role_not_assignable", "You can't give that role");
     const patch: Record<string, unknown> = {};
     if (d.role) patch.role = d.role;
     if (d.organisationId !== undefined) patch.organisationId = d.organisationId;
@@ -243,6 +260,24 @@ export class AdminService {
     if (d.role && d.role !== u.role) await this.sessions.revokeAll(id, "role_changed");
     await this.audit.record({ actorId: actor.id, action: "admin.user.update", entity: "user", entityId: id, data: d as Record<string, unknown> });
     return toUserDto(updated);
+  }
+
+  async createUser(actor: AuthUser, d: AdminUserCreateDto) {
+    if (!canAssign(actor.role, d.role)) throw AppError.forbidden("role_not_assignable", "You can't give that role");
+    const country = actor.role === "admin" ? (d.country ?? actor.country) : actor.country;
+    const email = d.email.trim().toLowerCase();
+    if (await this.sql.one(`SELECT 1 FROM users WHERE lower(email) = $1`, [email])) throw AppError.conflict("account_exists", "Someone already has an account with this email");
+    const u = await this.users.create({ email, fullName: d.fullName.trim(), phone: d.phone ?? null, role: d.role, countryIso2: country,
+      ...(actor.role === "org_admin" && actor.orgId ? { organisationId: actor.orgId } : {}) } as never);
+    const web = (process.env.WEB_URL ?? "https://agriprice.app").replace(/\/+$/, "");
+    const link = `${web}/en/forgot-password?email=${encodeURIComponent(email)}`;
+    await this.queue.dispatch({
+      userId: u.id, category: "system", templateKey: "account.invited", channels: ["email", "in_app"],
+      params: { title: "You've been added to AgriPrice", body: `${actor.role === "admin" ? "An AgriPrice admin" : "Your organisation's admin"} has created an account for you (${d.role.replace("_", " ")}). To sign in, set your password here: ${link}` },
+      data: { link }, dedupeKey: `invite:${u.id}`,
+    });
+    await this.audit.record({ actorId: actor.id, action: "admin.user.create", entity: "user", entityId: u.id, data: { role: d.role, country } });
+    return toUserDto(u);
   }
 
   async broadcast(actor: AuthUser, d: BroadcastDto) {
@@ -347,6 +382,9 @@ export class AdminController {
 
   @Roles("admin", "org_admin") @Get("users") @ApiOperation({ operationId: "admin_users_list" })
   users(@CurrentUser() u: AuthUser, @Query() q: UsersQuery) { return this.a.listUsers(u, q); }
+
+  @Roles("admin", "org_admin") @Post("users") @ApiOperation({ operationId: "admin_users_create" })
+  createUser(@CurrentUser() u: AuthUser, @Body() d: AdminUserCreateDto) { return this.a.createUser(u, d); }
 
   @Roles("admin", "org_admin") @Patch("users/:id") @ApiOperation({ operationId: "admin_users_update" })
   updateUser(@CurrentUser() u: AuthUser, @Param("id", ParseUUIDPipe) id: string, @Body() d: AdminUserUpdateDto) { return this.a.updateUser(u, id, d); }

@@ -9,7 +9,11 @@ import { Button, FieldError, Input, Label } from "@/components/ui/primitives";
 import { Link, useRouter } from "@/i18n/navigation";
 import { bff } from "@/lib/auth/client";
 
+/** Everyday roles people choose themselves; staff roles are given by an admin. Everyone can buy; selling needs an ID check. */
+export const SIGNUP_ROLES = ["farmer", "trader", "consumer", "researcher", "student", "policymaker"] as const;
+
 const schema = z.object({
+  role: z.enum(SIGNUP_ROLES, { message: "Choose one" }),
   fullName: z.string().trim().min(1).max(120),
   email: z.email().max(254),
   password: z.string().min(10, "At least 10 characters").max(128),
@@ -39,6 +43,18 @@ export function SignupForm({ countries }: { countries: { iso2: string; name: str
     <div className="space-y-6">
       <div><h1 className="text-2xl font-bold">{t("signupTitle")}</h1><p className="mt-1 text-sm text-muted-fg">{t("signupSubtitle")}</p></div>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">{t("roleQuestion")}</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {SIGNUP_ROLES.map((r) => (
+              <label key={r} className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5 has-[:checked]:font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+                <input type="radio" value={r} className="accent-[var(--brand)]" {...f.register("role")} />{t(`signupRole_${r}`)}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted-fg">{t("roleHint")}</p>
+          <FieldError>{f.formState.errors.role ? t("roleRequired") : null}</FieldError>
+        </fieldset>
         <div className="space-y-1.5"><Label htmlFor="fullName">{t("fullName")}</Label><Input id="fullName" autoComplete="name" {...f.register("fullName")} /><FieldError>{f.formState.errors.fullName?.message}</FieldError></div>
         <div className="space-y-1.5"><Label htmlFor="email">{t("email")}</Label><Input id="email" type="email" autoComplete="email" {...f.register("email")} /><FieldError>{f.formState.errors.email?.message}</FieldError></div>
         <div className="space-y-1.5"><Label htmlFor="password">{t("password")}</Label><Input id="password" type="password" autoComplete="new-password" {...f.register("password")} /><FieldError>{f.formState.errors.password?.message}</FieldError></div>

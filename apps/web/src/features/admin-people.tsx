@@ -1,19 +1,22 @@
 "use client";
-import { Search, Users } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useState } from "react";
 import { EmptyState } from "@/components/agri/empty-state";
 import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
-import { Badge, Button, Card, FieldError, Input, Label, Skeleton } from "@/components/ui/primitives";
+import { Badge, Button, Card, CardTitle, FieldError, Input, Label, Skeleton } from "@/components/ui/primitives";
 import type { S } from "@/lib/api/browser";
-import { field, useAdminUsers, useCountries, useUpdateCountry, useUpdateUser, type Row } from "@/lib/api/admin";
+import { field, useAdminUsers, useCountries, useCreateUser, useUpdateCountry, useUpdateUser, type Row } from "@/lib/api/admin";
 import { useMe } from "@/lib/api/queries";
 import { relativeTime } from "@/lib/format";
 import { cn, pick } from "@/lib/utils";
 
 const ROLES: S["Role"][] = ["farmer", "trader", "consumer", "researcher", "student", "policymaker", "enumerator", "agronomist", "org_admin", "admin"];
 export const STAFF = new Set<S["Role"]>(["enumerator", "agronomist", "org_admin", "admin"]);
+/** Roles each kind of staff may give (mirrors the API): admins any role; org admins everyday roles and enumerators. */
+export const assignableRoles = (actorRole?: string | null): S["Role"][] =>
+  actorRole === "admin" ? ROLES : actorRole === "org_admin" ? ROLES.filter((r) => r === "enumerator" || !STAFF.has(r)) : [];
 
 /** /admin/countries: each country pack's settings; deactivating is confirmed. */
 export function CountryPacks() {
@@ -89,9 +92,15 @@ export function AdminUsers() {
   const [q, setQ] = useState(f.q);
   const users = useAdminUsers({ q: f.q, role: f.role ?? undefined, country: f.country ?? undefined });
   const rows = (users.data?.pages.flatMap((p) => p.data) ?? []) as Row[];
+  const [adding, setAdding] = useState(false);
+  const canAdd = assignableRoles(me.data?.role).length > 0;
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">{t("users")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("users")}</h1>
+        {canAdd ? <Button onClick={() => setAdding((v) => !v)} aria-expanded={adding} aria-controls="add-user"><UserPlus aria-hidden className="size-4" />{t("addUser")}</Button> : null}
+      </div>
+      {adding ? <AddUser onDone={() => setAdding(false)} actorRole={me.data?.role ?? ""} actorCountry={me.data?.country ?? ""} countries={(countries.data ?? []).map((c) => c.iso2)} /> : null}
       <div className="flex flex-wrap items-end gap-3">
         <form role="search" onSubmit={(e) => { e.preventDefault(); void setF({ q: q.trim() || null }); }} className="relative min-w-60 flex-1">
           <label htmlFor="u-q" className="sr-only">{t("search")}</label>
@@ -99,7 +108,7 @@ export function AdminUsers() {
           <Input id="u-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} className="ps-10" maxLength={100} />
         </form>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">{t("role")}
-          <select value={f.role ?? ""} onChange={(e) => void setF({ role: (e.target.value || null) as S["Role"] | null })} className="h-10 rounded-xl border border-border bg-background px-2 text-sm text-foreground"><option value="">{t("allRoles")}</option>{ROLES.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+          <select value={f.role ?? ""} onChange={(e) => void setF({ role: (e.target.value || null) as S["Role"] | null })} className="h-10 rounded-xl border border-border bg-background px-2 text-sm text-foreground"><option value="">{t("allRoles")}</option>{ROLES.map((r) => <option key={r} value={r}>{t(`role_${r}`)}</option>)}</select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-fg">{t("country")}
           <select value={f.country ?? ""} onChange={(e) => void setF({ country: e.target.value || null })} className="h-10 rounded-xl border border-border bg-background px-2 text-sm text-foreground"><option value="">{t("allCountries")}</option>{(countries.data ?? []).map((c) => <option key={c.iso2} value={c.iso2}>{c.iso2}</option>)}</select>
@@ -107,7 +116,7 @@ export function AdminUsers() {
       </div>
       {users.isPending ? <Skeleton className="h-96" /> : !rows.length ? <EmptyState icon={Users} title={t("noRows")} /> : (
         <Card className="p-0">
-          <ul className="divide-y divide-border">{rows.map((u) => <li key={String(field(u, "id"))}><UserRow u={u} self={field(u, "id") === me.data?.id} locale={locale} /></li>)}</ul>
+          <ul className="divide-y divide-border">{rows.map((u) => <li key={String(field(u, "id"))}><UserRow u={u} self={field(u, "id") === me.data?.id} locale={locale} actorRole={me.data?.role ?? ""} /></li>)}</ul>
           {users.hasNextPage ? <div className="border-t border-border p-3"><Button variant="outline" size="sm" onClick={() => void users.fetchNextPage()}>{t("loadMore")}</Button></div> : null}
         </Card>
       )}
@@ -115,7 +124,71 @@ export function AdminUsers() {
   );
 }
 
-function UserRow({ u, self, locale }: { u: Row; self: boolean; locale: string }) {
+/** Add a person: they get an email inviting them to set a password (through "Forgot password"). */
+function AddUser({ onDone, actorRole, actorCountry, countries }: { onDone: () => void; actorRole: string; actorCountry: string; countries: string[] }) {
+  const t = useTranslations("adm");
+  const create = useCreateUser();
+  const fb = useFeedback();
+  const problem = useProblemMessage();
+  const roles = assignableRoles(actorRole);
+  const [v, setV] = useState({ fullName: "", email: "", phone: "", role: "farmer" as S["Role"], country: actorCountry });
+  const [err, setErr] = useState<Record<string, string>>({});
+  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setV((o) => ({ ...o, [k]: e.target.value }));
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const bad: Record<string, string> = {};
+    if (v.fullName.trim().length < 2) bad.fullName = t("required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) bad.email = t("emailInvalid");
+    if (v.phone.trim() && !/^\+[1-9]\d{7,14}$/.test(v.phone.trim())) bad.phone = t("phoneInvalid");
+    setErr(bad);
+    const first = Object.keys(bad)[0];
+    if (first) { document.getElementById(`nu-${first}`)?.focus(); return; }
+    if (STAFF.has(v.role) && !(await fb.confirm({ title: t("addStaffTitle", { role: t(`role_${v.role}`) }), description: t("addStaffBody"), confirmLabel: t("addUser") }))) return;
+    create.mutate({ fullName: v.fullName.trim(), email: v.email.trim(), role: v.role, ...(v.phone.trim() ? { phone: v.phone.trim() } : {}), ...(actorRole === "admin" && v.country ? { country: v.country } : {}) }, {
+      onSuccess: () => { fb.success(t("invited", { email: v.email.trim() })); onDone(); },
+      onError: (x) => fb.error(problem(x as never)),
+    });
+  };
+  const field_ = (k: "fullName" | "email" | "phone", label: string, type = "text", hint?: string) => (
+    <div className="space-y-1">
+      <Label htmlFor={`nu-${k}`}>{label}</Label>
+      <Input id={`nu-${k}`} type={type} value={v[k]} onChange={set(k)} aria-invalid={Boolean(err[k])} autoComplete="off" maxLength={k === "email" ? 254 : 120} />
+      {hint ? <p className="text-xs text-muted-fg">{hint}</p> : null}
+      <FieldError>{err[k]}</FieldError>
+    </div>
+  );
+  return (
+    <Card id="add-user" className="space-y-4">
+      <div><CardTitle>{t("addUser")}</CardTitle><p className="mt-1 text-sm text-muted-fg">{t("addUserBody")}</p></div>
+      <form onSubmit={(e) => void submit(e)} noValidate className="grid gap-3 sm:grid-cols-2">
+        {field_("fullName", t("name"))}
+        {field_("email", t("email"), "email")}
+        {field_("phone", t("phoneOptional"), "tel", t("phoneHint"))}
+        <div className="space-y-1">
+          <Label htmlFor="nu-role">{t("role")}</Label>
+          <select id="nu-role" value={v.role} onChange={set("role")} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm">
+            {roles.map((r) => <option key={r} value={r}>{t(`role_${r}`)}</option>)}
+          </select>
+          <p className="text-xs text-muted-fg">{t(`roleHelp_${STAFF.has(v.role) ? "staff" : "user"}`)}</p>
+        </div>
+        {actorRole === "admin" ? (
+          <div className="space-y-1">
+            <Label htmlFor="nu-country">{t("country")}</Label>
+            <select id="nu-country" value={v.country} onChange={set("country")} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm">
+              {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        ) : <p className="self-end text-sm text-muted-fg">{t("addsToCountry", { country: actorCountry })}</p>}
+        <div className="flex flex-wrap gap-2 sm:col-span-2">
+          <Button type="submit" disabled={create.isPending}>{create.isPending ? t("sending") : t("sendInvite")}</Button>
+          <Button type="button" variant="ghost" onClick={onDone}>{t("cancel")}</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function UserRow({ u, self, locale, actorRole }: { u: Row; self: boolean; locale: string; actorRole: string }) {
   const t = useTranslations("adm");
   const update = useUpdateUser();
   const fb = useFeedback();
@@ -128,6 +201,9 @@ function UserRow({ u, self, locale }: { u: Row; self: boolean; locale: string })
   const role = field<S["Role"]>(u, "role");
   const suspended = Boolean(field(u, "suspendedAt") ?? field(u, "suspended"));
   const created = field<string>(u, "createdAt"), last = field<string>(u, "lastLoginAt");
+  const options = assignableRoles(actorRole);
+  // Org admins can't change staff accounts; admins can change anyone but themselves.
+  const editable = Boolean(role && options.includes(role));
 
   const changeRole = async (next: S["Role"]) => {
     if (STAFF.has(next) && !(await fb.confirm({ title: t("roleTitle", { name, role: next }), description: t("roleBody"), confirmLabel: t("save"), destructive: true }))) return;
@@ -152,8 +228,8 @@ function UserRow({ u, self, locale }: { u: Row; self: boolean; locale: string })
           <p className="text-xs text-muted-fg">{[field(u, "email"), field(u, "phone"), field(u, "countryIso2")].filter(Boolean).join(" · ")}{created ? ` · ${t("joined")} ${relativeTime(created, locale)}` : ""} · {t("lastLogin")}: {last ? relativeTime(last, locale) : t("never")}</p>
         </div>
         <label className="text-sm"><span className="sr-only">{t("role")}: {name}</span>
-          <select value={role ?? ""} disabled={self || update.isPending} onChange={(e) => void changeRole(e.target.value as S["Role"])} className="h-9 rounded-xl border border-border bg-background px-2 text-sm">
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          <select value={role ?? ""} disabled={self || update.isPending || !editable} onChange={(e) => void changeRole(e.target.value as S["Role"])} className="h-9 rounded-xl border border-border bg-background px-2 text-sm">
+            {(editable ? options : [role!]).map((r) => <option key={r} value={r}>{t(`role_${r}`)}</option>)}
           </select>
         </label>
         {!self ? (suspended

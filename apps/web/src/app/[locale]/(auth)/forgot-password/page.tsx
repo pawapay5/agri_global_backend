@@ -1,15 +1,24 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { Button, Input, Label } from "@/components/ui/primitives";
 import { Link, useRouter } from "@/i18n/navigation";
 import { bff } from "@/lib/auth/client";
 
-/** Two steps: request a code (always "sent", so emails can't be enumerated), then reset with code + new password. */
+/**
+ * Two steps: request a code (always "sent", so emails can't be enumerated), then reset with code + new password.
+ * People an admin added arrive here from their invitation with ?email= filled in, to set their first password.
+ */
 export default function ForgotPasswordPage() {
+  return <Suspense><ForgotPassword /></Suspense>;
+}
+
+function ForgotPassword() {
   const t = useTranslations("auth");
-  const [email, setEmail] = useState("");
+  const invited = useSearchParams().get("email")?.slice(0, 254) ?? "";
+  const [email, setEmail] = useState(invited);
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");

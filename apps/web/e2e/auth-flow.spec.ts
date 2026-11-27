@@ -11,15 +11,23 @@ test("sign-up through to a first alert", async ({ page, context }) => {
 
   // 1. Sign up
   await page.goto("/en/signup");
+  // The role is chosen on the sign-up form (onboarding starts with it pre-selected).
+  await page.getByRole("button", { name: /create account|sign up/i }).click();
+  await expect(page.getByText("Choose what best describes you.")).toBeVisible();
+  let sentRole: unknown = null;
+  page.on("request", (r) => { if (r.url().includes("/api/auth/register")) sentRole = (r.postDataJSON() as { role?: string }).role; });
+  await page.getByRole("radio", { name: "Farmer" }).check();
   await page.getByLabel("Full name").fill("Ama Mensah");
   await page.getByLabel("Email").fill("ama@example.com");
   await page.getByLabel("Password").fill("correct horse battery staple");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /create account|sign up/i }).click();
 
+  await expect.poll(() => sentRole).toBe("farmer");
+
   // 2. Verify the emailed code (Prism accepts any well-formed code)
   await expect(page).toHaveURL(/\/en\/verify\?email=/);
-  const boxes = page.locator('fieldset input');
+  const boxes = page.locator('fieldset input:visible'); // the previous (sign-up) page can stay mounted, hidden, after client navigation
   for (let i = 0; i < 6; i++) await boxes.nth(i).fill(String(i + 1));
   await page.getByRole("button", { name: /verify/i }).click();
 
