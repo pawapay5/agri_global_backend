@@ -1282,6 +1282,17 @@ paths:
         - { $ref: "#/components/parameters/Limit" }
       responses:
         "200": { description: Entries, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+  /v1/admin/stats:
+    get:
+      tags: [admin]
+      operationId: admin_stats
+      summary: Exact totals for the admin overview charts. Org admins see their own country; moderation, dispute and payout queues are null for them.
+      parameters:
+        - { name: days, in: query, schema: { type: integer, enum: [7, 30, 90], default: 30 } }
+        - { name: country, in: query, schema: { type: string, pattern: "^[A-Za-z]{2}$" }, description: Admins only; org admins are always scoped to their country }
+      responses:
+        "200": { description: Totals, content: { application/json: { schema: { $ref: "#/components/schemas/AdminStats" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
   /v1/admin/kyc:
     get:
       tags: [admin]
@@ -3610,6 +3621,41 @@ components:
         facts: { type: array, items: { $ref: "#/components/schemas/AssistantFact" } }
         hasVoice: { type: boolean }
         createdAt: { type: string, format: date-time }
+    AdminStats:
+      type: object
+      required: [days, country, generatedAt, queues, users, signups, prices, orders, forecastConfidence]
+      properties:
+        days: { type: integer, enum: [7, 30, 90] }
+        country: { type: ["null", string], examples: [GH] }
+        generatedAt: { type: string, format: date-time }
+        queues:
+          type: object
+          required: [pricesPending, pricesFlagged, sellerApplications, moderationOpen, disputesOpen, payoutsPending]
+          properties:
+            pricesPending: { type: integer, examples: [14] }
+            pricesFlagged: { type: integer, examples: [3] }
+            sellerApplications: { type: integer, examples: [5] }
+            moderationOpen: { type: ["null", integer], examples: [2] }
+            disputesOpen: { type: ["null", integer], examples: [1] }
+            payoutsPending: { type: ["null", integer], examples: [4] }
+        users:
+          type: object
+          required: [total, newInPeriod, byRole]
+          properties:
+            total: { type: integer, examples: [1840] }
+            newInPeriod: { type: integer, examples: [126] }
+            byRole: { type: array, items: { type: object, required: [role, count], properties: { role: { $ref: "#/components/schemas/Role" }, count: { type: integer, examples: [920] } } } }
+        signups: { type: array, items: { type: object, required: [date, count], properties: { date: { type: string, format: date }, count: { type: integer, examples: [12] } } } }
+        prices:
+          type: array
+          items: { type: object, required: [date, approved, pending, flagged, rejected], properties: { date: { type: string, format: date }, approved: { type: integer, examples: [40] }, pending: { type: integer, examples: [6] }, flagged: { type: integer, examples: [2] }, rejected: { type: integer, examples: [1] } } }
+        orders:
+          type: object
+          required: [byStatus, perDay]
+          properties:
+            byStatus: { type: array, items: { type: object, required: [status, count], properties: { status: { type: string, examples: [completed] }, count: { type: integer, examples: [18] } } } }
+            perDay: { type: array, items: { type: object, required: [date, count], properties: { date: { type: string, format: date }, count: { type: integer, examples: [12] } } } }
+        forecastConfidence: { type: array, items: { type: object, required: [horizonMonths, confidence, count], properties: { horizonMonths: { type: integer, examples: [3] }, confidence: { type: string, examples: [medium] }, count: { type: integer, examples: [24] } } } }
     KycApplication:
       type: object
       required: [userId, displayName, country, status, idType, idNumber, idNumberMasked, idPhotoUrl, selfieUrl, linksExpireInSeconds, submittedAt, reviewedAt, reviewedBy, rejectionReason, fullName, email, phone]

@@ -164,3 +164,8 @@ export function useKycDecision() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "kyc"] }),
   });
 }
+
+// ── Overview totals ──
+export const useAdminStats = (days: 7 | 30 | 90) =>
+  useQuery({ queryKey: ["admin", "stats", days] as const, queryFn: () => unwrap(api.GET("/v1/admin/stats", { params: { query: { days } } })),
+    staleTime: 60_000, placeholderData: keepPreviousData });

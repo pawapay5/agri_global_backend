@@ -17,6 +17,7 @@ import { AuthModule } from "../auth/auth.module";
 import { toUserDto, UsersRepository } from "../users/users.repository";
 import { FieldCipher } from "../../common/crypto/crypto";
 import { KycReviewController, KycReviewService } from "./kyc-review";
+import { AdminStatsController, AdminStatsService } from "./admin-stats";
 
 /**
  * Allow-list for generic admin CRUD. Column names are validated against this list and
@@ -372,5 +373,5 @@ export class AdminController {
   async decide(@CurrentUser() u: AuthUser, @Param("id", ParseUUIDPipe) id: string, @Body() d: ModDecisionDto) { await this.a.decide(u, id, d); }
 }
 
-@Module({ imports: [AuthModule, GeoModule], controllers: [AdminController, KycReviewController], providers: [AdminService, KycReviewService, FieldCipher] })
+@Module({ imports: [AuthModule, GeoModule], controllers: [AdminController, KycReviewController, AdminStatsController], providers: [AdminService, KycReviewService, AdminStatsService, FieldCipher] })
 export class AdminModule {}

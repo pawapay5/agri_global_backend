@@ -342,3 +342,8 @@ export function useCancelSubscription() {
     onSuccess: (v) => { if (v) qc.setQueryData(["billing", "subscription"], v); },
   });
 }
+
+/** The farmer's own profile (region and crops): drives the home forecast. */
+export const useFarmingProfile = (enabled = true) =>
+  useQuery({ queryKey: ["me", "farming-profile"] as const, queryFn: () => unwrap(api.GET("/v1/me/farming-profile")), staleTime: 300_000, enabled,
+    retry: (n, e) => !(e && typeof e === "object" && "status" in e && (e as { status: number }).status === 404) && n < 2 });
