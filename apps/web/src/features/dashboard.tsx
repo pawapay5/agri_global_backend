@@ -1,8 +1,10 @@
 "use client";
-import { BarChart3, Bell, BrainCircuit, ChevronRight, CloudSun, Database, Info, LineChart, MapPin, ShieldCheck, Store, Wheat } from "lucide-react";
+import { Bell, BrainCircuit, ChevronRight, CloudSun, Database, Info, LineChart as LineIcon, MapPin, Sparkles, Store, Wheat } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { ChangeBadge } from "@/components/agri/change-badge";
+import { ForecastChart } from "@/components/agri/charts/forecast-chart";
+import { ColumnChart, DivergingBars, SegmentedBar, Sparkline, VizCard } from "@/components/agri/charts/viz";
 import { CommodityAvatar } from "@/components/agri/commodity-avatar";
 import { DataFreshness } from "@/components/agri/data-freshness";
 import { EmptyState } from "@/components/agri/empty-state";
@@ -11,17 +13,30 @@ import { StatCard } from "@/components/agri/stat-card";
 import { buttonVariants, Card, CardTitle, Skeleton } from "@/components/ui/primitives";
 import { Link } from "@/i18n/navigation";
 import type { S } from "@/lib/api/browser";
-import { useAlertInsights, useCommodities, useInterests, useLatestMany, useMe, useNotifications, useSnapshot, useTrending, useUnreadCount } from "@/lib/api/queries";
-import { number, relativeTime } from "@/lib/format";
+import {
+  useAlertInsights, useCommodities, useFarmingProfile, useForecast, useHistory, useHistoryMany, useInterests, useLatestMany, useMe, useNotifications,
+  useSnapshot, useTrending, useUnreadCount,
+} from "@/lib/api/queries";
+import { money, number, relativeTime, shortDate } from "@/lib/format";
 import { cn, greetingPeriod, pick } from "@/lib/utils";
 import { QueryState } from "./common";
 
 const MAX_CROPS = 6;
+/** A weekly move smaller than this counts as steady in the rising/falling split. */
+export const STEADY_PCT = 0.5;
 const noSubscribe = () => () => {};
 
+/** Rising / falling / steady counts for this week's movers (exported for tests). */
+export function moveSplit(items: { changePct: number }[]) {
+  const up = items.filter((i) => i.changePct >= STEADY_PCT).length, down = items.filter((i) => i.changePct <= -STEADY_PCT).length;
+  return { up, down, steady: items.length - up - down };
+}
+
+const pct = (v: number, locale: string) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString(locale, { maximumFractionDigits: 1 })}%`;
+
 /**
- * /app home (mockup: Home dashboard). Every figure is an API value or a plain summary of API values (median,
- * average of weekly changes), labelled as such; a panel with no data says so instead of showing zeros.
+ * /app home. Every figure is an API value or a plain summary of API values (median, average of weekly changes), labelled
+ * as such; a panel with no data says so instead of showing zeros. Charts animate in and have table views.
  */
 export function Dashboard() {
   const t = useTranslations("app");
@@ -42,6 +57,7 @@ export function Dashboard() {
           </h1>
           {snapshot.data?.lastUpdatedAt ? <DataFreshness at={snapshot.data.lastUpdatedAt} className="mt-1" /> : null}
         </div>
+        <Link href="/app/assistant" className={buttonVariants({ variant: "outline", size: "sm" })}><Sparkles aria-hidden className="size-4" />{td("askAssistant")}</Link>
       </header>
 
       <section aria-labelledby="snap">
@@ -49,27 +65,22 @@ export function Dashboard() {
         <Snapshot q={snapshot} />
       </section>
 
+      <Outlook cc={cc} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <YourCrops cc={cc} />
-          <Trending cc={cc} />
+          <Movers cc={cc} />
         </div>
         <div className="space-y-6">
           <AlertsCard />
           <NotificationsCard />
-          <Link href="/app/forecast" className="block">
-            <Card className="flex items-center gap-3 bg-info transition hover:ring-2 hover:ring-[var(--ring)]">
-              <BrainCircuit aria-hidden className="size-8 shrink-0 text-brand" />
-              <div className="flex-1"><p className="font-semibold">{t("aiBannerTitle")}</p><p className="text-sm text-muted-fg">{t("aiBannerBody")}</p></div>
-              <ChevronRight aria-hidden className="size-5 rtl:rotate-180" />
-            </Card>
-          </Link>
           <Card>
             <CardTitle>{td("shortcuts")}</CardTitle>
             <ul className="mt-3 space-y-1 text-sm">
-              <Shortcut href="/app/markets" icon={<BarChart3 className="size-4" />} label={td("compareMarkets")} />
+              <Shortcut href="/app/markets" icon={<Store className="size-4" />} label={td("compareMarkets")} />
               <Shortcut href="/app/commodities" icon={<Wheat className="size-4" />} label={td("browseCommodities")} />
-              <Shortcut href="/app/settings/security" icon={<ShieldCheck className="size-4" />} label={td("security")} />
+              <Shortcut href="/app/forecast" icon={<BrainCircuit className="size-4" />} label={t("aiBannerTitle")} />
             </ul>
           </Card>
         </div>
@@ -97,7 +108,62 @@ function Snapshot({ q }: { q: ReturnType<typeof useSnapshot> }) {
   );
 }
 
-/** The user's followed crops (onboarding interests): median latest price across reporting markets + average weekly change. */
+/**
+ * The lead chart: six months of the first followed crop's national price, continued by the AI forecast for the farmer's
+ * region (P10–P90 band). When the model's guardrails withhold the forecast, the reason is shown, never a guess.
+ */
+function Outlook({ cc }: { cc: string }) {
+  const t = useTranslations("app");
+  const td = useTranslations("dash");
+  const locale = useLocale();
+  const interests = useInterests();
+  const profile = useFarmingProfile();
+  const commodities = useCommodities(cc);
+  const lead = interests.data?.commodityIds?.[0] ?? "";
+  const region = profile.data?.regionId ?? undefined;
+  const history = useHistory(lead, cc, "6M");
+  const forecast = useForecast(lead, { region });
+  const crop = pick(commodities.data?.data.find((c) => c.id === lead)?.name, locale);
+  if (interests.isPending) return <Skeleton className="h-80" />;
+  if (!lead) return null;
+  const h = history.data;
+  const f = forecast.data;
+  const available = f?.status === "available";
+  const horizons = available ? f.horizons.filter((x) => x.status === "available") : [];
+  const reasons = f && !available ? (f.reasons ?? []) : [];
+  return (
+    <VizCard title={td("outlookTitle", { crop: crop || "…" })} fetching={history.isFetching && !history.isPending}
+      subtitle={available ? td("outlookAi") : region ? td("outlookHistory") : td("outlookNoRegion")}
+      action={<Link href={`/app/commodities/${lead}`} className="rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-muted">{t("seeAll")}</Link>}>
+      {history.isPending ? <Skeleton className="h-64" /> : !h?.points.length ? (
+        <EmptyState icon={LineIcon} title={td("noHistory")} className="border-none py-6" />
+      ) : (
+        <div className="space-y-3">
+          <ForecastChart history={h.points} horizons={horizons} currency={h.currency} unit={h.unit} title={crop} height={260} />
+          {reasons.length ? (
+            <p className="flex items-start gap-2 rounded-xl bg-info p-3 text-sm">
+              <BrainCircuit aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
+              <span><span className="font-semibold">{t("insufficient")}.</span> {reasons.map((r) => t(`reasons.${r}` as "reasons.no_forecast")).join(" ")}</span>
+            </p>
+          ) : null}
+          {available && horizons.length ? (
+            <ul className="grid gap-2 sm:grid-cols-3">
+              {horizons.map((x) => (
+                <li key={x.horizonMonths} className="rounded-xl border border-border p-3">
+                  <p className="text-xs text-muted-fg">{t("horizon", { months: x.horizonMonths })} · {shortDate(x.targetDate, locale, { month: "short", year: "numeric" })}</p>
+                  <p className="text-lg font-semibold">{money(x.p50, f.currency ?? h.currency, locale)}</p>
+                  <p className="text-xs text-muted-fg">{td("likelyBetween", { low: money(x.p10, f.currency ?? h.currency, locale), high: money(x.p90, f.currency ?? h.currency, locale) })}</p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
+    </VizCard>
+  );
+}
+
+/** Followed crops: median latest price across reporting markets, average weekly change, and a 3-month weekly trend line. */
 function YourCrops({ cc }: { cc: string }) {
   const td = useTranslations("dash");
   const locale = useLocale();
@@ -105,6 +171,7 @@ function YourCrops({ cc }: { cc: string }) {
   const commodities = useCommodities(cc);
   const ids = (interests.data?.commodityIds ?? []).slice(0, MAX_CROPS);
   const latest = useLatestMany(ids, cc);
+  const trend = useHistoryMany(ids, cc, "3M", undefined, "week");
   const loading = interests.isPending || commodities.isPending;
 
   return (
@@ -120,20 +187,28 @@ function YourCrops({ cc }: { cc: string }) {
         <ul className="grid gap-3 sm:grid-cols-2">
           {ids.map((id, i) => {
             const c = commodities.data?.data.find((x) => x.id === id);
-            const rows = latest[i]?.data ?? [];
-            const s = summarise(rows);
+            const s = summarise(latest[i]?.data ?? []);
             const name = pick(c?.name, locale);
+            const pts = trend[i]?.data?.points ?? [];
             return (
-              <li key={id}>
-                <Link href={`/app/commodities/${id}`} className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-brand">
-                  <CommodityAvatar name={name || "?"} imageUrl={c?.imageUrl} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{name}</p>
-                    {latest[i]?.isPending ? <Skeleton className="mt-1 h-4 w-24" /> : s ? (
-                      <p className="text-sm"><PriceCell amount={s.median} currency={s.currency} unit={s.unit} /> <span className="text-xs text-muted-fg">· {td("medianAcross", { n: s.n })}</span></p>
-                    ) : <p className="text-sm text-muted-fg">{td("noPriceYet")}</p>}
+              <li key={id} className="viz-fade" style={{ ["--i" as string]: i }}>
+                <Link href={`/app/commodities/${id}`} className="flex flex-col gap-3 rounded-xl border border-border p-3 transition hover:border-brand hover:shadow-elev-1">
+                  <div className="flex items-center gap-3">
+                    <CommodityAvatar name={name || "?"} imageUrl={c?.imageUrl} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{name}</p>
+                      {latest[i]?.isPending ? <Skeleton className="mt-1 h-4 w-24" /> : s ? (
+                        <p className="text-sm"><PriceCell amount={s.median} currency={s.currency} unit={s.unit} /> <span className="text-xs text-muted-fg">· {td("medianAcross", { n: s.n })}</span></p>
+                      ) : <p className="text-sm text-muted-fg">{td("noPriceYet")}</p>}
+                    </div>
+                    {s ? <ChangeBadge value={s.change} /> : null}
                   </div>
-                  {s ? <ChangeBadge value={s.change} /> : null}
+                  {pts.length >= 2 ? (
+                    <div className="flex items-end justify-between gap-2">
+                      <Sparkline values={pts.map((p) => Number(p.avg))} width={180} height={40} />
+                      <span className="text-[11px] text-muted-fg">{td("last3Months")}</span>
+                    </div>
+                  ) : null}
                 </Link>
               </li>
             );
@@ -157,35 +232,37 @@ function summarise(rows: S["MarketPrice"][]) {
   };
 }
 
-function Trending({ cc }: { cc: string }) {
+/** This week's biggest movers as diverging bars around zero, plus the rising / steady / falling split. */
+function Movers({ cc }: { cc: string }) {
   const t = useTranslations("app");
   const td = useTranslations("dash");
   const locale = useLocale();
   const trending = useTrending(cc);
+  const items = trending.data ?? [];
+  const split = moveSplit(items);
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between"><CardTitle>{t("trending")}</CardTitle><Link href="/app/commodities" className="text-sm font-semibold text-brand hover:underline">{t("seeAll")}</Link></div>
+    <VizCard title={t("trending")} subtitle={td("moversSub")} fetching={trending.isFetching && !trending.isPending}
+      action={<Link href="/app/commodities" className="rounded-lg px-2 py-1 text-xs font-semibold text-brand hover:bg-muted">{t("seeAll")}</Link>}
+      table={items.length ? { caption: t("trending"), columns: [td("crop"), td("price"), td("weekChange")],
+        rows: items.map((i) => [pick(i.commodityName, locale), money(i.current, i.currency, locale), pct(i.changePct, locale)]) } : undefined}>
       <QueryState q={trending} empty={(d) => !d.length}>
-        {(items) => (
-          <ul className="divide-y divide-border">
-            {items.map((i) => (
-              <li key={i.commodityId}>
-                <Link href={`/app/commodities/${i.commodityId}`} className="flex items-center justify-between gap-4 py-3 hover:text-brand">
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{pick(i.commodityName, locale)}</span>
-                    {i.marketsReporting ? <span className="text-xs text-muted-fg">{td("reporting", { n: i.marketsReporting })}</span> : null}
-                  </span>
-                  <span className="flex items-center gap-4">
-                    <PriceCell amount={i.current} currency={i.currency} unit={i.unit} />
-                    <ChangeBadge value={i.changePct} className="w-20 justify-end" />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {(list) => (
+          <div className="space-y-5">
+            <SegmentedBar label={td("moveSplit")} format={(v) => number(v, locale)} parts={[
+              { key: "up", name: td("rising", { n: split.up }), value: split.up, color: "var(--viz-pos)" },
+              { key: "steady", name: td("steady", { n: split.steady }), value: split.steady, color: "var(--viz-mid)" },
+              { key: "down", name: td("falling", { n: split.down }), value: split.down, color: "var(--viz-neg)" },
+            ]} />
+            <DivergingBars format={(v) => pct(v, locale)}
+              rows={[...list].sort((a, b) => b.changePct - a.changePct).map((i) => ({
+                key: i.commodityId, label: pick(i.commodityName, locale), value: i.changePct, href: `/app/commodities/${i.commodityId}`,
+                sub: `${money(i.current, i.currency, locale)} / ${i.unit}${i.marketsReporting ? ` · ${td("reporting", { n: i.marketsReporting })}` : ""}`,
+              }))}
+              renderLink={(r, body) => <Link href={r.href!} className="block rounded-lg hover:bg-muted">{body}</Link>} />
+          </div>
         )}
       </QueryState>
-    </Card>
+    </VizCard>
   );
 }
 
@@ -207,12 +284,14 @@ function AlertsCard() {
             <Link href="/app/alerts" className={buttonVariants({ size: "sm", variant: "outline" })}>{td("createAlert")}</Link>
           </div>
         ) : (
-          <div className="mt-3 space-y-2">
-            <div className="flex items-end justify-between gap-3">
-              <p className="text-2xl font-semibold">{number(i.activeAlerts, locale)}<span className="ms-1 text-sm font-normal text-muted-fg">{t("activeAlerts", { count: i.activeAlerts }).replace(/^\d+\s*/, "")}</span></p>
-              <AlertTrend points={i.trend30d} />
-            </div>
+          <div className="mt-3 space-y-3">
+            <p className="text-2xl font-semibold">{number(i.activeAlerts, locale)}<span className="ms-1 text-sm font-normal text-muted-fg">{t("activeAlerts", { count: i.activeAlerts }).replace(/^\d+\s*/, "")}</span></p>
             <p className="text-sm text-muted-fg">{td("triggered30d", { n: i.triggered30d })}</p>
+            {i.trend30d.some((p) => p.count > 0) ? (
+              <ColumnChart height={120} format={(v) => number(v, locale)} summary={td("triggered30d", { n: i.triggered30d })}
+                series={[{ key: "n", name: td("triggers"), color: "var(--viz-single)" }]}
+                data={i.trend30d.slice(-30).map((p) => ({ key: p.date, label: shortDate(p.date, locale), values: [p.count] }))} />
+            ) : null}
             {i.mostFrequent?.commodityName ? <p className="text-sm">{td("mostFrequent", { crop: pick(i.mostFrequent.commodityName, locale) })}</p> : null}
           </div>
         )}
@@ -221,21 +300,7 @@ function AlertsCard() {
   );
 }
 
-/** 30-day trigger counts as a tiny bar strip (decorative: the counts are stated in text). */
-function AlertTrend({ points }: { points: { date: string; count: number }[] }) {
-  const max = Math.max(1, ...points.map((p) => p.count));
-  if (!points.some((p) => p.count > 0)) return null;
-  return (
-    <svg width={96} height={28} viewBox="0 0 96 28" aria-hidden>
-      {points.slice(-30).map((p, i, a) => {
-        const w = 96 / a.length, h = Math.max(1, (p.count / max) * 26);
-        return <rect key={p.date} x={i * w + 0.5} y={28 - h} width={Math.max(1, w - 1)} height={h} rx={1} fill={p.count ? "var(--chart-history)" : "var(--chart-grid)"} />;
-      })}
-    </svg>
-  );
-}
-
-const CATEGORY_ICON: Record<string, typeof Bell> = { price_alert: Bell, market_update: LineChart, weather: CloudSun, system: Info, weekly_insight: BrainCircuit };
+const CATEGORY_ICON: Record<string, typeof Bell> = { price_alert: Bell, market_update: LineIcon, weather: CloudSun, system: Info, weekly_insight: BrainCircuit };
 
 function NotificationsCard() {
   const td = useTranslations("dash");

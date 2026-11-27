@@ -172,3 +172,42 @@ body { background: var(--surface); color: var(--foreground); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── Dashboard charts ──
+   Categorical slots 1–5 (validated on these card surfaces, light #fff and dark #0f1a14: CVD ΔE ≥ 8.4 adjacent,
+   normal-vision ≥ 19.3; light aqua/yellow/pink sit under 3:1, so every chart ships a legend and a table view).
+   Diverging blue ↔ red for price direction (always with ▲/▼ and a sign); an ordinal blue ramp for funnels;
+   fixed status colours for review states (always with an icon and a label). */
+:root {
+  --viz-1: #2a78d6; --viz-2: #eb6834; --viz-3: #1baf7a; --viz-4: #eda100; --viz-5: #e87ba4; --viz-other: #a3a29b;
+  --viz-single: var(--chart-history);
+  --viz-pos: #e34948; --viz-neg: #2a78d6; --viz-mid: #e1e0d9;
+  --viz-ord-1: #86b6ef; --viz-ord-2: #5598e7; --viz-ord-3: #2a78d6; --viz-ord-4: #1c5cab;
+  --status-good: #0ca30c; --status-warning: #fab219; --status-serious: #ec835a; --status-critical: #d03b3b;
+  --viz-gap: var(--card);
+}
+.dark {
+  --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #c98500; --viz-5: #d55181; --viz-other: #6b6a64;
+  --viz-pos: #e66767; --viz-neg: #3987e5; --viz-mid: #383835;
+  --viz-ord-1: #184f95; --viz-ord-2: #256abf; --viz-ord-3: #3987e5; --viz-ord-4: #6da7ec;
+}
+
+/* Entrance animations: lines draw in, bars grow from their baseline, segments widen. Staggered with --i. */
+@keyframes viz-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes viz-grow { from { transform: scale(var(--from-x, 1), var(--from-y, 1)); opacity: 0.2; } to { transform: none; opacity: 1; } }
+@keyframes viz-fade { from { opacity: 0; } to { opacity: 1; } }
+.viz-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: viz-draw 1100ms cubic-bezier(0.33, 1, 0.68, 1) forwards; }
+.viz-grow-y, .viz-grow-x { transform-box: fill-box; animation: viz-grow 650ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 18ms); }
+.viz-grow-y { --from-y: 0; transform-origin: 50% 100%; }
+.viz-grow-x { --from-x: 0; transform-origin: 0 50%; }
+.viz-grow-x[data-neg] { transform-origin: 100% 50%; }
+[dir="rtl"] .viz-grow-x { transform-origin: 100% 50%; }
+[dir="rtl"] .viz-grow-x[data-neg] { transform-origin: 0 50%; }
+.viz-fade { animation: viz-fade 500ms ease-out both; animation-delay: calc(var(--i, 0) * 40ms); }
+.viz-mark { transition: opacity 120ms, filter 120ms; }
+.viz-dim .viz-mark:not([data-on]) { opacity: 0.45; }
+.viz-mark[data-on] { filter: brightness(1.08); }
+@media (prefers-reduced-motion: reduce) {
+  .viz-draw { animation: none; stroke-dashoffset: 0; }
+  .viz-grow-y, .viz-grow-x, .viz-fade { animation: none; }
+}

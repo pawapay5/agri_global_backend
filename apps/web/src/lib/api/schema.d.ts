@@ -1690,6 +1690,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exact totals for the admin overview charts. Org admins see their own country; moderation, dispute and payout queues are null for them. */
+        get: operations["admin_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/kyc": {
         parameters: {
             query?: never;
@@ -4671,6 +4688,79 @@ export interface components {
             hasVoice: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        AdminStats: {
+            /** @enum {integer} */
+            days: 7 | 30 | 90;
+            /** @example GH */
+            country: null | string;
+            /** Format: date-time */
+            generatedAt: string;
+            queues: {
+                /** @example 14 */
+                pricesPending: number;
+                /** @example 3 */
+                pricesFlagged: number;
+                /** @example 5 */
+                sellerApplications: number;
+                /** @example 2 */
+                moderationOpen: null | number;
+                /** @example 1 */
+                disputesOpen: null | number;
+                /** @example 4 */
+                payoutsPending: null | number;
+            };
+            users: {
+                /** @example 1840 */
+                total: number;
+                /** @example 126 */
+                newInPeriod: number;
+                byRole: {
+                    role: components["schemas"]["Role"];
+                    /** @example 920 */
+                    count: number;
+                }[];
+            };
+            signups: {
+                /** Format: date */
+                date: string;
+                /** @example 12 */
+                count: number;
+            }[];
+            prices: {
+                /** Format: date */
+                date: string;
+                /** @example 40 */
+                approved: number;
+                /** @example 6 */
+                pending: number;
+                /** @example 2 */
+                flagged: number;
+                /** @example 1 */
+                rejected: number;
+            }[];
+            orders: {
+                byStatus: {
+                    /** @example completed */
+                    status: string;
+                    /** @example 18 */
+                    count: number;
+                }[];
+                perDay: {
+                    /** Format: date */
+                    date: string;
+                    /** @example 12 */
+                    count: number;
+                }[];
+            };
+            forecastConfidence: {
+                /** @example 3 */
+                horizonMonths: number;
+                /** @example medium */
+                confidence: string;
+                /** @example 24 */
+                count: number;
+            }[];
         };
         KycApplication: {
             /** Format: uuid */
@@ -8348,6 +8438,31 @@ export interface operations {
                     "application/json": components["schemas"]["RowPage"];
                 };
             };
+        };
+    };
+    admin_stats: {
+        parameters: {
+            query?: {
+                days?: 7 | 30 | 90;
+                /** @description Admins only; org admins are always scoped to their country */
+                country?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Totals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminStats"];
+                };
+            };
+            403: components["responses"]["Problem"];
         };
     };
     admin_kyc_list: {

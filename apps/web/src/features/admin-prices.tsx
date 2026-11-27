@@ -1,8 +1,9 @@
 "use client";
-import { AlertTriangle, Check, ClipboardCheck, FileUp, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Clock, FileUp, Flag, X, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useState } from "react";
+import { ColumnChart, LineChart, RankedBars, SegmentedBar, VizCard } from "@/components/agri/charts/viz";
 import { EmptyState } from "@/components/agri/empty-state";
 import { RangeTabs } from "@/components/agri/range-tabs";
 import { StatCard } from "@/components/agri/stat-card";
@@ -10,38 +11,141 @@ import { useFeedback, useProblemMessage } from "@/components/feedback/feedback";
 import { Badge, Button, Card, CardTitle, FieldError, Input, Label, Skeleton } from "@/components/ui/primitives";
 import { Link } from "@/i18n/navigation";
 import type { S } from "@/lib/api/browser";
-import { field, useAuditLog, useCountries, useImportPrices, useModels, useReviewPrice, useReviewQueue, type Row } from "@/lib/api/admin";
-import { useModerationQueue } from "@/lib/api/market";
-import { money, number, relativeTime, unitLabel } from "@/lib/format";
-import { pick } from "@/lib/utils";
+import { field, useAdminStats, useAuditLog, useCountries, useImportPrices, useModels, useReviewPrice, useReviewQueue, type Row } from "@/lib/api/admin";
+import { money, number, relativeTime, shortDate, unitLabel } from "@/lib/format";
+import { cn, pick } from "@/lib/utils";
 
 /**
- * /admin: what's waiting, pipeline health, latest models, recent audit entries. Queue counts are the size of the
- * first page with "+" when there are more (the API has no totals), never an estimate.
+ * /admin: exact queue totals, data intake by review status, sign-ups, people by role, orders by status and forecast
+ * confidence, for the chosen period (one filter row scopes every chart). Then pipeline health, models and recent audit
+ * entries. Every chart has a table view.
  */
+const DAYS = ["7", "30", "90"] as const;
+const OTHER_AFTER = 5;
+const STATUS_SERIES = [
+  { key: "approved", color: "var(--status-good)", icon: CheckCircle2 },
+  { key: "pending", color: "var(--status-warning)", icon: Clock },
+  { key: "flagged", color: "var(--status-serious)", icon: Flag },
+  { key: "rejected", color: "var(--status-critical)", icon: XCircle },
+] as const;
+const CONFIDENCE = ["high", "medium", "low"] as const;
+
+/** Top roles get the first five categorical slots in a fixed order; the rest fold into "Other" (exported for tests). */
+export function roleParts(byRole: { role: string; count: number }[]) {
+  const sorted = [...byRole].sort((a, b) => b.count - a.count);
+  const head = sorted.slice(0, OTHER_AFTER), tail = sorted.slice(OTHER_AFTER);
+  const other = tail.reduce((a, r) => a + r.count, 0);
+  return [...head.map((r, i) => ({ key: r.role, role: r.role, count: r.count, color: `var(--viz-${i + 1})` })),
+    ...(other ? [{ key: "other", role: "other", count: other, color: "var(--viz-other)" }] : [])];
+}
+
 export function AdminOverview() {
   const t = useTranslations("adm");
+  const tm = useTranslations("mp");
   const locale = useLocale();
-  const review = useReviewQueue(undefined, "pending");
-  const flagged = useReviewQueue(undefined, "flagged");
-  const mod = useModerationQueue();
+  const [q, setQ] = useQueryStates({ days: parseAsStringLiteral(DAYS).withDefault("30") });
+  const days = Number(q.days) as 7 | 30 | 90;
+  const stats = useAdminStats(days);
   const models = useModels();
   const audit = useAuditLog({}, 8);
-  const count = (q: { data?: { pages: { data: unknown[]; nextCursor?: string | null }[] }; isPending: boolean; isError: boolean }) => {
-    if (q.isPending) return "…";
-    if (q.isError || !q.data) return "—";
-    const p = q.data.pages[0]!;
-    return p.data.length ? t("waiting", { n: p.data.length, more: String(Boolean(p.nextCursor)) }) : t("nothingWaiting");
-  };
+  const s = stats.data;
   const m = models.data as { versions?: Row[]; pipelines?: Row[] } | undefined;
+  const fmt = (v: number) => number(v, locale, { compact: v >= 10_000 });
+  const day = (d: string) => shortDate(d, locale);
+  const fetching = stats.isFetching && !stats.isPending;
+  const roleName = (r: string) => (t.has(`role_${r}`) ? t(`role_${r}` as "role_farmer") : r);
+  const tiles: { label: string; value: number | null | undefined; href: string }[] = [
+    { label: t("review"), value: s?.queues.pricesPending, href: "/admin/prices/review" },
+    { label: `${t("review")} · ${t("st_flagged")}`, value: s?.queues.pricesFlagged, href: "/admin/prices/review?status=flagged" },
+    { label: t("sellerApprovals"), value: s?.queues.sellerApplications, href: "/admin/kyc" },
+    { label: t("moderation"), value: s?.queues.moderationOpen, href: "/admin/moderation" },
+    { label: t("disputes"), value: s?.queues.disputesOpen, href: "/admin/disputes" },
+    { label: t("payouts"), value: s?.queues.payoutsPending, href: "/admin/payouts" },
+  ].filter((x) => x.value !== null);
+  const statusSeries = STATUS_SERIES.map((x) => ({ key: x.key, name: t(`ps_${x.key}`), color: x.color, icon: <x.icon aria-hidden className="size-3" /> }));
+  const roles = s ? roleParts(s.users.byRole) : [];
+  const orderRows = s ? [...s.orders.byStatus].sort((a, b) => b.count - a.count) : [];
+  const orderStatus = (st: string) => (tm.has(`status_${st}`) ? tm(`status_${st}` as "status_in_transit") : st);
+  const confidenceByHorizon = s ? [1, 3, 6].map((h) => ({ h, parts: CONFIDENCE.map((c, i) => ({
+    key: c, name: t(`conf_${c}`), value: s.forecastConfidence.filter((x) => x.horizonMonths === h && x.confidence === c).reduce((a, x) => a + x.count, 0),
+    color: `var(--viz-ord-${3 - i})` })) })).filter((x) => x.parts.some((p) => p.value)) : [];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("overview")}</h1>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Link href="/admin/prices/review" className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"><StatCard label={t("review")} value={count(review)} /></Link>
-        <Link href="/admin/prices/review?status=flagged" className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"><StatCard label={`${t("review")} · ${t("st_flagged")}`} value={count(flagged)} /></Link>
-        <Link href="/admin/moderation" className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"><StatCard label={t("moderation")} value={count(mod)} /></Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("overview")}</h1>
+          {s ? <p className="mt-1 text-sm text-muted-fg">{s.country ? t("scopeCountry", { country: s.country }) : t("scopeAll")} · <span suppressHydrationWarning>{t("updatedAgo", { when: relativeTime(s.generatedAt, locale) })}</span></p> : null}
+        </div>
+        <RangeTabs size="sm" label={t("period")} value={q.days} onChange={(v) => void setQ({ days: v === "30" ? null : v })} options={DAYS.map((d) => ({ value: d, label: t("lastDays", { n: Number(d) }) }))} />
       </div>
+
+      {stats.isError ? <EmptyState title={t("statsFailed")} /> : (
+        <div className={cn("grid grid-cols-2 gap-4 transition-opacity sm:grid-cols-3 xl:grid-cols-6", fetching && "opacity-60")}>
+          {tiles.map((x, i) => (
+            <Link key={x.href} href={x.href} className="viz-fade block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ ["--i" as string]: i }}>
+              <StatCard label={x.label} value={x.value == null ? "…" : x.value ? number(x.value, locale) : t("nothingWaiting")} />
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {stats.isPending ? <div className="grid gap-6 lg:grid-cols-2"><Skeleton className="h-72" /><Skeleton className="h-72" /></div> : s ? (
+        <>
+          <div className="grid gap-6 lg:grid-cols-5">
+            <VizCard className="lg:col-span-3" title={t("intakeTitle")} subtitle={t("intakeSub", { n: days })} legend={statusSeries} fetching={fetching}
+              table={{ caption: t("intakeTitle"), columns: [t("date"), ...statusSeries.map((x) => x.name)],
+                rows: s.prices.map((p) => [day(p.date), p.approved, p.pending, p.flagged, p.rejected]) }}>
+              {s.prices.every((p) => !p.approved && !p.pending && !p.flagged && !p.rejected) ? <p className="py-8 text-center text-sm text-muted-fg">{t("noIntake")}</p> : (
+                <ColumnChart height={240} format={fmt} series={statusSeries} summary={t("intakeSummary", { n: s.prices.reduce((a, p) => a + p.approved + p.pending + p.flagged + p.rejected, 0), days })}
+                  data={s.prices.map((p) => ({ key: p.date, label: day(p.date), values: [p.approved, p.pending, p.flagged, p.rejected] }))} />
+              )}
+            </VizCard>
+
+            <VizCard className="lg:col-span-2" title={t("peopleTitle")} fetching={fetching}
+              table={{ caption: t("peopleTitle"), columns: [t("role"), t("count")], rows: roles.map((r) => [r.role === "other" ? t("otherRoles") : roleName(r.role), number(r.count, locale)]) }}>
+              <div className="space-y-5">
+                <div>
+                  <p className="text-5xl font-semibold tracking-tight">{number(s.users.total, locale)}</p>
+                  <p className="mt-1 text-sm text-muted-fg">{t("newInPeriod", { n: number(s.users.newInPeriod, locale), days })}</p>
+                </div>
+                {roles.length ? (
+                  <SegmentedBar label={t("peopleTitle")} format={(v) => number(v, locale)}
+                    parts={roles.map((r) => ({ key: r.key, name: r.role === "other" ? t("otherRoles") : roleName(r.role), value: r.count, color: r.color }))} />
+                ) : null}
+              </div>
+            </VizCard>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <VizCard title={t("signupsTitle")} subtitle={t("intakeSub", { n: days })} fetching={fetching}
+              table={{ caption: t("signupsTitle"), columns: [t("date"), t("count")], rows: s.signups.map((p) => [day(p.date), p.count]) }}>
+              <LineChart height={200} format={fmt} name={t("signupsTitle")} summary={t("newInPeriod", { n: number(s.users.newInPeriod, locale), days })}
+                points={s.signups.map((p) => ({ key: p.date, label: day(p.date), value: p.count }))} />
+            </VizCard>
+
+            <VizCard title={t("ordersTitle")} subtitle={t("intakeSub", { n: days })} fetching={fetching}
+              table={orderRows.length ? { caption: t("ordersTitle"), columns: [t("status"), t("count")], rows: orderRows.map((o) => [orderStatus(o.status), number(o.count, locale)]) } : undefined}>
+              {orderRows.length ? <RankedBars rows={orderRows.map((o) => ({ key: o.status, label: orderStatus(o.status), value: o.count, display: number(o.count, locale) }))} />
+                : <p className="py-8 text-center text-sm text-muted-fg">{t("noOrders")}</p>}
+            </VizCard>
+
+            <VizCard title={t("confidenceTitle")} subtitle={t("confidenceSub")}
+              table={confidenceByHorizon.length ? { caption: t("confidenceTitle"), columns: [t("horizonCol"), ...CONFIDENCE.map((c) => t(`conf_${c}`))],
+                rows: confidenceByHorizon.map((x) => [t("monthsAhead", { n: x.h }), ...x.parts.map((p) => p.value)]) } : undefined}>
+              {confidenceByHorizon.length ? (
+                <ul className="space-y-4">
+                  {confidenceByHorizon.map((x) => (
+                    <li key={x.h}><p className="mb-1.5 text-sm font-medium">{t("monthsAhead", { n: x.h })}</p>
+                      <SegmentedBar label={`${t("confidenceTitle")}, ${t("monthsAhead", { n: x.h })}`} format={(v) => number(v, locale)} parts={x.parts} /></li>
+                  ))}
+                </ul>
+              ) : <p className="py-8 text-center text-sm text-muted-fg">{t("noForecasts")}</p>}
+            </VizCard>
+          </div>
+        </>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="space-y-3">
           <CardTitle>{t("pipelines")}</CardTitle>
