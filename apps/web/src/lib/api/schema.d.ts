@@ -1617,7 +1617,8 @@ export interface paths {
         };
         get: operations["admin_users_list"];
         put?: never;
-        post?: never;
+        /** Add a person and email them an invitation to set their password. Admins can give any role and country; org admins only everyday roles and enumerators, in their own country. */
+        post: operations["admin_users_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4396,6 +4397,20 @@ export interface components {
             device?: {
                 [key: string]: unknown;
             };
+        };
+        AdminUserCreate: {
+            /** @example Ama Mensah */
+            fullName: string;
+            /**
+             * Format: email
+             * @example ama@example.com
+             */
+            email: string;
+            /** @example +233200000000 */
+            phone?: string;
+            role: components["schemas"]["Role"];
+            /** @description Admins only; org admins always add people to their own country */
+            country?: string;
         };
         AdminUserUpdate: {
             role?: components["schemas"]["Role"];
@@ -8337,6 +8352,32 @@ export interface operations {
                     "application/json": components["schemas"]["RowPage"];
                 };
             };
+        };
+    };
+    admin_users_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
         };
     };
     admin_users_update: {

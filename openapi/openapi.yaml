@@ -1246,6 +1246,15 @@ paths:
       parameters: [{ $ref: "#/components/parameters/CountryQuery" }, { name: role, in: query, schema: { $ref: "#/components/schemas/Role" } }, { name: q, in: query, schema: { type: string, maxLength: 100 } }, { $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
       responses:
         "200": { description: Users, content: { application/json: { schema: { $ref: "#/components/schemas/RowPage" } } } }
+    post:
+      tags: [admin]
+      operationId: admin_users_create
+      summary: Add a person and email them an invitation to set their password. Admins can give any role and country; org admins only everyday roles and enumerators, in their own country.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AdminUserCreate" } } } }
+      responses:
+        "200": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /v1/admin/users/{id}:
     patch:
       tags: [admin]
@@ -3397,6 +3406,15 @@ components:
         device: { type: object, additionalProperties: true }
 
     # ── admin ──
+    AdminUserCreate:
+      type: object
+      required: [fullName, email, role]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120, examples: ["Ama Mensah"] }
+        email: { type: string, format: email, maxLength: 254, examples: ["ama@example.com"] }
+        phone: { type: string, pattern: '^\+[1-9]\d{7,14}$', examples: ["+233200000000"] }
+        role: { $ref: "#/components/schemas/Role" }
+        country: { type: string, pattern: "^[A-Za-z]{2}$", description: Admins only; org admins always add people to their own country }
     AdminUserUpdate:
       type: object
       properties:

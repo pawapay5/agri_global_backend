@@ -56,3 +56,16 @@ describe("broadcastProblem", () => {
     expect(broadcastProblem({ ...ok, channels: [] })).toBe("pickChannel");
   });
 });
+
+describe("adding people and giving roles", () => {
+  it("lets admins give any role and org admins only everyday roles and enumerators", async () => {
+    const { assignableRoles } = await import("./admin-people");
+    expect(assignableRoles("admin")).toEqual(expect.arrayContaining(["org_admin", "agronomist", "admin", "farmer"]));
+    const org = assignableRoles("org_admin");
+    expect(org).toContain("enumerator");
+    expect(org).toContain("consumer");
+    expect(org).not.toContain("org_admin");
+    expect(org).not.toContain("agronomist");
+    expect(assignableRoles("farmer")).toEqual([]);
+  });
+});

@@ -92,3 +92,25 @@ test("seller approvals: rejecting needs a reason, approving asks first", async (
   await page.getByRole("alertdialog").getByRole("button", { name: "Approve" }).click();
   await expect.poll(() => decisions).toEqual([{ decision: "approve" }]);
 });
+
+test("users: admins add people, including an org admin, and an invitation is sent", async ({ page }) => {
+  await signIn(page);
+  let body: unknown = null;
+  await page.route("**/api/v1/admin/users", async (r) => {
+    if (r.request().method() !== "POST") return r.fallback();
+    body = r.request().postDataJSON();
+    await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "00000000-0000-4000-8000-000000000009", email: "kofi@example.com", role: "org_admin", country: "GH" }) });
+  });
+  await page.goto("/en/admin/users");
+  await page.getByRole("button", { name: "Add user" }).first().click();
+  await page.getByRole("button", { name: "Add and send invitation" }).click();
+  await expect(page.locator("#nu-fullName")).toBeFocused();
+  expect(body).toBeNull();
+  await page.locator("#nu-fullName").fill("Kofi Boateng");
+  await page.locator("#nu-email").fill("kofi@example.com");
+  await page.locator("#nu-role").selectOption("org_admin");
+  await page.getByRole("button", { name: "Add and send invitation" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Add user" }).click();
+  await expect(page.getByText("Added. An invitation was sent to kofi@example.com.", { exact: true })).toBeVisible();
+  expect(body).toMatchObject({ fullName: "Kofi Boateng", email: "kofi@example.com", role: "org_admin" });
+});
